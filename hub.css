@@ -14,16 +14,16 @@
 .hub { max-width: 1000px; margin: 0 auto; padding: 2rem var(--pad-x) 3.5rem; }
 .hub-label { text-align: center; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: var(--or); font-weight: 600; margin-bottom: 0.9rem; }
 
-/* Gros boutons du niveau 1 */
-.hub-groups { display: grid; grid-template-columns: 1fr; gap: 0.55rem; margin-bottom: 1.2rem; }
-.hub-g { min-height: 48px; border: 2px solid var(--gris); background: #fff; color: var(--bleu); font: 700 1rem 'DM Sans', sans-serif; padding: 0.5rem 1rem; border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; box-shadow: 0 1px 2px rgba(10,35,66,.06); }
-.hub-g:hover { border-color: var(--or); }
-.hub-g[aria-selected="true"] { background: var(--bleu); color: var(--or); border-color: var(--bleu); box-shadow: 0 6px 18px rgba(10,35,66,.22); }
+/* Boutons du niveau 1 : petites pastilles (comme les filtres du calendrier) */
+.hub-groups { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.6rem; }
+.hub-g { flex: 0 0 auto; min-height: 38px; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 600 0.8rem 'DM Sans', sans-serif; letter-spacing: 0.3px; padding: 0.4rem 0.95rem; border-radius: 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.hub-g:hover { border-color: var(--bleu); color: var(--bleu); }
+.hub-g[aria-selected="true"] { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
 .hub-g:focus-visible, .hub-s:focus-visible, .hub-act:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
-/* Sous-boutons du niveau 2 */
+/* Boutons du niveau 2 : encore plus discrets */
 .hub-subs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
-.hub-s { flex: 0 1 auto; min-height: 40px; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 700 0.85rem 'DM Sans', sans-serif; padding: 0.35rem 0.95rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
+.hub-s { flex: 0 0 auto; min-height: 34px; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 600 0.74rem 'DM Sans', sans-serif; padding: 0.3rem 0.8rem; border-radius: 20px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
 .hub-s:hover { border-color: var(--or); color: var(--bleu); }
 .hub-s[aria-selected="true"] { background: var(--or); color: var(--bleu); border-color: var(--or); }
 
@@ -44,7 +44,6 @@
 .hub-act:disabled { opacity: .6; cursor: wait; }
 .hub-empty { text-align: center; color: #667085; padding: 2rem 1rem; border: 1px dashed var(--gris); border-radius: 10px; }
 
-@media (min-width: 600px) { .hub-groups { grid-template-columns: 1fr 1fr; } .hub-g { font-size: 1.05rem; min-height: 52px; } }
 
 /* Fenêtre du tableau */
 #tbDlg { margin: auto; border: 0; border-radius: 14px; padding: 0; width: min(1000px, 96vw); max-height: 92vh; border-top: 5px solid var(--or); background: #fff; color: #1a1f2e; box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
