@@ -22,7 +22,7 @@ function applySettings(s) {
     if (s.emailDev) { const a = $('a', c[3]); a.textContent = s.emailDev; a.href = 'mailto:' + s.emailDev; }
   }
   const pdf = $('.dl-btn');
-  if (pdf && s.pdfUrl) { pdf.href = s.pdfUrl; if (s.pdfLabel) pdf.textContent = '⬇ ' + s.pdfLabel; }
+  if (pdf && s.pdfUrl && !pdf.hasAttribute('data-fixe')) { pdf.href = s.pdfUrl; if (s.pdfLabel) pdf.textContent = '⬇ ' + s.pdfLabel; }
   if (s.email) $$('.footer-bottom a').forEach(a => { a.textContent = s.email; a.href = 'mailto:' + s.email; });
 }
 
