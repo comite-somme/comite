@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<link rel="icon" type="image/png" href="logocomite.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coupe de France — Comité de la Somme FFPJP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a2342">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="hub.css">
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="index.html">
+    <img src="logocomite.png" alt="Logo Comité de la Somme FFPJP">
+    <div class="nav-brand-text">
+      <span>Comité de la Somme</span>
+      <small>FFPJP — Pétanque 80</small>
+    </div>
+  </a>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="drawer"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- ── PAGE HERO ── -->
+<div class="page-hero">
+  <div class="boule boule-1"></div>
+  <div class="boule boule-2"></div>
+  <div class="page-hero-badge">FFPJP — Département 80</div>
+  <h1><em>Coupe</em> de France</h1>
+  <p>Tirages et résultats de la Coupe de France</p>
+  <div class="breadcrumb">
+    <a href="index.html">Accueil</a>
+    <span>›</span>
+    <span>Coupe de France</span>
+  </div>
+</div>
+
+<!-- ── CONTENU (boutons + documents, gérés dans l'admin) ── -->
+<main class="hub" id="hubRoot" aria-live="polite"></main>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="logocomite.png" alt="Logo Comité de la Somme">
+      <p>Comité Départemental de la Somme (80) — Fédération Française de Pétanque et Jeu Provençal. Toutes les informations et résultats sur la pétanque de notre département.</p>
+    </div>
+    <div>
+      <h5>Rubriques</h5>
+      <ul class="footer-links">
+        <li><a href="comite.html">Le Comité</a></li>
+        <li><a href="clubs.html">Les Clubs</a></li>
+        <li><a href="calendrier.html">Calendrier 2026</a></li>
+        <li><a href="championnats.html">Championnats</a></li>
+        <li><a href="cdc.html">Championnat des clubs</a></li>
+        <li><a href="classement.html">Classements</a></li>
+        <li><a href="coupe-de-france.html">Coupe de France</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Liens utiles</h5>
+      <ul class="footer-links">
+        <li><a href="annuaire.html">Annuaire</a></li>
+        <li><a href="documentations.html">Documentations</a></li>
+        <li><a href="archives.html">Archives</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="confidentialite.html">Confidentialité</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Comité de la Somme FFPJP — 80000 Amiens</span>
+    <span>Contact : <a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></span>
+  </div>
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+});
+</script>
+
+<!-- Boutons et documents : modifiables dans admin.html, onglet « Coupe de France » -->
+<script type="module">
+import { initHub } from './hub.js';
+initHub({"col": "coupedefrance", "label": "Choisissez une épreuve", "root": "#hubRoot", "groups": [{"k": "cdf", "titre": "Coupe de France", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}, {"k": "fem", "titre": "Coupe de France Féminines", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}, {"k": "jp", "titre": "Coupe de France Jeu Provençal", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}, {"k": "jeunes", "titre": "Coupe de France Jeunes", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}]});
+</script>
+<script src="nav.js"></script>
+<script type="module" src="track.js"></script>
+</body>
+</html>

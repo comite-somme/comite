@@ -21,8 +21,6 @@
 .page-hero h1 em { color: var(--or); font-style: normal; }
 .page-hero p { position: relative; color: rgba(255,255,255,0.55); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
 .page-hero .breadcrumb { position: static; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
-.page-hero .breadcrumb a { color: var(--or-light); }
-.page-hero .breadcrumb a:hover { text-decoration: underline; }
 .container { max-width: 1100px; }
 
 /* ── DOCUMENTATIONS ── */
@@ -92,7 +90,7 @@
   <div class="boule boule-2"></div>
   <div class="page-hero-badge">FFPJP — Département 80</div>
   <h1><em>Documentations</em></h1>
-  <p>Règlements, formulaires & documents utiles</p>
+  <p>Documents FFPJP, documents CD80 et utilitaires</p>
   <div class="breadcrumb">
     <a href="index.html">Accueil</a>
     <span>›</span>
@@ -160,9 +158,40 @@ import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* Mêmes catégories que dans l'administration */
-const CAT = [['reglements', 'Règlements'], ['formulaires', 'Formulaires'], ['licences', 'Licences et affiliation'], ['arbitrage', 'Arbitrage'], ['comite', 'Comité et clubs'], ['autre', 'Autres documents']];
+/* Les 3 rubriques (mêmes clés que dans l'administration) */
+const CAT = [['ffpjp', 'Documents FFPJP'], ['cd80', 'Documents CD80'], ['utilitaires', 'Utilitaires CD80']];
 const CATNAME = Object.fromEntries(CAT);
+/* Anciennes catégories : rangées automatiquement dans la bonne rubrique */
+const OLD = { formulaires: 'utilitaires', licences: 'utilitaires' };
+const catOf = d => CATNAME[d.categorie] ? d.categorie : (OLD[d.categorie] || 'cd80');
+
+/* Documents attendus : ils s'affichent toujours ; le lien se renseigne dans l'admin
+   (onglet Documentations, bouton « Créer les documents types », puis « Modifier »). */
+const FFPJP_URL = 'https://www.ffpjp.org/portail/reglements-textes/reglements-textes-officiels';
+const DEFAULTS = [
+  { categorie: 'ffpjp', titre: 'Règlements et textes officiels FFPJP', description: 'Règlements de jeu, statuts, règlements administratif et sportif : tous les textes officiels de la Fédération.', lien: FFPJP_URL, lienTexte: 'Accéder aux textes officiels' },
+  { categorie: 'cd80', titre: 'Statuts' },
+  { categorie: 'cd80', titre: 'Règlement intérieur' },
+  { categorie: 'cd80', titre: 'Cahier des championnats' },
+  { categorie: 'cd80', titre: 'Règlement CDC' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion' },
+  { categorie: 'cd80', titre: 'Compte rendu d\'assemblée générale' },
+  { categorie: 'utilitaires', titre: 'Bordereau de demande de licences' },
+  { categorie: 'utilitaires', titre: 'Imprimé de demande de licences' },
+  { categorie: 'utilitaires', titre: 'Feuille de match CDC Open' },
+  { categorie: 'utilitaires', titre: 'Feuille de match CDC Féminin' },
+  { categorie: 'utilitaires', titre: 'Feuille de match CDC Vétéran' },
+  { categorie: 'utilitaires', titre: 'Feuille de match CDC Jeu Provençal' },
+  { categorie: 'utilitaires', titre: 'Feuille de match Coupe de France' },
+  { categorie: 'utilitaires', titre: 'Feuille de match Coupe de France Féminine' },
+  { categorie: 'utilitaires', titre: 'Feuille de match Coupe de France Jeu Provençal' }
+];
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+function merge(fire) {
+  const l = fire.map(d => ({ ...d, categorie: catOf(d) }));
+  DEFAULTS.forEach((d, i) => { if (!l.some(x => x.categorie === d.categorie && norm(x.titre) === norm(d.titre))) l.push({ ...d, ordre: 1000 + i }); });
+  return l;
+}
 
 const ICON_FILE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>';
 const ICON_DL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>';
@@ -179,6 +208,7 @@ function card(d) {
     <div class="doc-top"><div class="doc-ic">${ICON_FILE}</div>
       <div><h3>${esc(d.titre)}</h3>${type ? `<span class="doc-tag">${esc(type)}</span>` : ''}</div></div>
     ${d.description ? `<p>${esc(d.description)}</p>` : ''}
+    ${!url ? '<span class="doc-tag">Bientôt disponible</span>' : ''}
     ${url ? `<a class="doc-btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${isFile ? ICON_DL : ICON_EXT}${esc(d.lienTexte || (isFile ? 'Télécharger' : 'Consulter'))}</a>` : ''}
   </article>`;
 }
@@ -190,17 +220,16 @@ function observe() {
 
 function draw() {
   const q = $('#q').value.trim().toLowerCase();
-  const l = docs.filter(d => (!cat || (d.categorie || 'autre') === cat) && (!q || [d.titre, d.description].join(' ').toLowerCase().includes(q)));
+  const l = docs.filter(d => (!cat || d.categorie === cat) && (!q || [d.titre, d.description].join(' ').toLowerCase().includes(q)));
   if (!l.length) { $('#list').innerHTML = `<div class="doc-empty">${docs.length ? 'Aucun document ne correspond à votre recherche.' : 'Aucun document disponible pour le moment.'}</div>`; return; }
-  const g = {}; l.forEach(d => (g[d.categorie || 'autre'] ||= []).push(d));
+  const g = {}; l.forEach(d => (g[d.categorie] ||= []).push(d));
   const keys = CAT.map(c => c[0]).filter(k => g[k]).concat(Object.keys(g).filter(k => !CATNAME[k]));
   $('#list').innerHTML = keys.map(k => `<div class="doc-group reveal"><h3 class="doc-gh">${esc(CATNAME[k] || k)} <span>(${g[k].length})</span></h3><div class="doc-grid">${g[k].map(card).join('')}</div></div>`).join('');
   observe();
 }
 
 function drawChips() {
-  const present = new Set(docs.map(d => d.categorie || 'autre'));
-  const opts = [['', 'Tout']].concat(CAT.filter(c => present.has(c[0])));
+  const opts = [['', 'Tout']].concat(CAT);
   $('#chips').innerHTML = opts.map(([k, l]) => `<button type="button" class="doc-chip ${k === cat ? 'on' : ''}" data-c="${esc(k)}" aria-pressed="${k === cat}">${esc(l)}</button>`).join('');
 }
 
@@ -208,11 +237,12 @@ $('#chips').onclick = e => { const b = e.target.closest('[data-c]'); if (!b) ret
 $('#q').oninput = draw;
 
 try {
-  docs = (await getDocs(collection(db, 'documentations'))).docs.map(d => d.data())
+  docs = merge((await getDocs(collection(db, 'documentations'))).docs.map(d => d.data()))
     .sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'));
   drawChips(); draw();
 } catch (e) {
-  $('#list').innerHTML = '<div class="doc-empty">Impossible de charger les documents pour le moment. Réessayez dans quelques instants.</div>';
+  docs = merge([]).sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99));
+  drawChips(); draw();
 }
 
 // Reveal on scroll (blocs fixes)

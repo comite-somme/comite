@@ -70,10 +70,12 @@ nav {
 .page-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 10vw, 5rem); color: #fff; letter-spacing: 2px; line-height: 1; animation: fadeUp 0.8s ease both 0.1s; }
 .page-header h1 em { color: var(--or); font-style: normal; }
 .page-header p { color: rgba(255,255,255,0.65); font-size: 0.95rem; margin: 0.8rem auto 0; max-width: 36rem; animation: fadeUp 0.9s ease both 0.2s; }
-.breadcrumb { display: none; }
-.breadcrumb a { color: rgba(255,255,255,0.45); text-decoration: none; transition: color 0.2s; }
-.breadcrumb a:hover { color: var(--or); }
-.breadcrumb span { color: rgba(255,255,255,0.25); }
+.breadcrumb { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-top: 1.25rem; font-size: 0.95rem; }
+/* Bouton « Accueil » : grande zone tactile, bien visible sur chaque page */
+.breadcrumb a { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 48px; padding: 0.6rem 1.5rem; font-size: 1.05rem; font-weight: 700; color: var(--or-light, #e2c87a); background: rgba(201,168,76,0.14); border: 1.5px solid rgba(201,168,76,0.6); border-radius: 30px; text-decoration: none; transition: background 0.2s, color 0.2s; }
+.breadcrumb a:hover { background: var(--or); color: var(--bleu); text-decoration: none; }
+.breadcrumb a:focus-visible { outline: 3px solid var(--or); outline-offset: 3px; }
+.breadcrumb span { color: rgba(255,255,255,0.45); font-size: 1.05rem; }
 
 /* ── CONTENU ── */
 .page-content { max-width: var(--maxw); margin: 0 auto; padding: 1.5rem var(--pad-x) 3rem; }

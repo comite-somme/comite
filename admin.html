@@ -375,17 +375,17 @@ SCHEMA.archives = {
       ['h','Lien vers un fichier (facultatif)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Adresse du fichier (https://…)','url']]
 };
 /* Documentations : une ligne = un document avec son lien (page publique documentations.html) */
-const DOCCAT = [['reglements','Règlements'],['formulaires','Formulaires'],['licences','Licences et affiliation'],['arbitrage','Arbitrage'],['comite','Comité et clubs'],['autre','Autres documents']];
-const DOCPILL = { reglements: 'champ', formulaires: 'concours', licences: 'gp', arbitrage: 'cdc', comite: 'regional', autre: 'veterans' };
+const DOCCAT = [['ffpjp','Documents FFPJP'],['cd80','Documents CD80'],['utilitaires','Utilitaires CD80']];
+const DOCPILL = { ffpjp: 'champ', cd80: 'concours', utilitaires: 'gp' };
 SCHEMA.documentations = {
-  tab: 'Documentations', desc: 'Les documents de la page Documentations du site (règlements, formulaires, licences…). Il suffit de coller l\'adresse du fichier ou de la page. Le numéro de position règle l\'ordre dans chaque catégorie.',
+  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, feuilles de match…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page. Le bouton « Créer les documents types » prépare toutes les lignes attendues : il ne reste qu\'à y ajouter les liens.',
   add: 'Ajouter un document', req: ['titre', 'lien'],
   sort: (a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'),
   group: d => d.categorie || 'autre', glabel: k => Object.fromEntries(DOCCAT)[k] || k, gorder: DOCCAT.map(c => c[0]),
   left: d => `<div class="bd">${esc(d.ordre ?? '')}</div>`,
   title: d => d.titre,
   sub: d => `<span class="pill ${esc(DOCPILL[d.categorie] || 'veterans')}">${esc(Object.fromEntries(DOCCAT)[d.categorie] || 'Autres documents')}</span>${esc((d.description || '').slice(0, 90) || d.lien || '')}`,
-  f: [['h','Le document'], ['categorie','Catégorie','select',DOCCAT], ['titre','Titre (ex : Règlement des championnats)'], ['description','Description (facultatif)','textarea'], ['ordre','Position (1 = en premier)','number'],
+  f: [['h','Le document'], ['categorie','Rubrique','select',DOCCAT], ['titre','Titre (ex : Statuts)'], ['description','Description (facultatif)','textarea'], ['ordre','Position (1 = en premier)','number'],
       ['h','Lien'], ['lien','Adresse du fichier ou de la page (https://…)','url'], ['lienTexte','Texte du bouton (facultatif, ex : Télécharger le règlement)']]
 };
 /* Tirages, Championnats, Championnat des clubs, Résultats : même fonctionnement que les Archives */
@@ -402,10 +402,25 @@ const DOCS = (tab, desc, add, cats) => ({
       ['h','Tableau Excel (facultatif)'], ['feuilles','Glisse un fichier Excel : chaque feuille s\'affichera en tableau sur le site','xlsx'],
       ['h','Lien vers un fichier (facultatif)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Adresse du fichier (https://…)','url']]
 });
-SCHEMA.tirages = DOCS('Tirages', 'Les tirages affichés sur la page Tirages du site. Chaque document est rangé par saison.', 'Ajouter un tirage', EPREUVES);
-SCHEMA.championnats = DOCS('Championnats', 'Les documents de la page Championnats (qualifiés, classements, règlements…).', 'Ajouter un document', EPREUVES);
+/* Championnats et Coupe de France : un champ « section » (partie + rubrique) range chaque document sur le site */
+const SECTIONED = (tab, desc, add, secs, col) => ({
+  col, tab, desc, add, req: ['titre', 'saison', 'section'],
+  filter: a => a.section,
+  sort: (a, b) => (b.saison || '').localeCompare(a.saison || '') || (b.jour || '').localeCompare(a.jour || '') || (a.ordre ?? 99) - (b.ordre ?? 99),
+  group: a => a.section, glabel: k => Object.fromEntries(secs)[k] || k, gorder: secs.map(s => s[0]),
+  left: a => a.jour ? `<div class="dt"><b>${esc(a.jour.slice(8))}</b><span>${esc((MOIS[+a.jour.slice(5, 7) - 1] || '').slice(0, 3).toUpperCase())}</span></div>` : `<div class="bd">${esc(a.ordre ?? '')}</div>`,
+  title: a => a.titre,
+  sub: a => `<span class="pill champ">${esc(a.saison || '')}</span>${(a.feuilles || []).length ? `<span class="pill concours">Tableau Excel · ${a.feuilles.length} feuille${a.feuilles.length > 1 ? 's' : ''}</span>` : ''}${a.lien ? '<span class="pill gp">Lien</span>' : ''}${[a.lieu, (a.description || '').slice(0, 70)].filter(Boolean).map(esc).join(' · ')}`,
+  f: [['h','Où l\'afficher sur le site'], ['section','Partie et rubrique','select',secs], ['saison','Saison (ex : 2025-2026)'], ['h','Le contenu'], ['titre','Titre'], ['jour','Date (facultatif)','date'], ['lieu','Lieu (facultatif)'], ['description','Texte libre (facultatif) : liste de joueurs, informations…','textarea'], ['ordre','Position (1 = en premier)','number'],
+      ['h','Tableau Excel (facultatif)'], ['feuilles','Glisse un fichier Excel (.xlsx) : chaque feuille s\'affichera en tableau sur le site, téléchargeable en Excel','xlsx'],
+      ['h','Lien vers un fichier (facultatif : PDF, Excel, page web…)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Adresse du fichier (https://…)','url']]
+});
+const SEC_CHAMP = [['dep-tirages','Départementaux — Tirages'],['dep-resultats','Départementaux — Résultats'],['dep-qualifies','Départementaux — Qualifiés pour les régionaux'],['dep-suspendus','Départementaux — Suspendus'],['reg-tirages','Régionaux — Tirages'],['reg-resultats','Régionaux — Résultats']];
+const CDF = [['cdf','Coupe de France'],['fem','Coupe de France Féminines'],['jp','Coupe de France Jeu Provençal'],['jeunes','Coupe de France Jeunes']];
+const SEC_CDF = CDF.flatMap(([k, n]) => [[k + '-tirages', n + ' — Tirages'], [k + '-resultats', n + ' — Résultats']]);
+SCHEMA.championnats = SECTIONED('Championnats', 'La page Championnats : Départementaux (tirages, résultats, qualifiés pour les régionaux, suspendus) et Régionaux (tirages, résultats). Choisis la partie et la rubrique, puis écris un texte, ajoute un lien ou importe un fichier Excel.', 'Ajouter un document', SEC_CHAMP, 'championnats');
+SCHEMA.coupedefrance = SECTIONED('Coupe de France', 'La page Coupe de France : 4 épreuves (Coupe de France, Féminines, Jeu Provençal, Jeunes), chacune avec ses tirages et ses résultats. Texte, lien ou fichier Excel.', 'Ajouter un document', SEC_CDF, 'coupedefrance');
 SCHEMA.championnatsclubs = DOCS('Champ. des clubs', 'Les tirages, résultats et classements de la page Championnat des clubs. Choisis l\'épreuve (Open Féminin, Open, Vétérans, Jeu Provençal, CDC Jeunes) : le document apparaît dans l\'onglet correspondant.', 'Ajouter un document', DIVISIONS);
-SCHEMA.resultats = DOCS('Résultats', 'Les résultats affichés sur la page Résultats du site.', 'Ajouter un résultat', EPREUVES);
 const SETTINGS = [['h', 'Page d\'accueil'], ['heroDesc', 'Texte de présentation', 'textarea'],
   ['h', 'Les 4 chiffres du bandeau doré'], ['stat1v', 'Chiffre 1 (ex : 33)'], ['stat1l', 'Légende 1 (ex : Clubs)'], ['stat2v', 'Chiffre 2'], ['stat2l', 'Légende 2'], ['stat3v', 'Chiffre 3'], ['stat3l', 'Légende 3'], ['stat4v', 'Chiffre 4'], ['stat4l', 'Légende 4'],
   ['h', 'Coordonnées (accueil et bas de page)'], ['adresse', 'Adresse du comité', 'textarea'], ['tel', 'Téléphone'], ['email', 'Email du comité'], ['emailDev', 'Email du développeur web'],
@@ -425,8 +440,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['award', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['file', 'Confidentialité'], stats: ['stats', 'Statistiques'], tirages: ['clip', 'Tirages'], championnats: ['award', 'Championnats'], championnatsclubs: ['users', 'Champ. des clubs'], resultats: ['stats', 'Résultats'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'tirages', 'championnats', 'championnatsclubs', 'resultats', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille']]];
+const NAMES = { home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['award', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['file', 'Confidentialité'], stats: ['stats', 'Statistiques'], championnats: ['award', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], championnatsclubs: ['users', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
+const GROUPS = [['Général', ['home', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -487,12 +502,28 @@ async function viewSettings() {
   $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { await setDoc(doc(db, 'settings', 'general'), read(SETTINGS, e.target), { merge: true }); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
+/* Documents types de la page Documentations (créés d'un clic, il ne reste qu'à y mettre les liens) */
+const DOC_TYPES = [
+  ['ffpjp', 'Règlements et textes officiels FFPJP', 'https://www.ffpjp.org/portail/reglements-textes/reglements-textes-officiels', 'Accéder aux textes officiels'],
+  ['cd80', 'Statuts'], ['cd80', 'Règlement intérieur'], ['cd80', 'Cahier des championnats'], ['cd80', 'Règlement CDC'], ['cd80', 'Compte rendu de réunion'], ['cd80', 'Compte rendu d\'assemblée générale'],
+  ['utilitaires', 'Bordereau de demande de licences'], ['utilitaires', 'Imprimé de demande de licences'], ['utilitaires', 'Feuille de match CDC Open'], ['utilitaires', 'Feuille de match CDC Féminin'], ['utilitaires', 'Feuille de match CDC Vétéran'], ['utilitaires', 'Feuille de match CDC Jeu Provençal'],
+  ['utilitaires', 'Feuille de match Coupe de France'], ['utilitaires', 'Feuille de match Coupe de France Féminine'], ['utilitaires', 'Feuille de match Coupe de France Jeu Provençal']
+];
+const normT = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+async function seedDocs() {
+  const have = cache.documentations || [], todo = DOC_TYPES.filter(([c, ti]) => !have.some(x => x.categorie === c && normT(x.titre) === normT(ti)));
+  if (!todo.length) return toast('Tous les documents types existent déjà.');
+  if (!await ask('Créer les documents types ?', `${todo.length} ligne${todo.length > 1 ? 's' : ''} seront ajoutées (sans lien pour la plupart). Tu les complètes ensuite avec « Modifier ».`, 'Créer')) return;
+  try { let n = have.length; for (const [categorie, titre, lien = '', lienTexte = ''] of todo) await addDoc(collection(db, 'documentations'), { categorie, titre, lien, lienTexte, description: '', ordre: ++n });
+    toast(`${todo.length} document${todo.length > 1 ? 's' : ''} créé${todo.length > 1 ? 's' : ''} — ajoute les liens`); show(); } catch (er) { toast('Échec : ' + er.message, 1); }
+}
+
 async function viewList(col) {
   const S = SCHEMA[col], C = S.col || col;   // C = collection Firestore réelle
   cache[col] = (await getDocs(collection(db, C))).docs.map(d => ({ ...d.data(), _id: d.id })).filter(S.filter || (() => true)).sort(S.sort);
   if (col === 'events') cache.clubsList = (await getDocs(collection(db, 'clubs'))).docs.map(d => d.data()).sort((a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'));
   const months = col === 'events' ? [...new Set(cache[col].map(S.group))] : [];
-  const XL = ['tirages', 'championnats', 'championnatsclubs', 'resultats'].includes(col);
+  const XL = ['championnats', 'coupedefrance', 'championnatsclubs'].includes(col);
   let pdfCard = '', pdfBind = () => {};
   if (col === 'events') {
     const g = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
@@ -505,7 +536,7 @@ async function viewList(col) {
   }
   $('#main').innerHTML = head(S.tab, S.desc) + pdfCard + `<div class="bar"><div class="srch">${ic('search')}<input id="q" type="search" placeholder="Rechercher…" aria-label="Rechercher"></div>
     ${col === 'events' ? `<select id="mo" aria-label="Mois"><option value="">Tous les mois</option>${months.map(k => `<option value="${esc(k)}">${esc(S.glabel(k))}</option>`).join('')}</select><select id="ty" aria-label="Catégorie"><option value="">Toutes catégories</option>${CATOPT.map(([a, b]) => `<option value="${a}">${b}</option>`).join('')}</select>` : ''}
-    ${XL ? `<button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden>` : ''}<button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
+    ${XL ? `<button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden>` : ''}${col === 'documentations' ? `<button class="btn b-bl" id="seed">${ic('plus')}Créer les documents types</button>` : ''}<button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
   const draw = () => { const q = $('#q').value.toLowerCase(), mo = $('#mo')?.value, ty = $('#ty')?.value;
     const l = cache[col].filter(x => (!q || JSON.stringify(x).toLowerCase().includes(q)) && (!mo || S.group(x) === mo) && (!ty || x.type === ty));
     if (!l.length) return $('#list').innerHTML = empty('Aucun résultat. Utilise le bouton « Ajouter » pour en créer un.');
@@ -514,6 +545,7 @@ async function viewList(col) {
     $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act"><button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
   pdfBind();
   draw(); ['#q', '#mo', '#ty'].forEach(s => $(s) && ($(s).oninput = draw));
+  if (col === 'documentations') $('#seed').onclick = seedDocs;
   if (XL) { $('#xl').onclick = () => $('#xf').click();
     $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
       try { await loadXLSX(); const s = toSheets(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
@@ -521,8 +553,8 @@ async function viewList(col) {
         if (JSON.stringify(s).length > LIM) return toast('Fichier trop volumineux : sépare-le en plusieurs documents.', 1);
         const n = new Date(), y = n.getMonth() >= 8 ? n.getFullYear() : n.getFullYear() - 1;
         edit(col, { titre: f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), saison: y + '-' + (y + 1), ordre: cache[col].length + 1, feuilles: s });
-        toast('Fichier lu — choisis l\'épreuve puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } }; }
-  $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'reglements', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
+        toast('Fichier lu — choisis la partie et la rubrique puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } }; }
+  $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'cd80', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, x = cache[col].find(i => i._id === id);
     if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
@@ -683,7 +715,7 @@ function drawPrivacy() {
 }
 
 /* ===== Messages, Corbeille, Statistiques ===== */
-const KIND = { events: ['Compétition', d => d.titre], clubs: ['Club', d => d.ville], membres: ['Membre', d => d.nom], classements: ['Classement', d => d.nom], actualites: ['Actualité', d => d.titre], annuaire: ['Site', d => d.nom], archives: ['Archive', d => d.titre], documentations: ['Documentation', d => d.titre], tirages: ['Tirage', d => d.titre], championnats: ['Championnat', d => d.titre], championnatsclubs: ['Champ. des clubs', d => d.titre], resultats: ['Résultat', d => d.titre], messages: ['Message', d => `${d.nom} — ${d.sujet || 'Sans sujet'}`] };
+const KIND = { events: ['Compétition', d => d.titre], clubs: ['Club', d => d.ville], membres: ['Membre', d => d.nom], classements: ['Classement', d => d.nom], actualites: ['Actualité', d => d.titre], annuaire: ['Site', d => d.nom], archives: ['Archive', d => d.titre], documentations: ['Documentation', d => d.titre], championnats: ['Championnat', d => d.titre], coupedefrance: ['Coupe de France', d => d.titre], championnatsclubs: ['Champ. des clubs', d => d.titre], messages: ['Message', d => `${d.nom} — ${d.sujet || 'Sans sujet'}`] };
 const fdate = t => t ? new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
 async function trash(col, id, x) {
@@ -739,7 +771,7 @@ async function viewTrash() {
       badge(); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
-const PAGES = { accueil: 'Accueil', comite: 'Le Comité', clubs: 'Les clubs', calendrier: 'Calendrier', annuaire: 'Annuaire', classement: 'Classements', archives: 'Archives', documentations: 'Documentations', cdc: 'Champ. des clubs', resultats: 'Résultats' };
+const PAGES = { accueil: 'Accueil', comite: 'Le Comité', clubs: 'Les clubs', calendrier: 'Calendrier', annuaire: 'Annuaire', classement: 'Classements', archives: 'Archives', documentations: 'Documentations', cdc: 'Champ. des clubs', championnats: 'Championnats', 'coupe-de-france': 'Coupe de France' };
 let statsDays = 30;
 async function viewStats() {
   const snap = await getDocs(collection(db, 'stats_vues'));
