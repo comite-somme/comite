@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<link rel="icon" type="image/png" href="logocomite.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentations — Comité de la Somme FFPJP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a2342">
+<link rel="stylesheet" href="base.css">
+<style>
+/* ── PAGE HERO ── */
+.page-hero { background: linear-gradient(160deg, var(--bleu) 0%, #0d3060 55%, #1a5276 100%); padding: calc(var(--nav-h) + 2rem) var(--pad-x) 2.5rem; text-align: center; position: relative; overflow: hidden; border-bottom: 3px solid var(--or); }
+.page-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(201,168,76,0.12) 0%, transparent 70%); pointer-events: none; }
+.boule { position: absolute; border-radius: 50%; opacity: 0.07; background: radial-gradient(circle at 35% 35%, var(--or), var(--bleu-mid)); }
+.boule-1 { width: 200px; height: 200px; top: -60px; right: -60px; }
+.boule-2 { width: 110px; height: 110px; bottom: -20px; left: -20px; }
+.page-hero-badge { position: relative; display: inline-block; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.35); color: var(--or-light); font-size: 0.7rem; letter-spacing: 2.5px; text-transform: uppercase; padding: 0.3rem 1rem; border-radius: 40px; margin-bottom: 1rem; }
+.page-hero h1 { position: relative; font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.4rem, 12vw, 4.5rem); color: #fff; letter-spacing: 2px; line-height: 1; margin-bottom: 0.5rem; }
+.page-hero h1 em { color: var(--or); font-style: normal; }
+.page-hero p { position: relative; color: rgba(255,255,255,0.55); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
+.page-hero .breadcrumb { position: static; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+.page-hero .breadcrumb a { color: var(--or-light); }
+.page-hero .breadcrumb a:hover { text-decoration: underline; }
+.container { max-width: 1100px; }
+
+/* ── DOCUMENTATIONS ── */
+#documentations { background: #f5f4f0; padding: 2.5rem var(--pad-x) 3.5rem; min-height: 50vh; }
+.doc-tools { display: flex; flex-direction: column; gap: 0.9rem; margin-bottom: 2rem; }
+.doc-search { position: relative; }
+.doc-search svg { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); stroke: #667085; pointer-events: none; }
+.doc-search input { width: 100%; font: inherit; font-size: 1rem; color: #1a1f2e; padding: 0.75rem 1rem 0.75rem 2.7rem; border: 1.5px solid #dfe3e8; border-radius: 10px; background: #fff; min-height: 46px; transition: border-color .15s, box-shadow .15s; }
+.doc-search input:focus { outline: none; border-color: var(--or); box-shadow: 0 0 0 3px rgba(201,168,76,0.28); }
+.doc-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.doc-chip { font: inherit; font-weight: 600; font-size: 0.82rem; color: var(--bleu); background: #fff; border: 1.5px solid #dfe3e8; border-radius: 25px; padding: 0.45rem 1.05rem; min-height: 40px; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.doc-chip:hover, .doc-chip.on { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
+.doc-chip:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
+
+.doc-group { margin-bottom: 2.2rem; }
+.doc-gh { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; color: var(--bleu); display: inline-block; border-bottom: 2px solid var(--or); padding-bottom: 0.1rem; margin-bottom: 1rem; line-height: 1.1; }
+.doc-gh span { color: #667085; font-size: 1.1rem; letter-spacing: 1px; }
+.doc-grid { display: grid; grid-template-columns: 1fr; gap: 0.9rem; }
+@media (min-width: 700px) { .doc-grid { grid-template-columns: 1fr 1fr; } }
+
+.doc-card { background: #fff; border: 1px solid #dfe3e8; border-left: 4px solid var(--or); border-radius: 12px; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 1px 2px rgba(10,35,66,.06), 0 4px 14px rgba(10,35,66,.06); transition: transform .2s, box-shadow .2s; }
+.doc-top { display: flex; align-items: flex-start; gap: 0.8rem; }
+.doc-ic { width: 42px; height: 42px; border-radius: 10px; background: #fbf3d9; color: var(--bleu); display: grid; place-items: center; flex-shrink: 0; }
+.doc-ic svg { stroke: var(--bleu); }
+.doc-card h3 { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 1.1rem; color: var(--bleu); line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+.doc-tag { display: inline-block; margin-top: 0.3rem; font-size: 0.66rem; font-weight: 700; letter-spacing: 1px; color: #7a5500; background: #fff8e0; border-radius: 10px; padding: 1px 9px; }
+.doc-card p { color: #667085; font-size: 0.88rem; line-height: 1.5; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.doc-btn { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 0.45rem; background: var(--or); color: var(--bleu); font-weight: 700; font-size: 0.88rem; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 8px; min-height: 42px; transition: background .15s, transform .1s; }
+.doc-btn:hover { background: var(--or-light); }
+.doc-btn:active { transform: translateY(1px); }
+.doc-btn:focus-visible { outline: 3px solid var(--bleu); outline-offset: 2px; }
+.doc-btn svg { stroke: var(--bleu); flex-shrink: 0; }
+
+.doc-empty { text-align: center; color: #667085; padding: 2.5rem 1rem; background: #fff; border: 1px dashed #cfd5dd; border-radius: 10px; }
+
+@media (min-width: 768px) {
+  .page-hero { padding-bottom: 3.5rem; }
+  .page-hero p { font-size: 0.82rem; letter-spacing: 3px; }
+  .boule-1 { width: 280px; height: 280px; }
+  .boule-2 { width: 140px; height: 140px; left: 4%; }
+  #documentations { padding: 4rem var(--pad-x) 5rem; }
+  .doc-tools { flex-direction: row; align-items: center; justify-content: space-between; }
+  .doc-search { flex: 0 1 340px; }
+}
+@media (hover: hover) {
+  .doc-card:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(10,35,66,.08), 0 12px 28px rgba(10,35,66,.12); }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="index.html">
+    <img src="logocomite.png" alt="Logo Comité de la Somme FFPJP">
+    <div class="nav-brand-text">
+      <span>Comité de la Somme</span>
+      <small>FFPJP — Pétanque 80</small>
+    </div>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html">Accueil</a></li>
+    <li><a href="comite.html">Le Comité</a></li>
+    <li><a href="clubs.html">Les Clubs</a></li>
+    <li><a href="calendrier.html">Calendrier</a></li>
+    <li><a href="annuaire.html">Annuaire</a></li>
+    <li><a href="documentations.html" class="active">Documentations</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- ── PAGE HERO ── -->
+<div class="page-hero">
+  <div class="boule boule-1"></div>
+  <div class="boule boule-2"></div>
+  <div class="page-hero-badge">FFPJP — Département 80</div>
+  <h1><em>Documentations</em></h1>
+  <p>Règlements, formulaires & documents utiles</p>
+  <div class="breadcrumb">
+    <a href="index.html">Accueil</a>
+    <span>›</span>
+    <span>Documentations</span>
+  </div>
+</div>
+
+<!-- ── DOCUMENTATIONS ── -->
+<section id="documentations">
+  <div class="container">
+    <div class="reveal" style="text-align:center; margin-bottom:2.5rem">
+      <p class="section-label">Tout au même endroit</p>
+      <h2 class="section-title" style="text-align:center">Documents <em>à télécharger</em></h2>
+      <div class="divider" style="margin: 1rem auto 0"></div>
+    </div>
+
+    <div class="doc-tools reveal">
+      <div class="doc-search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="q" type="search" placeholder="Rechercher un document…" aria-label="Rechercher un document">
+      </div>
+      <div class="doc-chips" id="chips" role="group" aria-label="Catégories"></div>
+    </div>
+
+    <div id="list" aria-live="polite"><div class="doc-empty">Chargement…</div></div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="logocomite.png" alt="Logo Comité de la Somme">
+      <p>Comité Départemental de la Somme (80) — Fédération Française de Pétanque et Jeu Provençal. Toutes les informations et résultats sur la pétanque de notre département.</p>
+    </div>
+    <div>
+      <h5>Rubriques</h5>
+      <ul class="footer-links">
+        <li><a href="comite.html">Le Comité</a></li>
+        <li><a href="clubs.html">Les Clubs</a></li>
+        <li><a href="calendrier.html">Calendrier 2026</a></li>
+        <li><a href="classement.html">Classements</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Liens utiles</h5>
+      <ul class="footer-links">
+        <li><a href="annuaire.html">Annuaire</a></li>
+        <li><a href="documentations.html">Documentations</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="confidentialite.html">Confidentialité</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Comité de la Somme FFPJP — 80000 Amiens</span>
+    <span>Contact : <a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></span>
+  </div>
+</footer>
+
+<script type="module">
+import { db } from './firebase-config.js';
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* Mêmes catégories que dans l'administration */
+const CAT = [['reglements', 'Règlements'], ['formulaires', 'Formulaires'], ['licences', 'Licences et affiliation'], ['arbitrage', 'Arbitrage'], ['comite', 'Comité et clubs'], ['autre', 'Autres documents']];
+const CATNAME = Object.fromEntries(CAT);
+
+const ICON_FILE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>';
+const ICON_DL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>';
+const ICON_EXT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>';
+
+const safeUrl = u => /^(https?:|mailto:)/i.test(u || '') ? u : '';
+const fileType = u => { const m = String(u).split(/[?#]/)[0].match(/\.(pdf|docx?|xlsx?|csv|pptx?|zip)$/i); return m ? m[1].toUpperCase().replace(/^(DOCX?)$/, 'WORD').replace(/^(XLSX?|CSV)$/, 'EXCEL').replace(/^(PPTX?)$/, 'POWERPOINT') : ''; };
+
+let docs = [], cat = '';
+
+function card(d) {
+  const url = safeUrl(d.lien), type = fileType(url), isFile = !!type;
+  return `<article class="doc-card">
+    <div class="doc-top"><div class="doc-ic">${ICON_FILE}</div>
+      <div><h3>${esc(d.titre)}</h3>${type ? `<span class="doc-tag">${esc(type)}</span>` : ''}</div></div>
+    ${d.description ? `<p>${esc(d.description)}</p>` : ''}
+    ${url ? `<a class="doc-btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${isFile ? ICON_DL : ICON_EXT}${esc(d.lienTexte || (isFile ? 'Télécharger' : 'Consulter'))}</a>` : ''}
+  </article>`;
+}
+
+function observe() {
+  const obs = new IntersectionObserver(es => es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 60); obs.unobserve(e.target); } }), { threshold: 0.05 });
+  document.querySelectorAll('#list .reveal').forEach(r => obs.observe(r));
+}
+
+function draw() {
+  const q = $('#q').value.trim().toLowerCase();
+  const l = docs.filter(d => (!cat || (d.categorie || 'autre') === cat) && (!q || [d.titre, d.description].join(' ').toLowerCase().includes(q)));
+  if (!l.length) { $('#list').innerHTML = `<div class="doc-empty">${docs.length ? 'Aucun document ne correspond à votre recherche.' : 'Aucun document disponible pour le moment.'}</div>`; return; }
+  const g = {}; l.forEach(d => (g[d.categorie || 'autre'] ||= []).push(d));
+  const keys = CAT.map(c => c[0]).filter(k => g[k]).concat(Object.keys(g).filter(k => !CATNAME[k]));
+  $('#list').innerHTML = keys.map(k => `<div class="doc-group reveal"><h3 class="doc-gh">${esc(CATNAME[k] || k)} <span>(${g[k].length})</span></h3><div class="doc-grid">${g[k].map(card).join('')}</div></div>`).join('');
+  observe();
+}
+
+function drawChips() {
+  const present = new Set(docs.map(d => d.categorie || 'autre'));
+  const opts = [['', 'Tout']].concat(CAT.filter(c => present.has(c[0])));
+  $('#chips').innerHTML = opts.map(([k, l]) => `<button type="button" class="doc-chip ${k === cat ? 'on' : ''}" data-c="${esc(k)}" aria-pressed="${k === cat}">${esc(l)}</button>`).join('');
+}
+
+$('#chips').onclick = e => { const b = e.target.closest('[data-c]'); if (!b) return; cat = b.dataset.c; drawChips(); draw(); };
+$('#q').oninput = draw;
+
+try {
+  docs = (await getDocs(collection(db, 'documentations'))).docs.map(d => d.data())
+    .sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'));
+  drawChips(); draw();
+} catch (e) {
+  $('#list').innerHTML = '<div class="doc-empty">Impossible de charger les documents pour le moment. Réessayez dans quelques instants.</div>';
+}
+
+// Reveal on scroll (blocs fixes)
+const obs = new IntersectionObserver(es => es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); obs.unobserve(e.target); } }), { threshold: 0.08 });
+document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
+
+// Navbar shadow on scroll
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+});
+</script>
+<script src="nav.js"></script>
+</body>
+</html>

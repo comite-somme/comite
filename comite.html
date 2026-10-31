@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<link rel="icon" type="image/png" href="logocomite.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Le Comité — Comité de la Somme FFPJP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a2342">
+<link rel="stylesheet" href="base.css">
+<style>
+  .page-hero { background: linear-gradient(160deg, var(--bleu) 0%, #0d3060 55%, #1a5276 100%); padding: calc(var(--nav-h) + 2rem) var(--pad-x) 2.5rem; text-align: center; position: relative; overflow: hidden; border-bottom: 3px solid var(--or); }
+  .page-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 120%, rgba(201,168,76,0.12) 0%, transparent 70%); pointer-events: none; }
+  .boule { position: absolute; border-radius: 50%; opacity: 0.07; background: radial-gradient(circle at 35% 35%, var(--or), var(--bleu-mid)); }
+  .boule-1 { width: 200px; height: 200px; top: -60px; right: -60px; }
+  .boule-2 { width: 110px; height: 110px; bottom: -20px; left: -20px; }
+  .page-hero-badge { position: relative; display: inline-block; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.35); color: var(--or-light); font-size: 0.7rem; letter-spacing: 2.5px; text-transform: uppercase; padding: 0.3rem 1rem; border-radius: 40px; margin-bottom: 1rem; }
+  .page-hero h1 { position: relative; font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.4rem, 12vw, 4.5rem); color: #fff; letter-spacing: 2px; line-height: 1; margin-bottom: 0.5rem; }
+  .page-hero h1 em { color: var(--or); font-style: normal; }
+  .page-hero p { position: relative; color: rgba(255,255,255,0.55); font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
+  .page-hero .breadcrumb { position: static; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.25rem; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+  .page-hero .breadcrumb a { color: var(--or-light); }
+  .page-hero .breadcrumb a:hover { text-decoration: underline; }
+  .container { max-width: 1100px; }
+
+  #organigramme { background: var(--bleu); padding: 2.5rem var(--pad-x) 3rem; }
+  .org-siege { background: rgba(255,255,255,0.05); border: 1px solid rgba(201,168,76,0.25); border-radius: 8px; padding: 0.9rem 1rem; margin-bottom: 2rem; display: flex; align-items: flex-start; gap: 0.8rem; }
+  .org-siege svg { stroke: var(--or); flex-shrink: 0; margin-top: 2px; }
+  .org-siege p { color: rgba(255,255,255,0.65); font-size: 0.85rem; line-height: 1.5; }
+  .org-siege a { color: var(--or-light); text-decoration: none; }
+  .org-siege a:hover { text-decoration: underline; }
+
+  /* Boutons d'onglets */
+  .org-tabs { display: flex; justify-content: center; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .org-tabs button { min-height: 46px; padding: .6rem 1.4rem; border-radius: 40px; border: 1.5px solid rgba(201,168,76,.4); background: rgba(255,255,255,.05); color: rgba(255,255,255,.75); font: 600 .9rem 'DM Sans', sans-serif; cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+  .org-tabs button:hover { border-color: var(--or); color: #fff; }
+  .org-tabs button.on { background: var(--or); border-color: var(--or); color: var(--bleu); }
+  .org-tabs button:focus-visible { outline: 3px solid var(--or-light); outline-offset: 2px; }
+  .org-panel[hidden] { display: none; }
+  .liste .membres-label { margin-top: 2rem; }
+  .liste .membres-label:first-child { margin-top: 0; }
+  .org-vide { text-align: center; color: rgba(255,255,255,.55); padding: 2rem 1rem; }
+
+  .org-tree { display: flex; flex-direction: column; align-items: center; }
+  .org-connector { width: 2px; height: 24px; background: var(--or); opacity: 0.4; }
+  .org-level { display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%; position: relative; padding-top: 0; }
+  .org-level::before { display: none; }
+  .org-item { display: flex; flex-direction: column; align-items: center; width: 100%; }
+  .org-item::before { content: ''; width: 2px; height: 14px; background: rgba(201,168,76,0.25); }
+
+  .org-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 1rem 1.1rem; text-align: center; transition: background 0.2s, border-color 0.2s, transform 0.2s; width: 100%; max-width: 340px; }
+  .org-card.president { background: linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.07)); border: 2px solid var(--or); }
+  .org-card.president .org-role { color: var(--or); }
+  .org-card.vice { border-color: rgba(201,168,76,0.3); }
+  .org-card.admin { background: rgba(255,255,255,0.04); }
+  .org-card.membre { background: rgba(255,255,255,0.03); padding: 0.85rem 1rem; max-width: none; }
+
+  .org-role { font-size: 0.64rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(201,168,76,0.7); margin-bottom: 0.4rem; display: block; }
+  .org-name { font-size: 1rem; font-weight: 600; color: #fff; line-height: 1.2; margin-bottom: 0.3rem; }
+  .org-contact { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.45rem; }
+  .org-tel { font-size: 0.8rem; color: rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
+  .org-tel svg { opacity: 0.5; }
+  .org-email { font-size: 0.72rem; color: rgba(201,168,76,0.65); word-break: break-all; }
+
+  .membres-section { width: 100%; margin-top: 2rem; }
+  .membres-label { text-align: center; font-size: 0.65rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(201,168,76,0.55); margin-bottom: 1rem; display: block; }
+  .org-sep { width: 60px; height: 2px; background: rgba(201,168,76,0.25); margin: 0 auto 1.5rem; }
+  .membres-grid { display: grid; grid-template-columns: 1fr; gap: 0.7rem; }
+
+  @media (min-width: 480px) { .membres-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 650px) {
+    .org-connector { height: 32px; }
+    .org-level { flex-direction: row; justify-content: center; align-items: stretch; flex-wrap: wrap; gap: 1rem; padding-top: 28px; }
+    .org-level::before { display: block; content: ''; position: absolute; top: 0; left: 5%; right: 5%; height: 2px; background: rgba(201,168,76,0.25); }
+    .org-item { flex: 1; min-width: 190px; max-width: 250px; width: auto; }
+    .org-item::before { height: 28px; }
+    .org-card { max-width: 260px; }
+    .org-card.president { max-width: 310px; }
+    .org-card.membre { max-width: 260px; }
+  }
+  @media (min-width: 768px) {
+    .page-hero { padding-bottom: 3.5rem; }
+    .page-hero p { font-size: 0.82rem; letter-spacing: 3px; }
+    .boule-1 { width: 280px; height: 280px; }
+    .boule-2 { width: 140px; height: 140px; left: 4%; }
+    #organigramme { padding: 4rem var(--pad-x) 5rem; }
+    .org-siege { padding: 0.9rem 1.4rem; margin-bottom: 2.5rem; align-items: center; }
+    .org-level::before { left: 15%; right: 15%; }
+    .membres-section { margin-top: 2.5rem; }
+    .membres-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  }
+  @media (hover: hover) {
+    .org-card:hover { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.4); transform: translateY(-2px); }
+  }
+  .org-missions { margin-top: 0.6rem; padding: 0.5rem 0.7rem; text-align: left; font-size: 0.78rem; background: rgba(201,168,76,0.07); border-left: 3px solid rgba(201,168,76,0.5); border-radius: 0 6px 6px 0; }
+  .org-missions-t { display: block; font-family: 'DM Serif Display', serif; font-style: italic; font-size: 0.85rem; color: var(--or-light); margin-bottom: 0.2rem; }
+  .org-missions ul { margin: 0; padding-left: 1rem; color: rgba(255,255,255,0.75); line-height: 1.45; }
+  .org-missions li { margin-bottom: 0.15rem; }
+  .org-tel a, .org-email a { color: inherit; text-decoration: none; }
+  .org-tel a:hover, .org-email a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="ph" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.81h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></symbol></svg>
+
+<nav id="navbar">
+  <a class="nav-brand" href="index.html">
+    <img src="logocomite.png" alt="Logo Comité de la Somme FFPJP">
+    <div class="nav-brand-text"><span>Comité de la Somme</span><small>FFPJP — Pétanque 80</small></div>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html">Accueil</a></li>
+    <li><a href="comite.html" class="active">Le Comité</a></li>
+    <li><a href="clubs.html">Les Clubs</a></li>
+    <li><a href="calendrier.html">Calendrier</a></li>
+    <li><a href="annuaire.html">Annuaire</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="page-hero">
+  <div class="boule boule-1"></div>
+  <div class="boule boule-2"></div>
+  <div class="page-hero-badge">FFPJP — Département 80</div>
+  <h1>Le <em>Comité</em></h1>
+  <p>Organisation & Bureau Directeur 2026</p>
+  <div class="breadcrumb"><a href="index.html">Accueil</a><span>›</span><span>Le Comité</span></div>
+</div>
+
+<section id="organigramme">
+  <div class="container">
+
+    <div class="reveal" style="text-align:center; margin-bottom:2rem">
+      <p class="section-label" style="color:var(--or-light)">Saison 2026</p>
+      <h2 class="section-title" style="color:#fff; text-align:center">Le <em style="color:var(--or)">Comité</em></h2>
+      <div class="divider" style="margin: 1rem auto 0"></div>
+    </div>
+
+    <div class="org-tabs" role="tablist" aria-label="Organigrammes">
+      <button type="button" role="tab" class="on" data-p="comite" aria-selected="true">Comité directeur</button>
+      <button type="button" role="tab" data-p="arbitres" aria-selected="false">Arbitres</button>
+      <button type="button" role="tab" data-p="educateurs" aria-selected="false">Éducateurs / Initiateurs</button>
+    </div>
+
+    <!-- ── COMITÉ DIRECTEUR ── -->
+    <div class="org-panel" id="panel-comite">
+      <div class="org-siege reveal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <p id="siege-txt">Agréé par le ministère de la Jeunesse, des Sports et des Loisirs</p>
+      </div>
+      <div class="org-tree" id="org-tree"><p class="org-vide">Chargement…</p></div>
+    </div><!-- /panel-comite -->
+
+    <!-- ── ARBITRES ── -->
+    <div class="org-panel" id="panel-arbitres" hidden>
+      <div class="liste" id="liste-arbitres"><p class="org-vide">Chargement…</p></div>
+    </div>
+
+    <!-- ── ÉDUCATEURS ── -->
+    <div class="org-panel" id="panel-educateurs" hidden>
+      <div class="liste" id="liste-educateurs"><p class="org-vide">Chargement…</p></div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="logocomite.png" alt="Logo Comité de la Somme">
+      <p>Comité Départemental de la Somme (80) — Fédération Française de Pétanque et Jeu Provençal. Toutes les informations et résultats sur la pétanque de notre département.</p>
+    </div>
+    <div>
+      <h5>Rubriques</h5>
+      <ul class="footer-links">
+        <li><a href="comite.html">Le Comité</a></li>
+        <li><a href="clubs.html">Les Clubs</a></li>
+        <li><a href="calendrier.html">Calendrier 2026</a></li>
+        <li><a href="championnats.html">Championnats</a></li>
+        <li><a href="classement.html">Classements</a></li>
+        <li><a href="resultats.html">Résultats</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Liens utiles</h5>
+      <ul class="footer-links">
+        <li><a href="annuaire.html">Annuaire</a></li>
+        <li><a href="documentations.html">Documentations</a></li>
+        <li><a href="archives.html">Archives</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="confidentialite.html">Confidentialité</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Comité de la Somme FFPJP — 80000 Amiens · <a href="confidentialite.html">Confidentialité</a></span>
+    <span>Contact : <a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></span>
+  </div>
+</footer>
+
+<script>
+  // Apparition au défilement
+  const obs = new IntersectionObserver(es => {
+    es.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 80); obs.unobserve(e.target); } });
+  }, { threshold: 0.08 });
+  document.querySelectorAll('.reveal').forEach(r => obs.observe(r));
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+  });
+
+  // Onglets Comité / Arbitres / Éducateurs (lien direct : comite.html#arbitres)
+  const tabBtns = document.querySelectorAll('.org-tabs button');
+  function showPanel(name) {
+    if (!document.getElementById('panel-' + name)) name = 'comite';
+    tabBtns.forEach(b => { const on = b.dataset.p === name; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    document.querySelectorAll('.org-panel').forEach(p => {
+      p.hidden = p.id !== 'panel-' + name;
+      if (!p.hidden) p.querySelectorAll('.reveal').forEach(r => r.classList.add('visible'));
+    });
+  }
+  tabBtns.forEach(b => b.onclick = () => { showPanel(b.dataset.p); history.replaceState(null, '', '#' + b.dataset.p); });
+  showPanel(location.hash.slice(1) || 'comite');
+</script>
+<script type="module">
+import { db } from './firebase-config.js';
+import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* RGPD : true = téléphone, email et adresse d'une personne ne s'affichent que si une « date d'accord » est saisie dans l'admin */
+const EXIGER_ACCORD = true;
+
+/*PURE*/
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PH = '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><use href="#ph"/></svg>';
+const digits = s => String(s || '').replace(/[^\d+]/g, '');
+const publiable = m => !EXIGER_ACCORD || !!m.consentement;
+const byOrdre = (a, b) => (a.ordre ?? 99) - (b.ordre ?? 99);
+
+function contact(m, cls) {
+  if (!publiable(m)) return '';
+  const ico = cls === 'membre' ? '' : PH, r = [];
+  if (m.tel) r.push(`<div class="org-tel">${ico}<a href="tel:${esc(digits(m.tel))}">${esc(m.tel)}</a></div>`);
+  if (m.email) r.push(`<div class="org-email"><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></div>`);
+  if (m.adresse) r.push(`<div class="org-tel" style="font-size:0.66rem;color:rgba(255,255,255,0.3);margin-top:0.15rem">${esc(m.adresse)}</div>`);
+  return r.length ? `<div class="org-contact">${r.join('')}</div>` : '';
+}
+/* Attributions : une mission par ligne (un tiret au début est ignoré) ; fonction du membre, donc affichée sans condition d'accord */
+const CHARGE = { m: 'Chargé de', f: 'Chargée de' };
+const missions = m => {
+  const l = String(m.attributions || '').split('\n').map(x => x.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
+  return l.length ? `<div class="org-missions"><span class="org-missions-t">${CHARGE[m.genre] || 'Chargé(e) de'} :</span><ul>${l.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+};
+const card = (m, cls, role) => `<div class="org-card ${cls}"><span class="org-role">${esc(role ?? m.role)}</span><div class="org-name">${esc(m.nom)}</div>${missions(m)}${contact(m, cls)}</div>`;
+
+function arbre(list) {
+  const g = k => list.filter(m => m.groupe === k).sort(byOrdre);
+  const pres = g('president'), vice = g('vice'), adm = g('admin'), mem = g('membre');
+  const parts = [];
+  pres.forEach(m => parts.push(card(m, 'president')));
+  if (vice.length) parts.push(`<div class="org-connector"></div><div class="org-level">${vice.map(m => `<div class="org-item">${card(m, 'vice')}</div>`).join('')}</div>`);
+  if (adm.length) parts.push(`<div class="org-connector"></div><div class="org-level">${adm.map(m => `<div class="org-item">${card(m, 'admin')}</div>`).join('')}</div>`);
+  if (mem.length) parts.push(`<div class="membres-section"><div class="org-sep"></div><span class="membres-label">Membres du Comité Directeur</span><div class="membres-grid">${mem.map(m => card(m, 'membre')).join('')}</div></div>`);
+  return parts.join('');
+}
+function liste(list, vide) {
+  if (!list.length) return `<p class="org-vide">${esc(vide)}</p>`;
+  const g = {};
+  list.sort(byOrdre).forEach(m => (g[m.role || 'Autres'] ||= []).push(m));   // les niveaux suivent la position du premier de chaque niveau
+  return '<div class="org-tree">' + Object.entries(g).map(([k, l], i) =>
+    `${i ? '<div class="org-connector"></div>' : ''}<span class="membres-label" style="margin-bottom:0.6rem">${esc(k)}</span><div class="org-level">${l.map(m => `<div class="org-item">${card(m, i === 0 ? 'president' : 'admin', m.club || '')}</div>`).join('')}</div>`).join('') + '</div>';
+}
+/*ENDPURE*/
+
+const $ = s => document.querySelector(s);
+try {
+  const [snap, gen] = await Promise.all([getDocs(collection(db, 'membres')), getDoc(doc(db, 'settings', 'general'))]);
+  const all = snap.docs.map(d => d.data()), cat = k => all.filter(m => (m.categorie || 'comite') === k);
+  $('#org-tree').innerHTML = arbre(cat('comite')) || '<p class="org-vide">Aucun membre à afficher pour le moment.</p>';
+  $('#liste-arbitres').innerHTML = liste(cat('arbitre'), 'La liste des arbitres sera bientôt disponible.');
+  $('#liste-educateurs').innerHTML = liste(cat('educateur'), 'La liste des éducateurs et initiateurs sera bientôt disponible.');
+  const s = gen.data() || {}, adr = String(s.adresse || '').split('\n').map(x => x.trim()).filter(Boolean).join(', ');
+  $('#siege-txt').innerHTML = [adr && esc(adr), s.email && `<a href="mailto:${esc(s.email)}">${esc(s.email)}</a>`, 'Agréé par le ministère de la Jeunesse, des Sports et des Loisirs'].filter(Boolean).join(' &nbsp;·&nbsp; ');
+  if (s.email) document.querySelectorAll('.footer-bottom a[href^="mailto:"]').forEach(a => { a.href = 'mailto:' + s.email; a.textContent = s.email; });
+} catch (e) {
+  $('#org-tree').innerHTML = '<p class="org-vide">Les informations sont momentanément indisponibles.</p>';
+}
+</script>
+<script src="nav.js"></script>
+<script type="module" src="track.js"></script>
+</body>
+</html>

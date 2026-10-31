@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="icon" type="image/png" href="logocomite.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comité de la Somme — FFPJP Pétanque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a2342">
+<link rel="stylesheet" href="base.css">
+<style>
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh; min-height: 100svh;
+    background: linear-gradient(160deg, var(--bleu) 0%, #0d3060 55%, #1a5276 100%);
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; position: relative; overflow: hidden;
+    padding: calc(var(--nav-h) + 2rem) var(--pad-x) 5rem;
+  }
+  #hero::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 80% 60% at 50% 110%, rgba(201,168,76,0.12) 0%, transparent 70%),
+                radial-gradient(circle at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 50%);
+  }
+  #hero > div:not(.boule):not(.hero-scroll) { position: relative; width: 100%; }
+  .boule { position: absolute; border-radius: 50%; opacity: 0.08; background: radial-gradient(circle at 35% 35%, var(--or), var(--bleu-mid)); }
+  .boule-1 { width: 220px; height: 220px; top: -60px; right: -70px; }
+  .boule-2 { width: 120px; height: 120px; bottom: 70px; left: -30px; opacity: 0.05; }
+  .boule-3 { display: none; }
+
+  .hero-logo { width: 120px; height: auto; margin-bottom: 1.25rem; filter: drop-shadow(0 4px 20px rgba(201,168,76,0.4)); animation: fadeUp 0.9s ease both 0.1s; }
+  .hero-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 17vw, 6.5rem); color: #fff; letter-spacing: 2px; line-height: 0.95; margin-bottom: 0.75rem; animation: fadeUp 1s ease both 0.2s; }
+  .hero-title em { color: var(--or); font-style: normal; }
+  .hero-sub { color: rgba(255,255,255,0.6); font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; margin: 0 auto 1.5rem; max-width: 22rem; line-height: 1.6; animation: fadeUp 1s ease both 0.3s; }
+  .hero-desc { max-width: 520px; margin: 0 auto 2rem; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.7; animation: fadeUp 1s ease both 0.4s; }
+  .hero-btns { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 320px; margin: 0 auto; animation: fadeUp 1s ease both 0.5s; }
+  .btn-primary, .btn-outline { display: block; text-align: center; font-size: 0.9rem; letter-spacing: 1px; padding: 0.95rem 1.5rem; border-radius: 5px; text-decoration: none; text-transform: uppercase; transition: background 0.2s, border-color 0.2s, transform 0.2s; }
+  .btn-primary { background: var(--or); color: var(--bleu); font-weight: 600; }
+  .btn-primary:hover { background: var(--or-light); transform: translateY(-2px); }
+  .btn-outline { border: 1.5px solid rgba(255,255,255,0.35); color: #fff; }
+  .btn-outline:hover { border-color: var(--or); color: var(--or); transform: translateY(-2px); }
+  .hero-scroll { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); animation: bounce 2s infinite; }
+  .hero-scroll svg { stroke: rgba(255,255,255,0.4); }
+
+  /* ── STATS ── */
+  .stats-band { background: var(--or); padding: 1.25rem var(--pad-x); display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 1rem; }
+  .stat-item { text-align: center; }
+  .stat-item strong { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--bleu); line-height: 1; }
+  .stat-item span { font-size: 0.68rem; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(10,35,66,0.75); font-weight: 600; }
+
+  /* ── ACCÈS RAPIDE ── */
+  #nav-rapide { background: var(--bleu); padding: 2.5rem var(--pad-x); }
+  .nav-rapide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.5rem; }
+  .nr-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem 0.9rem; text-decoration: none; color: #fff; display: flex; flex-direction: column; align-items: flex-start; gap: 0.7rem; min-height: 44px; transition: background 0.2s, border-color 0.2s, transform 0.2s; }
+  .nr-card:hover { background: rgba(201,168,76,0.1); border-color: var(--or); }
+  .nr-icon { width: 40px; height: 40px; background: rgba(201,168,76,0.15); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .nr-icon svg { stroke: var(--or); }
+  .nr-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.1rem; }
+  .nr-card small { font-size: 0.72rem; color: rgba(255,255,255,0.5); }
+
+  /* ── CONTACT ── */
+  #contact { background: var(--blanc); }
+  .contact-layout { display: grid; grid-template-columns: 1fr; gap: 2rem; margin-top: 1.5rem; align-items: start; }
+  .contact-detail { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.2rem; }
+  .contact-detail-icon { width: 38px; height: 38px; background: var(--bleu); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .contact-detail-icon svg { stroke: var(--or); }
+  .contact-detail-text { min-width: 0; }
+  .contact-detail-text strong { display: block; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; color: var(--bleu); margin-bottom: 0.2rem; font-weight: 600; }
+  .contact-detail-text a, .contact-detail-text span { font-size: 0.95rem; color: #555; text-decoration: none; overflow-wrap: anywhere; }
+  .contact-detail-text a { display: inline-block; padding: 0.2rem 0; }
+  .contact-detail-text a:hover { color: var(--or); }
+  .contact-form { background: var(--bleu); border-radius: 12px; padding: 1.5rem 1.25rem; }
+  .contact-form h3 { font-family: 'DM Serif Display', serif; color: #fff; font-size: 1.4rem; margin-bottom: 1.25rem; }
+  .form-group { margin-bottom: 1.1rem; }
+  .form-group label { display: block; font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-bottom: 0.4rem; font-weight: 500; }
+  /* 16px minimum : évite le zoom automatique d'iOS au focus */
+  .form-group input, .form-group textarea, .form-group select { width: 100%; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 1rem; padding: 0.8rem 1rem; min-height: 46px; outline: none; transition: border-color 0.2s; }
+  .form-group select option { color: #1a1a2e; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--or); }
+  .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
+  .form-group textarea { resize: vertical; min-height: 120px; }
+  .form-submit { width: 100%; background: var(--or); color: var(--bleu); border: none; border-radius: 6px; padding: 1rem; min-height: 48px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: background 0.2s, transform 0.2s; }
+  .form-submit:hover { background: var(--or-light); }
+
+  /* ≥ 600px */
+  @media (min-width: 600px) {
+    .hero-logo { width: 150px; }
+    .hero-sub { font-size: 0.85rem; letter-spacing: 3px; max-width: 34rem; }
+    .hero-desc { font-size: 1rem; }
+    .hero-btns { flex-direction: row; justify-content: center; max-width: none; width: auto; gap: 1rem; flex-wrap: wrap; }
+    .btn-primary, .btn-outline { display: inline-block; padding: 0.85rem 2rem; }
+    .stats-band { display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem 3rem; padding: 1.2rem var(--pad-x); }
+    .stat-item strong { font-size: 2rem; }
+    .nav-rapide-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-top: 2.5rem; }
+    .nr-card { flex-direction: row; align-items: center; gap: 1rem; padding: 1.5rem 1.2rem; }
+    .contact-form { padding: 2rem; }
+  }
+  /* ≥ 768px */
+  @media (min-width: 768px) {
+    .hero-logo { width: 170px; margin-bottom: 1.5rem; }
+    .hero-sub { letter-spacing: 4px; margin-bottom: 2rem; }
+    .hero-desc { margin-bottom: 2.5rem; }
+    .boule-1 { width: 320px; height: 320px; top: -80px; right: -80px; }
+    .boule-2 { width: 180px; height: 180px; bottom: 60px; left: 5%; }
+    .boule-3 { display: block; width: 80px; height: 80px; top: 35%; left: 8%; opacity: 0.1; }
+    #nav-rapide { padding: 4rem var(--pad-x); }
+    .contact-layout { grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 2.5rem; }
+    .contact-form { padding: 2.5rem; }
+    .form-group input, .form-group textarea, .form-group select { font-size: 0.9rem; }
+  }
+  /* ── ACTUALITÉS ── */
+  #actus { background: var(--blanc); }
+  .actus-list { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .actu { background: #fff; border: 1px solid #e4e7ec; border-left: 4px solid var(--or); border-radius: 10px; padding: 1.2rem 1.25rem; box-shadow: 0 1px 2px rgba(10,35,66,.05); }
+  .actu time { display: block; font-size: 0.78rem; letter-spacing: 1px; text-transform: uppercase; color: #667085; font-weight: 600; margin-bottom: 0.3rem; }
+  .actu h3 { font-family: 'DM Serif Display', serif; font-weight: 400; color: var(--bleu); font-size: 1.25rem; margin-bottom: 0.5rem; }
+  .actu p { color: #555; line-height: 1.7; font-size: 0.95rem; white-space: pre-line; overflow-wrap: anywhere; }
+  .actu a { display: inline-block; margin-top: 0.8rem; color: var(--bleu); font-weight: 700; font-size: 0.9rem; text-underline-offset: 3px; }
+  .actu a:hover { color: var(--or); }
+  @media (min-width: 768px) { .actus-list { grid-template-columns: 1fr 1fr; } }
+  /* ── FORMULAIRE : état d'envoi ── */
+  .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .form-status { margin: 0 0 1rem; padding: 0.7rem 0.9rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.5; }
+  .form-status.ok { background: rgba(24,121,78,.18); color: #b8f0d4; border: 1px solid rgba(24,121,78,.5); }
+  .form-status.err { background: rgba(179,38,30,.2); color: #ffd3cf; border: 1px solid rgba(179,38,30,.5); }
+  .form-submit:disabled { opacity: .6; cursor: wait; }
+  @media (hover: hover) {
+    .nr-card:hover { transform: translateY(-2px); }
+  }
+</style>
+</head>
+    <script type="module" src="site-data.js"></script>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="index.html">
+    <img src="logocomite.png" alt="Logo Comité de la Somme FFPJP">
+    <div class="nav-brand-text">
+      <span>Comité de la Somme</span>
+      <small>FFPJP — Pétanque 80</small>
+    </div>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="index.html" class="active">Accueil</a></li>
+    <li><a href="comite.html">Le Comité</a></li>
+    <li><a href="clubs.html">Les Clubs</a></li>
+    <li><a href="calendrier.html">Calendrier</a></li>
+    <li><a href="annuaire.html">Annuaire</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="boule boule-1"></div>
+  <div class="boule boule-2"></div>
+  <div class="boule boule-3"></div>
+  <div>
+    <img class="hero-logo" src="logocomite.png" alt="Écusson Comité de la Somme">
+    <h1 class="hero-title">Comité de<br>la <em>Somme</em></h1>
+    <p class="hero-sub">FFPJP &nbsp;·&nbsp; Fédération Française de Pétanque et Jeu Provençal</p>
+    <p class="hero-desc">Toutes les informations, résultats et calendriers sur la pétanque dans le département de la Somme. Site régulièrement mis à jour.</p>
+    <div class="hero-btns">
+      <a href="#nav-rapide" class="btn-primary">Accès rapide</a>
+      <a href="calendrier.html" class="btn-outline"> Calendrier 2026</a>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="stats-band">
+  <div class="stat-item"><strong>33</strong><span>Clubs</span></div>
+  <div class="stat-item"><strong>2026</strong><span>Saison en cours</span></div>
+  <div class="stat-item"><strong>FFPJP</strong><span>Fédération</span></div>
+  <div class="stat-item"><strong>Amiens</strong><span>Siège du comité</span></div>
+</div>
+
+<!-- ── ACTUALITÉS ── -->
+<section id="actus" hidden>
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">À la une</p>
+      <h2 class="section-title">Dernières <em>actualités</em></h2>
+      <div class="divider"></div>
+    </div>
+    <div class="actus-list" id="actusList"></div>
+  </div>
+</section>
+
+<!-- ── NAVIGATION RAPIDE ── -->
+<section id="nav-rapide">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label" style="color:var(--or-light)">Accès direct</p>
+      <h2 class="section-title" style="color:#fff">Rubriques du <em style="color:var(--or)">comité</em></h2>
+      <div class="divider"></div>
+    </div>
+    <div class="nav-rapide-grid">
+
+      <a href="comite.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><h4>Le Comité</h4><small>Organisation & bureau</small></div>
+      </a>
+
+      <a href="clubs.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <div><h4>Les Clubs</h4><small>Liste et informations</small></div>
+      </a>
+
+      <a href="calendrier.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div><h4>Calendrier 2026</h4><small>Toutes les compétitions</small></div>
+      </a>
+
+      <a href="cdc.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+        <div><h4>Champ. des Clubs</h4><small>2024 · 2025 · 2026</small></div>
+      </a>
+
+      <a href="classement.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div><h4>Classements</h4><small>Joueurs & clubs</small></div>
+      </a>
+
+      <a href="resultats.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        <div><h4>Résultats</h4><small>Dernières compétitions</small></div>
+      </a>
+
+      <a href="tirages.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+        <div><h4>Tirages</h4><small>Règlements & tirages</small></div>
+      </a>
+
+      <a href="documentations.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <div><h4>Documentations</h4><small>Règlements & guides</small></div>
+      </a>
+
+      <a href="annuaire.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="12" y2="11"/></svg></div>
+        <div><h4>Annuaire</h4><small>Contacts & clubs</small></div>
+      </a>
+
+      <a href="archives.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>
+        <div><h4>Archives</h4><small>Historique des saisons</small></div>
+      </a>
+      
+      <a href="confidentialite.html" class="nr-card reveal">
+        <div class="nr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+        <div><h4>Confidentialité</h4><small>Protection de vos données</small></div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ── -->
+<section id="contact">
+  <div class="container">
+    <div class="reveal">
+      <p class="section-label">Nous joindre</p>
+      <h2 class="section-title">Contact & <em>Coordonnées</em></h2>
+      <div class="divider"></div>
+    </div>
+    <div class="contact-layout">
+      <div class="reveal">
+        <p style="color:#555;line-height:1.75;margin-bottom:1.5rem;font-size:0.95rem">N'hésitez pas à nous contacter pour toute question, remarque ou suggestion concernant le comité ou ce site.</p>
+        <div class="contact-detail">
+          <div class="contact-detail-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div class="contact-detail-text"><strong>Adresse</strong><span>Comité de la Somme — Maison des Sports Bâtiment B<br>2, rue Lescouvé — 80000 Amiens</span></div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-detail-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.81h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+          <div class="contact-detail-text"><strong>Téléphone</strong><a href="tel:0630009369">06 30 00 93 69</a></div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-detail-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="contact-detail-text"><strong>Email — Informations</strong><a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></div>
+        </div>
+        <div class="contact-detail">
+          <div class="contact-detail-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="contact-detail-text"><strong>Email — Développeur Web</strong><a href="mailto:lukasperin.80@gmail.com">lukasperin.80@gmail.com</a></div>
+        </div>
+      </div>
+      <div class="reveal">
+        <form class="contact-form" id="contactForm" novalidate>
+          <h3>Nous écrire</h3>
+          <div class="form-status" id="formStatus" role="status" aria-live="polite" hidden></div>
+          <div class="form-group"><label for="cf-nom">Votre nom</label><input id="cf-nom" name="nom" type="text" placeholder="Dupont Jean" autocomplete="name" maxlength="100" required></div>
+          <div class="form-group"><label for="cf-email">Email</label><input id="cf-email" name="email" type="email" placeholder="email@exemple.fr" autocomplete="email" maxlength="150" required></div>
+          <div class="form-group">
+            <label for="cf-sujet">Sujet</label>
+            <select id="cf-sujet" name="sujet" required><option value="">Choisir un sujet…</option><option>Informations générales</option><option>Résultats / Calendrier</option><option>Affiliation club</option><option>Problème technique</option><option>Autre</option></select>
+          </div>
+          <div class="form-group"><label for="cf-message">Message</label><textarea id="cf-message" name="message" placeholder="Votre message…" maxlength="3000" required></textarea></div>
+          <div class="hp-field" aria-hidden="true"><label for="cf-site">Ne pas remplir</label><input id="cf-site" name="site" type="text" tabindex="-1" autocomplete="off"></div>
+          <button class="form-submit" id="formBtn" type="submit">Envoyer le message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="logocomite.png" alt="Logo Comité de la Somme">
+      <p>Comité Départemental de la Somme (80) — Fédération Française de Pétanque et Jeu Provençal. Toutes les informations et résultats sur la pétanque de notre département.</p>
+    </div>
+    <div>
+      <h5>Rubriques</h5>
+      <ul class="footer-links">
+       <li><a href="comite.html">Le Comité</a></li>
+        <li><a href="clubs.html">Les Clubs</a></li>
+        <li><a href="calendrier.html">Calendrier 2026</a></li>
+        <li><a href="championnats.html">Championnats</a></li>
+        <li><a href="classement.html">Classements</a></li>
+        <li><a href="resultats.html">Résultats</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Liens utiles</h5>
+      <ul class="footer-links">
+        <li><a href="annuaire.html">Annuaire</a></li>
+        <li><a href="documentations.html">Documentations</a></li>
+        <li><a href="archives.html">Archives</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="confidentialite.html">Confidentialité</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Comité de la Somme FFPJP — 80000 Amiens</span>
+    <span>Contact : <a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></span>
+  </div>
+</footer>
+
+<script>
+
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) { setTimeout(() => e.target.classList.add('visible'), i * 60); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(r => obs.observe(r));
+
+  window.addEventListener('scroll', () => {
+    const nav = document.getElementById('navbar');
+    nav.style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+  });
+</script>
+  <!-- À la fin du <body>, avant </body> -->
+
+<script type="module">
+import { db } from './firebase-config.js';
+import { collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ── Actualités publiées ── */
+const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+(async () => {
+  try {
+    const snap = await getDocs(query(collection(db, 'actualites'), where('statut', '==', 'publie')));
+    const items = snap.docs.map(d => d.data()).sort((a, b) => (b.publieLe || '').localeCompare(a.publieLe || '')).slice(0, 4);
+    if (!items.length) return;
+    const list = document.getElementById('actusList');
+    items.forEach(a => {
+      const box = document.createElement('article'); box.className = 'actu';
+      if (a.publieLe) { const t = document.createElement('time'); t.dateTime = a.publieLe; const [y, m, d] = a.publieLe.split('-'); t.textContent = `${+d} ${MOIS[+m - 1] || ''} ${y}`; box.append(t); }
+      const h = document.createElement('h3'); h.textContent = a.titre || ''; box.append(h);
+      const p = document.createElement('p'); p.textContent = a.texte || ''; box.append(p);
+      if (a.lien && /^https?:\/\//i.test(a.lien)) { const l = document.createElement('a'); l.href = a.lien; l.target = '_blank'; l.rel = 'noopener'; l.textContent = a.lienTexte || 'En savoir plus'; box.append(l); }
+      list.append(box);
+    });
+    document.getElementById('actus').hidden = false;
+  } catch (e) { console.warn('Actualités indisponibles', e); }
+})();
+
+/* ── Formulaire de contact ── */
+const form = document.getElementById('contactForm'), status = document.getElementById('formStatus'), btn = document.getElementById('formBtn');
+const say = (msg, ok) => { status.textContent = msg; status.className = 'form-status ' + (ok ? 'ok' : 'err'); status.hidden = false; };
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const v = Object.fromEntries(new FormData(form).entries());
+  if (v.site) return;                                         // robot : champ piège rempli
+  if (!v.nom.trim() || !v.email.trim() || !v.sujet || !v.message.trim()) return say('Merci de remplir tous les champs.', false);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) return say('L\'adresse email n\'est pas valide.', false);
+  const last = +localStorage.getItem('lastMsg') || 0;
+  if (Date.now() - last < 30000) return say('Merci de patienter quelques secondes avant un nouvel envoi.', false);
+  btn.disabled = true; btn.textContent = 'Envoi en cours…';
+  try {
+    await addDoc(collection(db, 'messages'), {
+      nom: v.nom.trim().slice(0, 100), email: v.email.trim().slice(0, 150), sujet: v.sujet.slice(0, 100),
+      message: v.message.trim().slice(0, 3000), lu: false, traite: false, creeLe: Date.now() });
+    localStorage.setItem('lastMsg', String(Date.now()));
+    form.reset(); say('Message envoyé. Merci, nous vous répondrons dès que possible.', true);
+  } catch (err) {
+    say('Envoi impossible. Écrivez-nous directement à CD80@petanque.fr.', false);
+  } finally { btn.disabled = false; btn.textContent = 'Envoyer le message'; }
+});
+</script>
+<script type="module" src="track.js"></script>
+<script src="nav.js"></script>
+</body>
+</html>
