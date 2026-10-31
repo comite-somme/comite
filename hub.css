@@ -15,15 +15,15 @@
 .hub-label { text-align: center; font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; color: var(--or); font-weight: 600; margin-bottom: 0.9rem; }
 
 /* Gros boutons du niveau 1 */
-.hub-groups { display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin-bottom: 1.6rem; }
-.hub-g { min-height: 68px; border: 2px solid var(--gris); background: #fff; color: var(--bleu); font: 700 1.2rem 'DM Sans', sans-serif; padding: 0.9rem 1.2rem; border-radius: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; box-shadow: 0 1px 2px rgba(10,35,66,.06); }
+.hub-groups { display: grid; grid-template-columns: 1fr; gap: 0.55rem; margin-bottom: 1.2rem; }
+.hub-g { min-height: 48px; border: 2px solid var(--gris); background: #fff; color: var(--bleu); font: 700 1rem 'DM Sans', sans-serif; padding: 0.5rem 1rem; border-radius: 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.6rem; text-align: center; box-shadow: 0 1px 2px rgba(10,35,66,.06); }
 .hub-g:hover { border-color: var(--or); }
 .hub-g[aria-selected="true"] { background: var(--bleu); color: var(--or); border-color: var(--bleu); box-shadow: 0 6px 18px rgba(10,35,66,.22); }
 .hub-g:focus-visible, .hub-s:focus-visible, .hub-act:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
 /* Sous-boutons du niveau 2 */
-.hub-subs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
-.hub-s { flex: 1 1 140px; min-height: 52px; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 700 1rem 'DM Sans', sans-serif; padding: 0.5rem 1.1rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
+.hub-subs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.hub-s { flex: 0 1 auto; min-height: 40px; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 700 0.85rem 'DM Sans', sans-serif; padding: 0.35rem 0.95rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
 .hub-s:hover { border-color: var(--or); color: var(--bleu); }
 .hub-s[aria-selected="true"] { background: var(--or); color: var(--bleu); border-color: var(--or); }
 
@@ -44,7 +44,7 @@
 .hub-act:disabled { opacity: .6; cursor: wait; }
 .hub-empty { text-align: center; color: #667085; padding: 2rem 1rem; border: 1px dashed var(--gris); border-radius: 10px; }
 
-@media (min-width: 600px) { .hub-groups { grid-template-columns: 1fr 1fr; } .hub-g { font-size: 1.3rem; min-height: 76px; } }
+@media (min-width: 600px) { .hub-groups { grid-template-columns: 1fr 1fr; } .hub-g { font-size: 1.05rem; min-height: 52px; } }
 
 /* Fenêtre du tableau */
 #tbDlg { margin: auto; border: 0; border-radius: 14px; padding: 0; width: min(1000px, 96vw); max-height: 92vh; border-top: 5px solid var(--or); background: #fff; color: #1a1f2e; box-shadow: 0 12px 40px rgba(0,0,0,0.4); }

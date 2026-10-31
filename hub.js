@@ -46,7 +46,7 @@ export function initHub(cfg) {
       grp[k].sort((a, b) => (b.jour || '').localeCompare(a.jour || '') || (a.ordre ?? 99) - (b.ordre ?? 99)).map(x => {
         const n = (x.feuilles || []).length, u = safeUrl(x.lien), meta = [fdate(x.jour), x.lieu].filter(Boolean).map(esc).join(' · ');
         const acts = (n ? `<button type="button" class="hub-act" data-open="${x._i}">Consulter le tableau</button>` : '') +
-          (u ? `<a class="hub-act${n ? ' alt' : ''}" href="${esc(u)}" target="_blank" rel="noopener">${esc(x.lienTexte || 'Consulter')}</a>` : '');
+          (u ? `<a class="hub-act${n ? ' alt' : ''}" href="${esc(u)}" target="_blank" rel="noopener"${/^(https?:|mailto:)/i.test(u) ? '' : ' download'}>${esc(x.lienTexte || 'Consulter')}</a>` : '');
         return `<div class="hub-doc"><b>${esc(x.titre)}</b>${meta ? `<small>${meta}</small>` : ''}${x.description ? `<div class="txt">${esc(x.description)}</div>` : ''}${acts ? `<div class="hub-acts">${acts}</div>` : ''}</div>`;
       }).join('')).join('');
   }

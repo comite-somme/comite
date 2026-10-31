@@ -413,7 +413,7 @@ const SECTIONED = (tab, desc, add, secs, col) => ({
   sub: a => `<span class="pill champ">${esc(a.saison || '')}</span>${(a.feuilles || []).length ? `<span class="pill concours">Tableau Excel · ${a.feuilles.length} feuille${a.feuilles.length > 1 ? 's' : ''}</span>` : ''}${a.lien ? '<span class="pill gp">Lien</span>' : ''}${[a.lieu, (a.description || '').slice(0, 70)].filter(Boolean).map(esc).join(' · ')}`,
   f: [['h','Où l\'afficher sur le site'], ['section','Partie et rubrique','select',secs], ['saison','Saison (ex : 2025-2026)'], ['h','Le contenu'], ['titre','Titre'], ['jour','Date (facultatif)','date'], ['lieu','Lieu (facultatif)'], ['description','Texte libre (facultatif) : liste de joueurs, informations…','textarea'], ['ordre','Position (1 = en premier)','number'],
       ['h','Tableau Excel (facultatif)'], ['feuilles','Glisse un fichier Excel (.xlsx) : chaque feuille s\'affichera en tableau sur le site, téléchargeable en Excel','xlsx'],
-      ['h','Lien vers un fichier (facultatif : PDF, Excel, page web…)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Adresse du fichier (https://…)','url']]
+      ['h','Lien vers un fichier (facultatif : PDF, Excel, page web…)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Fichier PDF : nom du fichier mis dans le dossier du site (ex : tirages-dep.pdf) ou adresse https://…','url']]
 });
 const SEC_CHAMP = [['dep-tirages','Départementaux — Tirages'],['dep-resultats','Départementaux — Résultats'],['dep-qualifies','Départementaux — Qualifiés pour les régionaux'],['dep-suspendus','Départementaux — Suspendus'],['reg-tirages','Régionaux — Tirages'],['reg-resultats','Régionaux — Résultats']];
 const CDF = [['cdf','Coupe de France'],['fem','Coupe de France Féminines'],['jp','Coupe de France Jeu Provençal'],['jeunes','Coupe de France Jeunes']];
@@ -494,7 +494,7 @@ const field = (f, v, req = []) => { const [k, l, t = 'text', o] = f, val = v ?? 
     : t === 'select' ? `<select id="x_${k}" name="${k}">${o.map(([a, b]) => `<option value="${esc(a)}" ${a === val ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select>`
     : `<input id="x_${k}" name="${k}" type="${t === 'url' ? 'text' : t}" ${t === 'url' ? 'inputmode="url" placeholder="https://…"' : ''} ${t === 'number' ? 'min="0"' : ''} value="${esc(val)}">`) + '</div>'; };
 const read = (fs, root) => Object.fromEntries(fs.filter(f => f[0] !== 'h' && f[2] !== 'xlsx').map(f => { const el = root.querySelector(`[name=${f[0]}]`); let v = el.value.trim();
-  if (f[2] === 'clubselect' && v === '__autre') v = ''; if (f[2] === 'number') v = Number(v) || 0; if (f[2] === 'url' && v && !/^(https?:|mailto:)/i.test(v)) v = 'https://' + v; return [f[0], v]; }));
+  if (f[2] === 'clubselect' && v === '__autre') v = ''; if (f[2] === 'number') v = Number(v) || 0; if (f[2] === 'url' && v && !/^(https?:|mailto:)/i.test(v)) v = (/^[\w\-./]+\.(pdf|xlsx?|docx?|csv|png|jpe?g)$/i.test(v) && !/^www\./i.test(v)) ? v.replace(/^\//, '') : 'https://' + v; return [f[0], v]; }));
 
 async function viewSettings() {
   const d = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
