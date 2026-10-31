@@ -75,6 +75,8 @@ nav {
 .breadcrumb a { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 48px; padding: 0.6rem 1.5rem; font-size: 1.05rem; font-weight: 700; color: var(--or-light, #e2c87a); background: rgba(201,168,76,0.14); border: 1.5px solid rgba(201,168,76,0.6); border-radius: 30px; text-decoration: none; transition: background 0.2s, color 0.2s; }
 .breadcrumb a:hover { background: var(--or); color: var(--bleu); text-decoration: none; }
 .breadcrumb a:focus-visible { outline: 3px solid var(--or); outline-offset: 3px; }
+/* Pages à en-tête .page-header : le bouton est en haut, avec de l'air avant le titre */
+.page-header .breadcrumb { margin: 0 0 1.4rem; }
 .breadcrumb span { color: rgba(255,255,255,0.45); font-size: 1.05rem; }
 
 /* ── CONTENU ── */

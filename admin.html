@@ -529,9 +529,12 @@ async function viewList(col) {
     const g = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
     pdfCard = `<form class="card" id="pdfForm" novalidate><b>${ic('dl')}Calendrier PDF</b><p class="hint2">Le bouton de téléchargement affiché en haut de la page Calendrier du site. Pour changer de PDF, collez sa nouvelle adresse ici.</p>
       <div class="grid"><div class="f"><label for="pdfLabel">Texte du bouton</label><input id="pdfLabel" value="${esc(g.pdfLabel)}" placeholder="Ex : Version 3 (PDF)"></div>
-      <div class="f"><label for="pdfUrl">Adresse du PDF (https://…)</label><input id="pdfUrl" inputmode="url" value="${esc(g.pdfUrl)}" placeholder="https://…"></div></div>
+      <div class="f"><label for="pdfUrl">Adresse du PDF : lien https://… (GitHub accepté) ou simple nom de fichier du site (ex : calendrier.pdf)</label><input id="pdfUrl" inputmode="url" value="${esc(g.pdfUrl)}" placeholder="https://…"></div></div>
       <button class="btn b-or" id="pdfSave">${ic('save')}Enregistrer le PDF</button></form>`;
-    pdfBind = () => { $('#pdfForm').onsubmit = async e => { e.preventDefault(); let u = $('#pdfUrl').value.trim(); if (u && !/^https?:/i.test(u)) u = 'https://' + u;
+    pdfBind = () => { $('#pdfForm').onsubmit = async e => { e.preventDefault(); let u = $('#pdfUrl').value.trim(); const rel = /^[\w\-./ ]+\.pdf$/i.test(u) && !/^(https?:|www\.)/i.test(u) && !/^[\w-]+\.[a-z]{2,}\//i.test(u); if (u && !rel && !/^https?:/i.test(u)) u = 'https://' + u;
+      /* Lien GitHub : on le convertit en lien direct vers le fichier, et on encode espaces/accents */
+      u = u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/i, 'https://raw.githubusercontent.com/$1/$2/$3').replace(/\?.*$/, m => /raw=true/.test(m) ? '' : m);
+      try { if (u && !rel) u = new URL(u).href; else if (rel) u = encodeURI(u.replace(/^\//, '')); } catch { return toast('Adresse invalide.', 1); }
       await busy($('#pdfSave'), async () => { try { await setDoc(doc(db, 'settings', 'general'), { pdfLabel: $('#pdfLabel').value.trim(), pdfUrl: u }, { merge: true }); toast('PDF enregistré — visible sur le calendrier'); } catch (er) { toast('Échec : ' + er.message, 1); } }); }; };
   }
   $('#main').innerHTML = head(S.tab, S.desc) + pdfCard + `<div class="bar"><div class="srch">${ic('search')}<input id="q" type="search" placeholder="Rechercher…" aria-label="Rechercher"></div>
