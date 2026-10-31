@@ -390,7 +390,7 @@ SCHEMA.documentations = {
 };
 /* Tirages, Championnats, Championnat des clubs, Résultats : même fonctionnement que les Archives */
 const EPREUVES = [['tete','Tête à tête'],['doublette','Doublette'],['triplette','Triplette'],['mixte','Mixte'],['feminin','Féminin'],['jeunes','Jeunes'],['veterans','Vétérans'],['provencal','Jeu provençal'],['autre','Autre']];
-const DIVISIONS = [['d1','Division 1'],['d2','Division 2'],['d3','Division 3'],['coupe','Coupe'],['autre','Autre']];
+const DIVISIONS = [['openfem','Open Féminin'],['open','Open'],['veterans','Vétérans'],['provencal','Jeu Provençal'],['jeunes','CDC Jeunes']];
 const DOCS = (tab, desc, add, cats) => ({
   tab, desc, add, req: ['titre', 'saison'],
   sort: (a, b) => (b.saison || '').localeCompare(a.saison || '') || (b.jour || '').localeCompare(a.jour || '') || (a.ordre ?? 99) - (b.ordre ?? 99),
@@ -404,7 +404,7 @@ const DOCS = (tab, desc, add, cats) => ({
 });
 SCHEMA.tirages = DOCS('Tirages', 'Les tirages affichés sur la page Tirages du site. Chaque document est rangé par saison.', 'Ajouter un tirage', EPREUVES);
 SCHEMA.championnats = DOCS('Championnats', 'Les documents de la page Championnats (qualifiés, classements, règlements…).', 'Ajouter un document', EPREUVES);
-SCHEMA.championnatsclubs = DOCS('Champ. des clubs', 'Les documents de la page Championnat des clubs (poules, journées, classements…).', 'Ajouter un document', DIVISIONS);
+SCHEMA.championnatsclubs = DOCS('Champ. des clubs', 'Les tirages, résultats et classements de la page Championnat des clubs. Choisis l\'épreuve (Open Féminin, Open, Vétérans, Jeu Provençal, CDC Jeunes) : le document apparaît dans l\'onglet correspondant.', 'Ajouter un document', DIVISIONS);
 SCHEMA.resultats = DOCS('Résultats', 'Les résultats affichés sur la page Résultats du site.', 'Ajouter un résultat', EPREUVES);
 const SETTINGS = [['h', 'Page d\'accueil'], ['heroDesc', 'Texte de présentation', 'textarea'],
   ['h', 'Les 4 chiffres du bandeau doré'], ['stat1v', 'Chiffre 1 (ex : 33)'], ['stat1l', 'Légende 1 (ex : Clubs)'], ['stat2v', 'Chiffre 2'], ['stat2l', 'Légende 2'], ['stat3v', 'Chiffre 3'], ['stat3l', 'Légende 3'], ['stat4v', 'Chiffre 4'], ['stat4l', 'Légende 4'],
@@ -492,6 +492,7 @@ async function viewList(col) {
   cache[col] = (await getDocs(collection(db, C))).docs.map(d => ({ ...d.data(), _id: d.id })).filter(S.filter || (() => true)).sort(S.sort);
   if (col === 'events') cache.clubsList = (await getDocs(collection(db, 'clubs'))).docs.map(d => d.data()).sort((a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'));
   const months = col === 'events' ? [...new Set(cache[col].map(S.group))] : [];
+  const XL = ['tirages', 'championnats', 'championnatsclubs', 'resultats'].includes(col);
   let pdfCard = '', pdfBind = () => {};
   if (col === 'events') {
     const g = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
@@ -504,7 +505,7 @@ async function viewList(col) {
   }
   $('#main').innerHTML = head(S.tab, S.desc) + pdfCard + `<div class="bar"><div class="srch">${ic('search')}<input id="q" type="search" placeholder="Rechercher…" aria-label="Rechercher"></div>
     ${col === 'events' ? `<select id="mo" aria-label="Mois"><option value="">Tous les mois</option>${months.map(k => `<option value="${esc(k)}">${esc(S.glabel(k))}</option>`).join('')}</select><select id="ty" aria-label="Catégorie"><option value="">Toutes catégories</option>${CATOPT.map(([a, b]) => `<option value="${a}">${b}</option>`).join('')}</select>` : ''}
-    <button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
+    ${XL ? `<button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden>` : ''}<button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
   const draw = () => { const q = $('#q').value.toLowerCase(), mo = $('#mo')?.value, ty = $('#ty')?.value;
     const l = cache[col].filter(x => (!q || JSON.stringify(x).toLowerCase().includes(q)) && (!mo || S.group(x) === mo) && (!ty || x.type === ty));
     if (!l.length) return $('#list').innerHTML = empty('Aucun résultat. Utilise le bouton « Ajouter » pour en créer un.');
@@ -513,6 +514,14 @@ async function viewList(col) {
     $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act"><button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
   pdfBind();
   draw(); ['#q', '#mo', '#ty'].forEach(s => $(s) && ($(s).oninput = draw));
+  if (XL) { $('#xl').onclick = () => $('#xf').click();
+    $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      try { await loadXLSX(); const s = toSheets(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
+        if (!s.length) return toast('Fichier vide ou illisible.', 1);
+        if (JSON.stringify(s).length > LIM) return toast('Fichier trop volumineux : sépare-le en plusieurs documents.', 1);
+        const n = new Date(), y = n.getMonth() >= 8 ? n.getFullYear() : n.getFullYear() - 1;
+        edit(col, { titre: f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), saison: y + '-' + (y + 1), ordre: cache[col].length + 1, feuilles: s });
+        toast('Fichier lu — choisis l\'épreuve puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } }; }
   $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'reglements', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, x = cache[col].find(i => i._id === id);
     if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
