@@ -1,6 +1,11 @@
 /* PWA — enregistrement du service worker + bouton « Installer l'application » */
 (function () {
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    /* quand une nouvelle version du site prend la main, on recharge une fois pour l'afficher tout de suite */
+    var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController || reloaded) return; reloaded = true; location.reload();
+    });
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
         /* vérifie s'il existe une nouvelle version du service worker à chaque retour dans l'app */
