@@ -123,9 +123,8 @@ function applyClassements(list) {
 
   host.innerHTML = css
     + `<div class="cat-tabs">${list.map((c, i) => `<button class="cat-tab ${i ? '' : 'active'}" data-k="${i}">${esc(c.nom)}</button>`).join('')}</div>`
-    + `<div class="controls"><label class="search-lbl" for="cms-q">Chercher un joueur ou un club</label><div class="search-wrap"><input type="search" id="cms-q" placeholder="Écrire un nom…" autocomplete="off"><button type="button" class="clear-btn" id="cms-x" hidden>Effacer</button></div>`
-    + `<button type="button" class="filter-toggle" id="cms-ft" aria-expanded="false" aria-controls="cms-fp" hidden>Affiner la liste</button>`
-    + `<div class="filter-panel" id="cms-fp" hidden><div class="fgroup" id="cms-fgc" role="group" aria-label="Classification"></div><div class="fgroup" id="cms-fgs" role="group" aria-label="Hommes ou femmes"></div></div></div>`
+    + `<div class="controls"><button type="button" class="filter-toggle" id="cms-ft" aria-expanded="false" aria-controls="cms-fp">Rechercher ou filtrer</button>`
+    + `<div class="filter-panel" id="cms-fp" hidden><div class="fgroup"><label class="fgroup-lbl" for="cms-q">Chercher un joueur ou un club</label><div class="search-wrap"><input type="search" id="cms-q" placeholder="Écrire un nom…" autocomplete="off"><button type="button" class="clear-btn" id="cms-x" hidden>Effacer</button></div></div><div class="fgroup" id="cms-fgc" role="group" aria-label="Classification"></div><div class="fgroup" id="cms-fgs" role="group" aria-label="Hommes ou femmes"></div></div></div>`
     + `<p class="result-count" id="cms-n"></p><div class="table-wrap" id="cms-tb"></div>`;
 
   const qEl = $('#cms-q', host), xBtn = $('#cms-x', host), ft = $('#cms-ft', host), fp = $('#cms-fp', host), gC = $('#cms-fgc', host), gS = $('#cms-fgs', host);
@@ -144,16 +143,20 @@ function applyClassements(list) {
     };
     const vals = idx => idx < 0 ? [] : [...new Set((c.lignes || []).map(r => String(r.v[idx] ?? '').trim()).filter(Boolean))];
     optC = vals(ix.classif); optS = vals(ix.sexe); vc = ''; vs = '';
-    fp.hidden = true; ft.setAttribute('aria-expanded', 'false'); ft.hidden = !(optC.length || optS.length);
+    fp.hidden = true; ft.setAttribute('aria-expanded', 'false'); ft.hidden = false;
     drawF();
     qEl.value = ''; xBtn.hidden = true;
+  }
+
+  function updT() {
+    const open = ft.getAttribute('aria-expanded') === 'true', n = (vc ? 1 : 0) + (vs ? 1 : 0) + (qEl.value.trim() ? 1 : 0);
+    ft.textContent = (open ? 'Fermer la recherche' : 'Rechercher ou filtrer') + (n ? ` (${n})` : '');
   }
 
   function drawF() {
     const mk = (g, lbl, opts, cur, key) => { g.hidden = !opts.length; g.innerHTML = `<span class="fgroup-lbl">${lbl}</span>` + ['', ...opts].map(v => `<button type="button" class="fpill" data-g="${key}" data-v="${esc(v)}" aria-pressed="${v === cur}">${esc(v || 'Tous')}</button>`).join(''); };
     mk(gC, 'Classification', optC, vc, 'c'); mk(gS, 'Hommes / Femmes', optS, vs, 's');
-    const n = (vc ? 1 : 0) + (vs ? 1 : 0), open = ft.getAttribute('aria-expanded') === 'true';
-    ft.textContent = (open ? 'Masquer les filtres' : 'Affiner la liste') + (n ? ` (${n})` : '');
+    updT();
   }
 
   function render() {
@@ -162,7 +165,7 @@ function applyClassements(list) {
     const main = ix.nom >= 0 ? ix.nom : cols.findIndex((_, i) => !skip.has(i) && i !== ix.pts);
     const show = cols.map((_, i) => i).filter(i => !skip.has(i));
     const merged = ix.nom >= 0 && ix.prenom >= 0;
-    const q = norm(qEl.value); xBtn.hidden = !qEl.value;
+    const q = norm(qEl.value); xBtn.hidden = !qEl.value; updT();
 
     const rows = (c.lignes || []).map((r, i) => ({ v: r.v, rank: ix.rang >= 0 ? (r.v[ix.rang] || i + 1) : i + 1 }))
       .filter(r => (!q || norm(r.v.join(' ')).includes(q)) && (!vc || ix.classif < 0 || String(r.v[ix.classif] ?? '').trim() === vc) && (!vs || ix.sexe < 0 || String(r.v[ix.sexe] ?? '').trim() === vs));
@@ -198,7 +201,7 @@ function applyClassements(list) {
   $$('.cat-tab', host).forEach(b => b.onclick = () => { cur = +b.dataset.k; $$('.cat-tab', host).forEach(x => x.classList.toggle('active', x === b)); setup(); render(); });
   qEl.oninput = render;
   xBtn.onclick = () => { qEl.value = ''; qEl.focus(); render(); };
-  ft.onclick = () => { const o = ft.getAttribute('aria-expanded') !== 'true'; ft.setAttribute('aria-expanded', o); fp.hidden = !o; drawF(); };
+  ft.onclick = () => { const o = ft.getAttribute('aria-expanded') !== 'true'; ft.setAttribute('aria-expanded', o); fp.hidden = !o; drawF(); if (o) qEl.focus(); };
   fp.onclick = e => { const b = e.target.closest('.fpill'); if (!b) return; if (b.dataset.g === 'c') vc = b.dataset.v; else vs = b.dataset.v; drawF(); render(); };
   setup(); render();
 }

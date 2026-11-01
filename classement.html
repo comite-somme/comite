@@ -26,7 +26,7 @@
   /* ── RECHERCHE + FILTRES ── */
   .controls { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1rem; }
   .search-lbl { font-size: 0.9rem; font-weight: 700; color: var(--bleu); }
-  .search-wrap { position: relative; width: 100%; background: #fff; border: 1.5px solid var(--gris); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem 0 1rem; min-height: 46px; transition: border-color 0.2s; }
+  .search-wrap { position: relative; width: 100%; flex: 1 1 100%; background: #fff; border: 1.5px solid var(--gris); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.5rem 0 1rem; min-height: 46px; transition: border-color 0.2s; }
   .search-wrap:focus-within { border-color: var(--or); }
   .search-wrap input { flex: 1; min-width: 0; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 1rem; color: var(--texte); background: transparent; min-height: 44px; }
   .search-wrap input::placeholder { color: #98a2b3; }
@@ -127,15 +127,17 @@
     <button class="cat-tab" onclick="setTab('clubs',this)">Clubs</button>
   </div>
 
-  <!-- CONTRÔLES (recherche + filtres repliés) -->
+  <!-- CONTRÔLES : un seul bouton, la recherche et les filtres s'ouvrent dessous -->
   <div class="controls reveal" id="controls-players">
-    <label class="search-lbl" for="search-input">Chercher un joueur ou un club</label>
-    <div class="search-wrap">
-      <input type="text" id="search-input" placeholder="Écrire un nom…" autocomplete="off" oninput="renderTable()">
-      <button type="button" class="clear-btn" id="clear-btn" hidden onclick="clearSearch()">Effacer</button>
-    </div>
-    <button type="button" class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filter-panel" onclick="toggleFilters()">Affiner la liste</button>
+    <button type="button" class="filter-toggle" id="filter-toggle" aria-expanded="false" aria-controls="filter-panel" onclick="toggleFilters()">Rechercher ou filtrer</button>
     <div class="filter-panel" id="filter-panel" hidden>
+      <div class="fgroup">
+        <label class="fgroup-lbl" for="search-input">Chercher un joueur ou un club</label>
+        <div class="search-wrap">
+          <input type="text" id="search-input" placeholder="Écrire un nom…" autocomplete="off" oninput="renderTable()">
+          <button type="button" class="clear-btn" id="clear-btn" hidden onclick="clearSearch()">Effacer</button>
+        </div>
+      </div>
       <div class="fgroup" id="fg-classif" role="group" aria-label="Classification"><span class="fgroup-lbl">Classification</span></div>
       <div class="fgroup" id="fg-sexe" role="group" aria-label="Hommes ou femmes"><span class="fgroup-lbl">Hommes / Femmes</span></div>
     </div>
@@ -198,14 +200,18 @@ function drawFilters() {
   mk('fg-classif', FC, fClassif, 'c');
   mk('fg-sexe', FS, fSexe, 's');
   document.getElementById('fg-sexe').hidden = activeTab !== 'senior';
-  const n = (fClassif ? 1 : 0) + (fSexe && activeTab === 'senior' ? 1 : 0);
+  updateToggle();
+}
+function updateToggle() {
   const t = document.getElementById('filter-toggle'), open = t.getAttribute('aria-expanded') === 'true';
-  t.textContent = (open ? 'Masquer les filtres' : 'Affiner la liste') + (n ? ' (' + n + ')' : '');
+  const n = (fClassif ? 1 : 0) + (fSexe && activeTab === 'senior' ? 1 : 0) + (document.getElementById('search-input').value.trim() ? 1 : 0);
+  t.textContent = (open ? 'Fermer la recherche' : 'Rechercher ou filtrer') + (n ? ' (' + n + ')' : '');
 }
 function setFilter(k, v) { if (k === 'c') fClassif = v; else fSexe = v; drawFilters(); renderTable(); }
 function toggleFilters() {
   const t = document.getElementById('filter-toggle'), p = document.getElementById('filter-panel'), open = t.getAttribute('aria-expanded') !== 'true';
   t.setAttribute('aria-expanded', open); p.hidden = !open; drawFilters();
+  if (open) document.getElementById('search-input').focus();
 }
 function clearSearch() { const i = document.getElementById('search-input'); i.value = ''; i.focus(); renderTable(); }
 
@@ -244,6 +250,7 @@ function renderTable() {
   const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
   const classifFilter = fClassif, sexeFilter = fSexe;
   const cb = document.getElementById('clear-btn'); if (cb) cb.hidden = !q;
+  updateToggle();
 
   if (activeTab === 'clubs') {
     let rows = DATA.clubs;
