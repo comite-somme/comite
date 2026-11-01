@@ -24,9 +24,8 @@
   .clubs-search-bar input::placeholder { color: #aaa; }
 
   /* ── ONGLETS SECTEUR : une ligne défilable sur mobile ── */
-  .secteur-tabs { display: flex; gap: 0.4rem; flex-wrap: nowrap; overflow-x: auto; margin: 0 calc(var(--pad-x) * -1) 1rem; padding: 0 var(--pad-x) 0.35rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-  .secteur-tabs::-webkit-scrollbar { display: none; }
-  .secteur-tab { flex-shrink: 0; white-space: nowrap; min-height: 42px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.3px; padding: 0.45rem 1.1rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .secteur-tabs { display: flex; gap: 0.45rem; flex-wrap: wrap; margin: 0 0 1rem; }
+  .secteur-tab { flex: 1 1 auto; white-space: nowrap; min-height: 42px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.82rem; font-weight: 600; letter-spacing: 0.2px; padding: 0.45rem 0.8rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .secteur-tab.active, .secteur-tab:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
   .clubs-count { font-size: 0.8rem; color: #999; margin-bottom: 1.5rem; }
 
@@ -55,8 +54,8 @@
     .club-card-body { padding: 1rem 1.2rem; }
   }
   @media (min-width: 768px) {
-    .secteur-tabs { flex-wrap: wrap; overflow: visible; margin: 0 0 1rem; padding: 0; gap: 0.5rem; }
-    .secteur-tab { min-height: 0; font-size: 0.82rem; }
+    .secteur-tabs { gap: 0.5rem; }
+    .secteur-tab { flex: 0 0 auto; min-height: 0; font-size: 0.82rem; padding: 0.45rem 1.1rem; }
     .clubs-count { margin-bottom: 2rem; }
     .secteur-title { font-size: 1.6rem; margin-bottom: 1.2rem; }
     .clubs-search-bar input { font-size: 0.95rem; }

@@ -119,13 +119,35 @@
   .arc-card:hover { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.4); transform: translateY(-2px); }
 }
 @media (prefers-reduced-motion: reduce) { .arc-card, .arc-btn { transition: none; } }
-.legal { background: #fff; color: #1a1f2e; padding: 2.5rem var(--pad-x) 4rem; }
-.legal article { max-width: 760px; margin: 0 auto; line-height: 1.7; font-size: 0.95rem; }
-.legal h2 { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 1.35rem; color: var(--bleu); margin: 2rem 0 0.5rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--or); }
-.legal h2:first-child { margin-top: 0; }
-.legal ul { padding-left: 1.2rem; } .legal li { margin-bottom: 0.5rem; }
-.legal a { color: var(--bleu); text-decoration: underline; }
-.legal .maj { color: #667085; font-size: 0.85rem; }
+.legal { background: var(--fond, #f5f4f0); color: #1a1f2e; padding: 1.75rem var(--pad-x) 4rem; }
+.legal article { max-width: 820px; margin: 0 auto; font-size: 1rem; line-height: 1.75; }
+.legal .maj { display: inline-flex; align-items: center; gap: 0.5rem; background: #fff; border: 1px solid #e3dcc5; color: #5b4a14; font-size: 0.82rem; font-weight: 600; padding: 0.4rem 0.9rem; border-radius: 20px; margin: 0 0 1.25rem; }
+.legal .maj::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--or); }
+.lg-intro { background: var(--bleu); color: rgba(255,255,255,0.88); border-left: 5px solid var(--or); border-radius: 12px; padding: 1.1rem 1.3rem; margin: 0 0 1.5rem; font-size: 0.95rem; line-height: 1.65; }
+.lg-intro strong { color: #fff; }
+.lg-toc { background: #fff; border: 1px solid var(--gris); border-radius: 14px; padding: 1.1rem 1.2rem 1.2rem; margin: 0 0 1.75rem; box-shadow: 0 1px 2px rgba(10,35,66,.05), 0 4px 14px rgba(10,35,66,.05); }
+.lg-toc b { display: block; font-family: 'Bebas Neue', sans-serif; font-weight: 400; letter-spacing: 1.5px; font-size: 1.2rem; color: var(--bleu); margin-bottom: 0.6rem; }
+.lg-toc ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 0.4rem; }
+.lg-toc a { display: flex; align-items: center; gap: 0.7rem; min-height: 44px; padding: 0.4rem 0.7rem; border-radius: 8px; text-decoration: none; color: var(--bleu); font-weight: 600; font-size: 0.92rem; line-height: 1.3; transition: background 0.2s; }
+.lg-toc a:hover, .lg-toc a:focus-visible { background: #faf6e8; outline: none; }
+.lg-toc a span { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--bleu); color: var(--or); display: grid; place-items: center; font-size: 0.8rem; font-weight: 700; }
+.lg-card { background: #fff; border: 1px solid var(--gris); border-radius: 14px; padding: 1.3rem 1.2rem 1.1rem; margin: 0 0 1.1rem; box-shadow: 0 1px 2px rgba(10,35,66,.05), 0 4px 14px rgba(10,35,66,.05); scroll-margin-top: calc(var(--nav-h, 64px) + 12px); }
+.lg-card h2 { display: flex; align-items: center; gap: 0.8rem; font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 1.3rem; line-height: 1.25; color: var(--bleu); margin: 0 0 0.9rem; padding: 0 0 0.8rem; border-bottom: 2px solid var(--or); }
+.lg-card h2 .n { flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--bleu); color: var(--or); display: grid; place-items: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.5px; }
+.lg-card p { margin: 0 0 0.9rem; }
+.lg-card p:last-child, .lg-card ul:last-child { margin-bottom: 0; }
+.lg-card ul { list-style: none; margin: 0 0 0.9rem; padding: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+.lg-card li { position: relative; margin: 0; padding: 0.75rem 0.9rem 0.75rem 2.1rem; background: #faf9f5; border: 1px solid #eee9d8; border-radius: 10px; font-size: 0.95rem; line-height: 1.65; }
+.lg-card li::before { content: ''; position: absolute; left: 0.85rem; top: 1.2rem; width: 9px; height: 9px; border-radius: 50%; background: var(--or); }
+.lg-card strong { color: var(--bleu); }
+.lg-card a { color: var(--bleu); font-weight: 600; text-decoration: underline; text-decoration-color: var(--or); text-underline-offset: 3px; text-decoration-thickness: 2px; overflow-wrap: anywhere; }
+.lg-card a:hover { background: #faf6e8; }
+@media (min-width: 640px) {
+  .lg-toc ol { grid-template-columns: 1fr 1fr; }
+  .lg-card { padding: 1.6rem 1.8rem 1.4rem; }
+  .lg-card h2 { font-size: 1.5rem; }
+}
+@media (min-width: 768px) { .legal { padding-top: 2.5rem; } }
 </style>
 </head>
 <body>
@@ -185,6 +207,31 @@
   <p>Si vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la CNIL : <a href="https://www.cnil.fr" target="_blank" rel="noopener">www.cnil.fr</a>, 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07.</p>
 </article>
 </section>
+<script>
+/* Met le texte en cartes numérotées + sommaire (réexécuté si le texte est remplacé depuis la base) */
+window.legalDecorate = function () {
+  const art = document.querySelector('.legal article'); if (!art) return;
+  const maj = art.querySelector('.maj'), heads = [...art.querySelectorAll(':scope > h2')];
+  if (!heads.length) return;
+  const frag = document.createDocumentFragment(), toc = [];
+  if (maj) frag.append(maj);
+  const intro = document.createElement('p'); intro.className = 'lg-intro';
+  intro.innerHTML = '<strong>En bref :</strong> nous ne collectons que ce qui est utile, sans cookie publicitaire ni suivi. Vous pouvez à tout moment accéder à vos données, les corriger ou demander leur retrait.';
+  frag.append(intro);
+  const tocBox = document.createElement('nav'); tocBox.className = 'lg-toc'; tocBox.setAttribute('aria-label', 'Sommaire'); frag.append(tocBox);
+  heads.forEach((h, i) => {
+    const card = document.createElement('section'); card.className = 'lg-card'; card.id = 'section-' + (i + 1);
+    const m = h.textContent.trim().match(/^(\d+)\s*[.)-]\s*(.*)$/), num = m ? m[1] : String(i + 1), title = m ? m[2] : h.textContent.trim();
+    const h2 = document.createElement('h2'); h2.innerHTML = '<span class="n" aria-hidden="true"></span><span></span>';
+    h2.firstChild.textContent = num; h2.lastChild.textContent = title; card.append(h2);
+    let n = h.nextElementSibling; while (n && n.tagName !== 'H2') { const nx = n.nextElementSibling; card.append(n); n = nx; }
+    frag.append(card); toc.push([card.id, num, title]);
+  });
+  tocBox.innerHTML = '<b>Sommaire</b><ol>' + toc.map(t => `<li><a href="#${t[0]}"><span>${t[1]}</span>${t[2].replace(/[<>&]/g, '')}</a></li>`).join('') + '</ol>';
+  art.replaceChildren(frag);
+};
+window.legalDecorate();
+</script>
 
 <!-- ── FOOTER ── -->
 <footer>
@@ -264,6 +311,7 @@ try {
     const date = d.majLe ? new Date(d.majLe + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
     document.querySelector('.legal article').innerHTML = (date ? `<p class="maj">Dernière mise à jour : ${esc(date)}</p>` : '') +
       d.sections.map(x => `<h2>${esc(x.titre)}</h2>${blocks(sub(x.texte))}`).join('');
+    window.legalDecorate();
   } else {
     if (adr) document.getElementById('resp-contact').textContent = 'Adresse : ' + adr + '.';
     if (s.email) { const a = document.getElementById('resp-mail'); a.href = 'mailto:' + s.email; a.textContent = s.email; }

@@ -14,6 +14,10 @@
 <meta name="apple-mobile-web-app-title" content="CD80 Admin">
 <title>Administration — Comité de la Somme</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -473,7 +477,8 @@ async function show() {
 }
 
 async function viewHome() {
-  const n = {}; for (const c of ['events', 'clubs', 'membres', 'classements', 'annuaire', 'archives', 'documentations']) n[c] = (await getDocs(collection(db, c))).docs.map(d => d.data());
+  const cols = ['events', 'clubs', 'membres', 'classements', 'annuaire', 'archives', 'documentations'], n = {};
+  (await Promise.all(cols.map(c => getDocs(collection(db, c))))).forEach((sn, i) => n[cols[i]] = sn.docs.map(d => d.data()));
   const people = k => n.membres.filter(m => catOf(m) === k).length;
   const S = SCHEMA.events, up = n.events.filter(e => e.date >= today).sort(S.sort);
   const T = (k, i, num, lab, sub) => `<button class="tile" data-go="${k}"><span class="i">${ic(i, 24)}</span><span class="n">${num}</span><b>${lab}</b><small>${sub}</small></button>`;
@@ -526,13 +531,14 @@ async function seedDocs() {
 
 async function viewList(col) {
   const S = SCHEMA[col], C = S.col || col;   // C = collection Firestore réelle
-  cache[col] = (await getDocs(collection(db, C))).docs.map(d => ({ ...d.data(), _id: d.id })).filter(S.filter || (() => true)).sort(S.sort);
-  if (col === 'events') cache.clubsList = (await getDocs(collection(db, 'clubs'))).docs.map(d => d.data()).sort((a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'));
+  const [snap, clubsSnap, genSnap] = await Promise.all([getDocs(collection(db, C)), col === 'events' ? getDocs(collection(db, 'clubs')) : null, col === 'events' ? getDoc(doc(db, 'settings', 'general')) : null]);
+  cache[col] = snap.docs.map(d => ({ ...d.data(), _id: d.id })).filter(S.filter || (() => true)).sort(S.sort);
+  if (clubsSnap) cache.clubsList = clubsSnap.docs.map(d => d.data()).sort((a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'));
   const months = col === 'events' ? [...new Set(cache[col].map(S.group))] : [];
   const XL = ['championnats', 'coupedefrance', 'championnatsclubs'].includes(col);
   let pdfCard = '', pdfBind = () => {};
   if (col === 'events') {
-    const g = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
+    const g = genSnap.data() || {};
     pdfCard = `<form class="card" id="pdfForm" novalidate><b>${ic('dl')}Calendrier PDF</b><p class="hint2">Le bouton de téléchargement affiché en haut de la page Calendrier du site. Pour changer de PDF, collez sa nouvelle adresse ici.</p>
       <div class="grid"><div class="f"><label for="pdfLabel">Texte du bouton</label><input id="pdfLabel" value="${esc(g.pdfLabel)}" placeholder="Ex : Version 3 (PDF)"></div>
       <div class="f"><label for="pdfUrl">Adresse du PDF : lien https://… (GitHub accepté) ou simple nom de fichier du site (ex : calendrier.pdf)</label><input id="pdfUrl" inputmode="url" value="${esc(g.pdfUrl)}" placeholder="https://…"></div></div>
@@ -732,9 +738,11 @@ async function trash(col, id, x) {
   b.set(doc(collection(db, 'corbeille')), { col, origId: id, data, label: KIND[col][1](data) || 'Sans titre', supprimeLe: Date.now() });
   b.delete(doc(db, col, id)); await b.commit();
 }
-async function badge() {
-  try { document.querySelectorAll('.nb').forEach(n => n.remove());
-    const n = (await getDocs(collection(db, 'messages'))).docs.filter(d => !d.data().lu).length;
+let badgeAt = 0, badgeN = 0;
+async function badge(force) {
+  try { if (force || Date.now() - badgeAt > 60000) { badgeN = (await getDocs(collection(db, 'messages'))).docs.filter(d => !d.data().lu).length; badgeAt = Date.now(); }
+    document.querySelectorAll('.nb').forEach(n => n.remove());
+    const n = badgeN;
     if (!n) return;
     document.querySelector('#tabs [data-t=messages]')?.insertAdjacentHTML('beforeend', `<span class="nb" aria-label="${n} non lus">${n}</span>`);
     burger.insertAdjacentHTML('beforeend', `<span class="nb dot" aria-label="${n} messages non lus"></span>`); } catch {}
@@ -753,11 +761,11 @@ async function viewMessages() {
       <button class="btn b-ln" data-a="tr" data-id="${m._id}">${m.traite ? 'Rouvrir' : 'Marquer traité'}</button>
       <button class="btn b-ko b-ic" data-a="del" data-id="${m._id}" aria-label="Mettre à la corbeille" title="Mettre à la corbeille">${ic('trash', 16)}</button></div></div>`).join('')
       : empty('Aucun message pour le moment.', 'mail'); };
-  const save = async (m, p) => { Object.assign(m, p); await setDoc(doc(db, 'messages', m._id), p, { merge: true }); badge(); draw(); };
+  const save = async (m, p) => { Object.assign(m, p); await setDoc(doc(db, 'messages', m._id), p, { merge: true }); badge(true); draw(); };
   draw(); $('#mf').oninput = draw;
   $('#main').onclick = async e => { const b = e.target.closest('[data-a]'); if (!b) return; const m = l.find(i => i._id === b.dataset.id), a = b.dataset.a;
     try { if (a === 'lu') await save(m, { lu: !m.lu }); else if (a === 'tr') await save(m, { traite: !m.traite }); else if (a === 're') { if (!m.lu) save(m, { lu: true }); }
-      else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(); draw(); toast('Placé dans la corbeille'); }
+      else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast('Placé dans la corbeille'); }
     } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
@@ -777,7 +785,7 @@ async function viewTrash() {
       else { const x = l.find(i => i._id === (b.dataset.r || b.dataset.x));
         if (b.dataset.r) { const w = writeBatch(db); w.set(doc(db, x.col, x.origId), x.data); w.delete(doc(db, 'corbeille', x._id)); await w.commit(); toast('Restauré'); }
         else { if (!await ask('Supprimer définitivement ?', `« ${x.label} » ne pourra plus être récupéré.`)) return; await deleteDoc(doc(db, 'corbeille', x._id)); toast('Supprimé'); } }
-      badge(); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
+      badge(true); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
 const PAGES = { accueil: 'Accueil', comite: 'Le Comité', clubs: 'Les clubs', calendrier: 'Calendrier', annuaire: 'Annuaire', classement: 'Classements', archives: 'Archives', documentations: 'Documentations', cdc: 'Champ. des clubs', championnats: 'Championnats', 'coupe-de-france': 'Coupe de France' };

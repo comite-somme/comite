@@ -40,6 +40,7 @@
   .hero-title em { color: var(--or); font-style: normal; }
   .hero-sub { color: rgba(255,255,255,0.6); font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; margin: 0 auto 1.5rem; max-width: 22rem; line-height: 1.6; animation: fadeUp 1s ease both 0.3s; }
   .hero-desc { max-width: 520px; margin: 0 auto 2rem; color: rgba(255,255,255,0.75); font-size: 0.95rem; line-height: 1.7; animation: fadeUp 1s ease both 0.4s; }
+  [hidden] { display: none !important; }
   .hero-btns { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; max-width: 320px; margin: 0 auto; animation: fadeUp 1s ease both 0.5s; }
   .btn-primary, .btn-outline { display: block; text-align: center; font-size: 0.9rem; letter-spacing: 1px; padding: 0.95rem 1.5rem; border-radius: 5px; text-decoration: none; text-transform: uppercase; transition: background 0.2s, border-color 0.2s, transform 0.2s; }
   .btn-primary { background: var(--or); color: var(--bleu); font-weight: 600; }
@@ -148,7 +149,7 @@
     <p class="hero-desc">Toutes les informations, résultats et calendriers sur la pétanque dans le département de la Somme. Site régulièrement mis à jour.</p>
     <div class="hero-btns">
       <a href="#" data-open-menu class="btn-primary">Menu</a>
-      <a href="#actus" class="btn-outline">Actualités</a>
+      <a href="#actus" class="btn-outline" id="btnActus" hidden>Actualités</a>
     </div>
   </div>
   <div class="hero-scroll">
@@ -297,6 +298,7 @@ const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août'
       list.append(box);
     });
     document.getElementById('actus').hidden = false;
+    document.getElementById('btnActus').hidden = false;
   } catch (e) { console.warn('Actualités indisponibles', e); }
 })();
 
