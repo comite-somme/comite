@@ -165,17 +165,31 @@ const CATNAME = Object.fromEntries(CAT);
 const OLD = { formulaires: 'utilitaires', licences: 'utilitaires' };
 const catOf = d => CATNAME[d.categorie] ? d.categorie : (OLD[d.categorie] || 'cd80');
 
-/* Documents attendus : ils s'affichent toujours ; le lien se renseigne dans l'admin
-   (onglet Documentations, bouton « Créer les documents types », puis « Modifier »). */
+/* Documents attendus : ils s'affichent toujours, avec leur fichier du dossier « documents/ ».
+   Un document créé dans l'administration avec le même titre remplace la ligne ci-dessous. */
 const FFPJP_URL = 'https://www.ffpjp.org/portail/reglements-textes/reglements-textes-officiels';
+const F = 'documents/';
 const DEFAULTS = [
   { categorie: 'ffpjp', titre: 'Règlements et textes officiels FFPJP', description: 'Règlements de jeu, statuts, règlements administratif et sportif : tous les textes officiels de la Fédération.', lien: FFPJP_URL, lienTexte: 'Accéder aux textes officiels' },
-  { categorie: 'cd80', titre: 'Statuts' },
-  { categorie: 'cd80', titre: 'Règlement intérieur' },
-  { categorie: 'cd80', titre: 'Cahier des championnats' },
+  { categorie: 'ffpjp', titre: 'Guide du club de pétanque et de jeu provençal (V7)', description: 'Production FFPJP 2024 : création, fonctionnement et organisation des compétitions d\'un club, communication.', lien: F + 'guide-du-club-v7.pdf' },
+
+  { categorie: 'cd80', titre: 'Statuts', description: 'Statuts du Comité départemental, édition du 19 novembre 2016.', lien: F + 'statuts-cd80-2016.pdf' },
+  { categorie: 'cd80', titre: 'Règlement intérieur', description: 'Édition du 15 novembre 2025, adoptée par l\'assemblée générale.', lien: F + 'reglement-interieur-cd80-2025.pdf' },
+  { categorie: 'cd80', titre: 'Cahier des championnats', description: 'Cahier des charges de l\'organisation des championnats de la Somme, des championnats des clubs et des coupes de France (2027).', lien: F + 'cahier-des-charges-championnats-2027.pdf' },
   { categorie: 'cd80', titre: 'Règlement CDC' },
-  { categorie: 'cd80', titre: 'Compte rendu de réunion' },
-  { categorie: 'cd80', titre: 'Compte rendu d\'assemblée générale' },
+  { categorie: 'cd80', titre: 'Compte rendu d\'assemblée générale', description: 'Assemblée générale du 15 novembre 2025.', lien: F + 'ag-cd80-2025.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 23 janvier 2026', lien: F + 'cr-cd80-2026-01-23.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 6 mars 2026', lien: F + 'cr-cd80-2026-03-06.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 22 mai 2026', lien: F + 'cr-cd80-2026-05-22.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 3 juillet 2026', lien: F + 'cr-cd80-2026-07-03.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 21 août 2026', lien: F + 'cr-cd80-2026-08-21.pdf' },
+  { categorie: 'cd80', titre: 'Compte rendu de réunion du 9 octobre 2026', lien: F + 'cr-cd80-2026-10-09.pdf' },
+  { categorie: 'cd80', titre: 'Résultats des championnats départementaux 2026', lien: F + 'resultats-departementaux-2026.pdf' },
+  { categorie: 'cd80', titre: 'Équipes qualifiées aux championnats régionaux 2026', lien: F + 'qualifies-regionaux-2026.pdf' },
+  { categorie: 'cd80', titre: 'Résultats des championnats régionaux 2026', lien: F + 'resultats-regionaux-2026.pdf' },
+  { categorie: 'cd80', titre: 'Joueurs suspendus pour un championnat en 2027', description: 'Joueurs absents aux championnats 2026 sans justificatif.', lien: F + 'suspendus-2027.pdf' },
+
+  { categorie: 'utilitaires', titre: 'Demande d\'affiliation 2027', description: 'Formulaire de demande d\'affiliation d\'un club (chèque de 20 € et statuts à joindre).', lien: F + 'demande-affiliation-2027.pdf' },
   { categorie: 'utilitaires', titre: 'Bordereau de demande de licences' },
   { categorie: 'utilitaires', titre: 'Imprimé de demande de licences' },
   { categorie: 'utilitaires', titre: 'Feuille de match CDC Open' },
@@ -197,7 +211,8 @@ const ICON_FILE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" s
 const ICON_DL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>';
 const ICON_EXT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>';
 
-const safeUrl = u => /^(https?:|mailto:)/i.test(u || '') ? u : '';
+/* Liens acceptés : https://…, mailto:… ou fichier du site (ex : documents/statuts-cd80-2016.pdf) */
+const safeUrl = u => /^(https?:|mailto:)/i.test(u || '') || /^(?!\/\/)[\w\-./%]+$/.test(u || '') ? u : '';
 const fileType = u => { const m = String(u).split(/[?#]/)[0].match(/\.(pdf|docx?|xlsx?|csv|pptx?|zip)$/i); return m ? m[1].toUpperCase().replace(/^(DOCX?)$/, 'WORD').replace(/^(XLSX?|CSV)$/, 'EXCEL').replace(/^(PPTX?)$/, 'POWERPOINT') : ''; };
 
 let docs = [], cat = '';
