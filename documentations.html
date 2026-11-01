@@ -168,7 +168,7 @@ const catOf = d => CATNAME[d.categorie] ? d.categorie : (OLD[d.categorie] || 'cd
 /* Documents attendus : ils s'affichent toujours, avec leur fichier du dossier « documents/ ».
    Un document créé dans l'administration avec le même titre remplace la ligne ci-dessous. */
 const FFPJP_URL = 'https://www.ffpjp.org/portail/reglements-textes/reglements-textes-officiels';
-const F = 'documents/';
+const F = '';
 const DEFAULTS = [
   { categorie: 'ffpjp', titre: 'Règlements et textes officiels FFPJP', description: 'Règlements de jeu, statuts, règlements administratif et sportif : tous les textes officiels de la Fédération.', lien: FFPJP_URL, lienTexte: 'Accéder aux textes officiels' },
   { categorie: 'ffpjp', titre: 'Guide du club de pétanque et de jeu provençal (V7)', description: 'Production FFPJP 2024 : création, fonctionnement et organisation des compétitions d\'un club, communication.', lien: F + 'guide-du-club-v7.pdf' },
@@ -203,7 +203,11 @@ const DEFAULTS = [
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 function merge(fire) {
   const l = fire.map(d => ({ ...d, categorie: catOf(d) }));
-  DEFAULTS.forEach((d, i) => { if (!l.some(x => x.categorie === d.categorie && norm(x.titre) === norm(d.titre))) l.push({ ...d, ordre: 1000 + i }); });
+  DEFAULTS.forEach((d, i) => {
+    const x = l.find(x => x.categorie === d.categorie && norm(x.titre) === norm(d.titre));
+    if (!x) l.push({ ...d, ordre: 1000 + i });
+    else if (!x.lien && d.lien) { x.lien = d.lien; if (!x.description) x.description = d.description; }
+  });
   return l;
 }
 
