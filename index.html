@@ -8,6 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#0a2342">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CD80 Pétanque">
 <link rel="stylesheet" href="base.css">
 <style>
   /* ── HERO ── */
@@ -142,7 +148,7 @@
     <p class="hero-desc">Toutes les informations, résultats et calendriers sur la pétanque dans le département de la Somme. Site régulièrement mis à jour.</p>
     <div class="hero-btns">
       <a href="#" data-open-menu class="btn-primary">Menu</a>
-      <a href="calendrier.html" class="btn-outline"> Calendrier 2026</a>
+      <a href="#actus" class="btn-outline">Actualités</a>
     </div>
   </div>
   <div class="hero-scroll">
@@ -267,7 +273,8 @@
     nav.style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
   });
 </script>
-  <!-- À la fin du <body>, avant </body> -->
+  <!-- À la fin du <body>, avant <script src="pwa.js" defer></script>
+</body> -->
 
 <script type="module">
 import { db } from './firebase-config.js';

@@ -8,6 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#0a2342">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CD80 Pétanque">
 <link rel="stylesheet" href="base.css">
 <style>
   /* ── BARRE TÉLÉCHARGEMENT ── */
@@ -892,5 +898,6 @@ if(scrollToToday){ scrollToToday=false; goToToday(); }
 </script>
 <script src="nav.js"></script>
   <script type="module" src="track.js"></script>
+<script src="pwa.js" defer></script>
 </body>
 </html>
