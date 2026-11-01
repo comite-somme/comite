@@ -36,8 +36,8 @@
   .cdc-link svg { flex-shrink: 0; width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: rgba(201,168,76,0.18); stroke: #9a7a1f; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .cdc-l-t { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .cdc-l-d { font-size: 0.75rem; font-weight: 600; color: #667085; white-space: nowrap; }
-  .cdc-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0 0 0.6rem; margin: 0 calc(var(--pad-x) * -1) 1.2rem; padding-inline: var(--pad-x); scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
-  .cdc-tab { flex: none; min-height: 46px; display: inline-flex; align-items: center; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 700 0.9rem 'DM Sans', sans-serif; padding: 0.4rem 1.2rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .cdc-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1.2rem; }
+  .cdc-tab { flex: 1 1 auto; justify-content: center; min-height: 46px; display: inline-flex; align-items: center; border: 1.5px solid var(--gris); background: #fff; color: #555; font: 700 0.88rem 'DM Sans', sans-serif; padding: 0.4rem 0.9rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .cdc-tab:hover { border-color: var(--or); color: var(--bleu); }
   .cdc-tab[aria-selected="true"] { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
   .cdc-panel { background: #fff; border: 1px solid var(--gris); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(10,35,66,.06), 0 4px 14px rgba(10,35,66,.05); }
@@ -143,7 +143,7 @@
      Chaque pastille ouvre un PDF. Dépose les fichiers dans le dossier « cdc/ » du site
      avec le nom indiqué ci-dessous (ex. cdc/cncf-1a.pdf). Tant qu'un PDF n'existe pas,
      sa pastille reste grisée « bientôt ». Pour remplacer un PDF : même nom de fichier. */
-  const GENERAL = { titre: 'Calendrier général 2026', texte: 'CNC · CRC · CDC — toutes les journées de la saison', lien: { t: 'Télécharger (PDF)', u: 'cdc/calendrier-general.pdf' }, maj: '10/09/2026' };
+  const GENERAL = { titre: 'Calendrier général 2026', texte: 'CNC · CRC · CDC — toutes les journées de la saison', lien: { t: 'Télécharger (PDF)', u: 'cdc/calendrier-general.pdf' } };
 
   /* t = texte de la pastille · u = PDF associé */
   const P = (t, f) => ({ t, u: 'cdc/' + f + '.pdf' });
@@ -185,7 +185,7 @@
   }
 
   document.getElementById('cdcRoot').innerHTML = `
-    <div class="cdc-hero"><div><strong>${esc(GENERAL.titre)}</strong><p>${esc(GENERAL.texte)} · mis à jour le ${esc(GENERAL.maj)}</p></div>
+    <div class="cdc-hero"><div><strong>${esc(GENERAL.titre)}</strong><p>${esc(GENERAL.texte)}</p></div>
       <a class="cdc-btn" id="cdcGen" href="${esc(safe(GENERAL.lien.u))}" target="_blank" rel="noopener">${FILE.replace('<svg ', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" ')}${esc(GENERAL.lien.t)}</a></div>
     <h2 class="cdc-h2">Les <em>championnats</em></h2>
     <div class="cdc-tabs" role="tablist" aria-label="Championnats">${ONGLETS.map(o => `<button type="button" class="cdc-tab" role="tab" id="tab-${o.k}" data-k="${o.k}" aria-controls="cdcPanel">${esc(o.titre)}</button>`).join('')}</div>

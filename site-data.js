@@ -122,7 +122,6 @@ function applyClassements(list) {
   const maj = list.filter(c => c.majLe).map(c => `<strong>${esc(c.nom)}</strong> — ${esc(String(c.majLe).replace(/^mis à jour( le)?\s*/i, ''))}`).join(' &nbsp;|&nbsp; ');
 
   host.innerHTML = css
-    + (maj ? `<div class="maj-bar"><p>Dernières mises à jour : ${maj}</p></div>` : '')
     + `<div class="cat-tabs">${list.map((c, i) => `<button class="cat-tab ${i ? '' : 'active'}" data-k="${i}">${esc(c.nom)}</button>`).join('')}</div>`
     + `<div class="controls"><div class="search-wrap"><input type="search" id="cms-q" placeholder="Rechercher un joueur, un club…" aria-label="Rechercher"></div><select class="filter-select" id="cms-fc" aria-label="Classification"></select><select class="filter-select" id="cms-fs" aria-label="Sexe"></select></div>`
     + `<p class="result-count" id="cms-n"></p><div class="table-wrap" id="cms-tb"></div>`;
