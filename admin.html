@@ -388,7 +388,7 @@ SCHEMA.archives = {
 const DOCCAT = [['ffpjp','Documents FFPJP'],['cd80','Documents CD80'],['utilitaires','Utilitaires CD80']];
 const DOCPILL = { ffpjp: 'champ', cd80: 'concours', utilitaires: 'gp' };
 SCHEMA.documentations = {
-  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, feuilles de match…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page. Le bouton « Créer les documents types » prépare toutes les lignes attendues : il ne reste qu\'à y ajouter les liens.',
+  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, feuilles de match…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page.',
   add: 'Ajouter un document', req: ['titre', 'lien'],
   sort: (a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'),
   group: d => d.categorie || 'autre', glabel: k => Object.fromEntries(DOCCAT)[k] || k, gorder: DOCCAT.map(c => c[0]),
@@ -441,7 +441,14 @@ $('#eye').innerHTML = ic('eye', 20);
 $('#eye').onclick = () => { const p = $('#pw'), s = p.type === 'password'; p.type = s ? 'text' : 'password'; $('#eye').innerHTML = ic(s ? 'eyeoff' : 'eye', 20); $('#eye').setAttribute('aria-label', s ? 'Masquer le mot de passe' : 'Afficher le mot de passe'); };
 $('#site').innerHTML = ic('ext', 16) + '<span>Voir le site</span>';
 $('#out').innerHTML = ic('out', 16) + 'Déconnexion';
-onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) start(); });
+/* Utilisateurs : prénom affiché + droits. Pour ajouter quelqu'un, ajoute une ligne ici (email en minuscules). */
+const USERS = {
+  'administrateur@comite80.ffpjp': { nom: 'Bernard', import: false },
+  'lukas@comite80.ffpjp': { nom: 'Lukas', import: true }
+};
+let me = { nom: '', import: false };
+const profileOf = u => USERS[(u.email || '').toLowerCase()] || { nom: '', import: false };
+onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) { me = profileOf(u); start(); } else me = { nom: '', import: false }; });
 $('#loginForm').onsubmit = async e => { e.preventDefault(); const er = $('#lerr'); er.hidden = true;
   if (!$('#em').value.trim() || !$('#pw').value) { er.textContent = 'Renseigne ton email et ton mot de passe.'; er.hidden = false; return; }
   await busy($('#lbtn'), async () => { try { await signInWithEmailAndPassword(auth, $('#em').value.trim(), $('#pw').value); } catch { er.textContent = 'Email ou mot de passe incorrect.'; er.hidden = false; } }); };
@@ -463,7 +470,7 @@ scrim.onclick = closeMenu;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) { closeMenu(); burger.focus(); } });
 $('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab = b.dataset.t; start(); window.scrollTo(0, 0); } };
 function start() {
-  $('#tabs').innerHTML = GROUPS.map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
+  $('#tabs').innerHTML = GROUPS.map(([g, ks]) => [g, ks.filter(k => k !== 'import' || me.import)]).map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
   $('#curname').textContent = NAMES[tab][1];
   closeMenu(); show(); badge();
 }
@@ -471,6 +478,7 @@ const head = (t, d) => `<div class="ph"><h1>${t}</h1><p>${d}</p></div>`;
 const empty = (m, i = 'inbox') => `<div class="empty">${ic(i, 32)}${m}</div>`;
 async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
+  if (tab === 'import' && !me.import) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
     : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'corbeille' ? await viewTrash() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
@@ -482,10 +490,10 @@ async function viewHome() {
   const people = k => n.membres.filter(m => catOf(m) === k).length;
   const S = SCHEMA.events, up = n.events.filter(e => e.date >= today).sort(S.sort);
   const T = (k, i, num, lab, sub) => `<button class="tile" data-go="${k}"><span class="i">${ic(i, 24)}</span><span class="n">${num}</span><b>${lab}</b><small>${sub}</small></button>`;
-  $('#main').innerHTML = `<div class="hello"><h1>Bienvenue dans l'administration</h1><p>Choisis ce que tu veux modifier. Chaque changement apparaît sur le site dès l'enregistrement.</p></div>
+  $('#main').innerHTML = `<div class="hello"><h1>Bienvenue dans l'espace administration${me.nom ? ' ' + esc(me.nom) : ''}</h1><p>Choisis ce que tu veux modifier. Chaque changement apparaît sur le site dès l'enregistrement.</p></div>
   <div class="tiles">${T('events', 'cal', n.events.length, 'Compétitions', `${up.length} à venir`)}${T('clubs', 'pin', n.clubs.length, 'Clubs', 'Coordonnées, présidents, terrains')}${T('membres', 'users', people('comite'), 'Membres du comité', 'Organigramme et contacts')}${T('arbitres', 'whistle', people('arbitre'), 'Arbitres', 'Liste des arbitres du département')}${T('educateurs', 'award', people('educateur'), 'Éducateurs / Initiateurs', 'Encadrants diplômés')}${T('annuaire', 'ext', n.annuaire.length, 'Annuaire', 'Sites des comités voisins')}${T('archives', 'clip', n.archives.length, 'Archives', 'PV, résultats, classements passés')}${T('documentations', 'file', n.documentations.length, 'Documentations', 'Règlements, formulaires, liens utiles')}${T('classements', 'chart', n.classements.length, 'Classements', 'Tableaux de points, import Excel')}${T('settings', 'sliders', '—', 'Infos du site', 'Accueil, chiffres, adresse, PDF')}</div>
   ${up.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir tout le calendrier</button></div>${up.slice(0, 4).map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : ''}
-  ${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty('Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.')}</div>`}`;
+  ${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty(me.import ? 'Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.' : 'Base vide : demande à Lukas d\'importer le contenu actuel du site.')}</div>`}`;
   $('#main').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { tab = b.dataset.go; start(); window.scrollTo(0, 0); } };
 }
 
@@ -513,22 +521,6 @@ async function viewSettings() {
   $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { await setDoc(doc(db, 'settings', 'general'), read(SETTINGS, e.target), { merge: true }); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
-/* Documents types de la page Documentations (créés d'un clic, il ne reste qu'à y mettre les liens) */
-const DOC_TYPES = [
-  ['ffpjp', 'Règlements et textes officiels FFPJP', 'https://www.ffpjp.org/portail/reglements-textes/reglements-textes-officiels', 'Accéder aux textes officiels'],
-  ['cd80', 'Statuts'], ['cd80', 'Règlement intérieur'], ['cd80', 'Cahier des championnats'], ['cd80', 'Règlement CDC'], ['cd80', 'Compte rendu de réunion'], ['cd80', 'Compte rendu d\'assemblée générale'],
-  ['utilitaires', 'Bordereau de demande de licences'], ['utilitaires', 'Imprimé de demande de licences'], ['utilitaires', 'Feuille de match CDC Open'], ['utilitaires', 'Feuille de match CDC Féminin'], ['utilitaires', 'Feuille de match CDC Vétéran'], ['utilitaires', 'Feuille de match CDC Jeu Provençal'],
-  ['utilitaires', 'Feuille de match Coupe de France'], ['utilitaires', 'Feuille de match Coupe de France Féminine'], ['utilitaires', 'Feuille de match Coupe de France Jeu Provençal']
-];
-const normT = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-async function seedDocs() {
-  const have = cache.documentations || [], todo = DOC_TYPES.filter(([c, ti]) => !have.some(x => x.categorie === c && normT(x.titre) === normT(ti)));
-  if (!todo.length) return toast('Tous les documents types existent déjà.');
-  if (!await ask('Créer les documents types ?', `${todo.length} ligne${todo.length > 1 ? 's' : ''} seront ajoutées (sans lien pour la plupart). Tu les complètes ensuite avec « Modifier ».`, 'Créer')) return;
-  try { let n = have.length; for (const [categorie, titre, lien = '', lienTexte = ''] of todo) await addDoc(collection(db, 'documentations'), { categorie, titre, lien, lienTexte, description: '', ordre: ++n });
-    toast(`${todo.length} document${todo.length > 1 ? 's' : ''} créé${todo.length > 1 ? 's' : ''} — ajoute les liens`); show(); } catch (er) { toast('Échec : ' + er.message, 1); }
-}
-
 async function viewList(col) {
   const S = SCHEMA[col], C = S.col || col;   // C = collection Firestore réelle
   const [snap, clubsSnap, genSnap] = await Promise.all([getDocs(collection(db, C)), col === 'events' ? getDocs(collection(db, 'clubs')) : null, col === 'events' ? getDoc(doc(db, 'settings', 'general')) : null]);
@@ -551,7 +543,7 @@ async function viewList(col) {
   }
   $('#main').innerHTML = head(S.tab, S.desc) + pdfCard + `<div class="bar"><div class="srch">${ic('search')}<input id="q" type="search" placeholder="Rechercher…" aria-label="Rechercher"></div>
     ${col === 'events' ? `<select id="mo" aria-label="Mois"><option value="">Tous les mois</option>${months.map(k => `<option value="${esc(k)}">${esc(S.glabel(k))}</option>`).join('')}</select><select id="ty" aria-label="Catégorie"><option value="">Toutes catégories</option>${CATOPT.map(([a, b]) => `<option value="${a}">${b}</option>`).join('')}</select>` : ''}
-    ${XL ? `<button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden>` : ''}${col === 'documentations' ? `<button class="btn b-bl" id="seed">${ic('plus')}Créer les documents types</button>` : ''}<button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
+    ${XL ? `<button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden>` : ''}<button class="btn b-or" id="add">${ic('plus')}${S.add}</button></div><div id="list"></div>`;
   const draw = () => { const q = $('#q').value.toLowerCase(), mo = $('#mo')?.value, ty = $('#ty')?.value;
     const l = cache[col].filter(x => (!q || JSON.stringify(x).toLowerCase().includes(q)) && (!mo || S.group(x) === mo) && (!ty || x.type === ty));
     if (!l.length) return $('#list').innerHTML = empty('Aucun résultat. Utilise le bouton « Ajouter » pour en créer un.');
@@ -560,7 +552,6 @@ async function viewList(col) {
     $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act"><button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
   pdfBind();
   draw(); ['#q', '#mo', '#ty'].forEach(s => $(s) && ($(s).oninput = draw));
-  if (col === 'documentations') $('#seed').onclick = seedDocs;
   if (XL) { $('#xl').onclick = () => $('#xf').click();
     $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
       try { await loadXLSX(); const s = toSheets(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
