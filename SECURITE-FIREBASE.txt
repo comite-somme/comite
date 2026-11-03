@@ -1,42 +1,23 @@
-SÉCURITÉ FIREBASE — proposition de règles Firestore (NON appliquée : ce fichier n'est pas lu par le site)
-==========================================================================================================
-Je n'ai pas accès à votre console Firebase : je ne peux pas voir les règles actuellement en place.
-Comparez avec celles-ci dans Firebase > Firestore > Règles, et testez-les dans le « Simulateur de règles »
-AVANT de publier (une règle trop stricte peut bloquer le site ou l'admin).
+SÉCURITÉ FIREBASE — corrections conseillées à vos règles actuelles (non appliquées : ce fichier n'est pas lu par le site)
+=========================================================================================================================
+Vos règles sont bonnes (admin par identifiant, messages validés, compteur de visites contrôlé). Deux points à corriger :
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+1) Ajouter 'coupedefrance' à collectionsPubliques()
+   La page Coupe de France et l'onglet admin « Coupe de France » utilisent la collection 'coupedefrance',
+   absente de la liste : la lecture publique et l'enregistrement par l'admin sont donc refusés.
 
-    function estAdmin() {
-      return request.auth != null &&
-        request.auth.token.email in ['administrateur@comite80.ffpjp', 'lukas@comite80.ffpjp'];
+    function collectionsPubliques() {
+      return ['events','clubs','membres','classements','settings',
+              'annuaire','archives','arbitres','educateurs','documentations',
+              'tirages','championnats','championnatsclubs','resultats','coupedefrance'];
     }
 
-    // Formulaire de contact : n'importe qui peut écrire un message valide, seuls les admins le lisent.
-    match /messages/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['nom','email','sujet','message','lu','traite','creeLe'])
-                    && request.resource.data.nom is string    && request.resource.data.nom.size() <= 100
-                    && request.resource.data.email is string  && request.resource.data.email.size() <= 150
-                    && request.resource.data.sujet is string  && request.resource.data.sujet.size() <= 100
-                    && request.resource.data.message is string && request.resource.data.message.size() <= 3000;
-      allow read, update, delete: if estAdmin();
-    }
+2) Compter aussi les visites des pages manquantes (facultatif)
+   Les pages championnats, coupe-de-france, tirages et confidentialite ne sont pas dans pages() :
+   leurs visites sont refusées sans bruit. Pour les compter, ajouter ces noms dans pages()
+   et ajouter pour chacun une ligne createOk('nom') et incOk('nom') :
+   'championnats', 'coupe-de-france', 'tirages', 'confidentialite'
+   (attention : les noms avec un tiret s'écrivent request.resource.data['coupe-de-france'] ;
+   le plus simple est de ne compter que 'championnats', 'tirages' et 'confidentialite').
 
-    // Statistiques de visites : écriture ouverte (compteur anonyme), lecture admin.
-    match /stats_vues/{id} {
-      allow read: if estAdmin();
-      allow create, update: if true;
-    }
-
-    // Tout le reste : lecture publique (contenu du site), écriture réservée aux admins.
-    match /{col}/{id} {
-      allow read: if col != 'messages' && col != 'corbeille' && col != 'stats_vues' || estAdmin();
-      allow write: if estAdmin();
-    }
-  }
-}
-
-Autres conseils :
-- Activez Firebase App Check (reCAPTCHA v3) pour limiter les envois automatiques vers la base.
-- Faites une sauvegarde depuis l'admin (Accueil > Sauvegarde) avant de modifier les règles.
+Testez dans Firebase > Firestore > Règles > Simulateur avant de publier, et faites une sauvegarde depuis l'admin (Accueil > Sauvegarde).
