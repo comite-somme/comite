@@ -1,0 +1,3 @@
+PDF du Championnat des clubs (générés depuis les fichiers Excel 2026).
+Pour remplacer un PDF : déposer le nouveau fichier ici avec EXACTEMENT le même nom.
+Manquants (pastille grisée « bientôt » tant qu'ils ne sont pas déposés) : cdc-jeunes.pdf, calendrier-general.pdf

@@ -13,12 +13,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CD80 Admin">
 <title>Administration — Comité de la Somme</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js">
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="fonts/fonts-admin.css">
 <style>
 :root{
   --bleu:#0a2342;--bleu2:#0d3060;--or:#c9a84c;--orl:#e2c87a;--fond:#f5f4f0;--gris:#dfe3e8;
@@ -685,7 +683,7 @@ const DEFAULT_PRIVACY = [
   { titre: '3. Qui reçoit ces données ?',
     texte: "Les personnes habilitées du comité, qui gèrent le site avec un identifiant et un mot de passe personnels. Les prestataires techniques qui hébergent le site et sa base de données (notamment Google Firebase) agissent pour notre compte. Les informations publiées sur le site (coordonnées, résultats) sont visibles par tout visiteur.\n\nCertains prestataires peuvent traiter des données en dehors de l'Union européenne. Dans ce cas, le comité veille à ce que les garanties prévues par le RGPD s'appliquent." },
   { titre: '4. Cookies et services tiers',
-    texte: "Le site n'utilise aucun cookie publicitaire ni de suivi. Pour s'afficher, ses pages chargent des polices de caractères et des bibliothèques depuis des serveurs tiers (Google, Cloudflare), qui reçoivent alors votre adresse IP." },
+    texte: "Le site n'utilise aucun cookie publicitaire ni de suivi. Les polices de caractères sont hébergées sur le site lui-même : elles ne sont pas chargées depuis Google. Pour s'afficher, certaines pages chargent encore des bibliothèques depuis des serveurs tiers (Google, Cloudflare), qui reçoivent alors votre adresse IP." },
   { titre: '5. Vos droits',
     texte: "Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, la limitation de leur traitement, ou vous y opposer. Quand une donnée est publiée avec votre accord, vous pouvez le retirer à tout moment : elle sera retirée du site rapidement. Écrivez à l'adresse indiquée plus haut ; nous répondons dans un délai d'un mois.\n\nSi vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la CNIL : [www.cnil.fr](https://www.cnil.fr), 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07." }
 ];
