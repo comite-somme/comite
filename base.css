@@ -185,5 +185,3 @@ footer h5 { color: var(--or); font-size: 0.72rem; letter-spacing: 3px; text-tran
 #drawer .dlinks a.on svg { color: var(--or); }
 @media (prefers-reduced-motion: reduce) { #drawer { transition: none !important; } }
 
-/* Mobile : les placeholders longs se terminent par « … » au lieu d'être coupés net */
-input, textarea { text-overflow: ellipsis; }
