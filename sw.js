@@ -6,7 +6,7 @@ const SHELL = 'cd80-shell-' + VERSION;
 const RUNTIME = 'cd80-runtime-' + VERSION;
 
 const PRECACHE = [
-  './', 'index.html', 'offline.html', 'base.css', 'hub.css', 'nav.js', 'pwa.js', 'track.js',
+  './', 'index.html', 'offline.html', 'base.css', 'hub.css', 'nav.js', 'footer.js', 'pwa.js', 'track.js',
   'logocomite.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'clubs.html', 'calendrier.html', 'cdc.html', 'championnats.html', 'classement.html', 'comite.html'
 ];

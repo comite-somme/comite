@@ -248,39 +248,8 @@
 </section>
 
 <!-- ── FOOTER ── -->
-<footer>
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <img src="logocomite.png" alt="Logo Comité de la Somme">
-      <p>Comité Départemental de la Somme (80) — Fédération Française de Pétanque et Jeu Provençal. Toutes les informations et résultats sur la pétanque de notre département.</p>
-    </div>
-    <div>
-      <h5>Rubriques</h5>
-      <ul class="footer-links">
-       <li><a href="comite.html">Le Comité</a></li>
-        <li><a href="clubs.html">Les Clubs</a></li>
-        <li><a href="calendrier.html">Calendrier 2026</a></li>
-        <li><a href="championnats.html">Championnats</a></li>
-        <li><a href="classement.html">Classements</a></li>
-        <li><a href="coupe-de-france.html">Coupe de France</a></li>
-      </ul>
-    </div>
-    <div>
-      <h5>Liens utiles</h5>
-      <ul class="footer-links">
-        <li><a href="annuaire.html">Annuaire</a></li>
-        <li><a href="documentations.html">Documentations</a></li>
-        <li><a href="archives.html">Archives</a></li>
-        <li><a href="#contact">Contact</a></li>
-        <li><a href="confidentialite.html">Confidentialité</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="footer-bottom">
-    <span>© 2026 Comité de la Somme FFPJP — 80000 Amiens</span>
-    <span>Contact : <a href="mailto:CD80@petanque.fr">CD80@petanque.fr</a></span>
-  </div>
-</footer>
+<footer id="site-footer"></footer>
+<script src="footer.js"></script>
 
 <script>
 
@@ -339,14 +308,19 @@ const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août'
 
 /* ── Formulaire de contact ── */
 const form = document.getElementById('contactForm'), status = document.getElementById('formStatus'), btn = document.getElementById('formBtn');
+const t0 = Date.now();
 const say = (msg, ok) => { status.textContent = msg; status.className = 'form-status ' + (ok ? 'ok' : 'err'); status.hidden = false; };
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form).entries());
   if (v.site) return;                                         // robot : champ piège rempli
+  if (Date.now() - t0 < 4000) return say('Merci de vérifier votre message avant de l\'envoyer.', false); // rempli trop vite : robot
+  if ((message => (message.match(/https?:\/\//gi) || []).length)(v.message) > 2) return say('Merci de ne pas mettre plus de deux liens dans votre message.', false);
   if (!v.nom.trim() || !v.email.trim() || !v.sujet || !v.message.trim()) return say('Merci de remplir tous les champs.', false);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) return say('L\'adresse email n\'est pas valide.', false);
   const last = +localStorage.getItem('lastMsg') || 0;
+  const jour = new Date().toISOString().slice(0, 10), [jd, jn] = (localStorage.getItem('msgJour') || '').split('|');
+  if (jd === jour && +jn >= 5) return say('Limite d\'envois atteinte pour aujourd\'hui. Écrivez-nous à CD80@petanque.fr.', false);
   if (Date.now() - last < 30000) return say('Merci de patienter quelques secondes avant un nouvel envoi.', false);
   btn.disabled = true; btn.textContent = 'Envoi en cours…';
   try {
@@ -354,6 +328,7 @@ form.addEventListener('submit', async e => {
       nom: v.nom.trim().slice(0, 100), email: v.email.trim().slice(0, 150), sujet: v.sujet.slice(0, 100),
       message: v.message.trim().slice(0, 3000), lu: false, traite: false, creeLe: Date.now() });
     localStorage.setItem('lastMsg', String(Date.now()));
+    localStorage.setItem('msgJour', jour + '|' + (jd === jour ? +jn + 1 : 1));
     form.reset(); say('Message envoyé. Merci, nous vous répondrons dès que possible.', true);
   } catch (err) {
     say('Envoi impossible. Écrivez-nous directement à CD80@petanque.fr.', false);

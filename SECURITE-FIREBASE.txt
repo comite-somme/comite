@@ -1,0 +1,42 @@
+SÉCURITÉ FIREBASE — proposition de règles Firestore (NON appliquée : ce fichier n'est pas lu par le site)
+==========================================================================================================
+Je n'ai pas accès à votre console Firebase : je ne peux pas voir les règles actuellement en place.
+Comparez avec celles-ci dans Firebase > Firestore > Règles, et testez-les dans le « Simulateur de règles »
+AVANT de publier (une règle trop stricte peut bloquer le site ou l'admin).
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in ['administrateur@comite80.ffpjp', 'lukas@comite80.ffpjp'];
+    }
+
+    // Formulaire de contact : n'importe qui peut écrire un message valide, seuls les admins le lisent.
+    match /messages/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['nom','email','sujet','message','lu','traite','creeLe'])
+                    && request.resource.data.nom is string    && request.resource.data.nom.size() <= 100
+                    && request.resource.data.email is string  && request.resource.data.email.size() <= 150
+                    && request.resource.data.sujet is string  && request.resource.data.sujet.size() <= 100
+                    && request.resource.data.message is string && request.resource.data.message.size() <= 3000;
+      allow read, update, delete: if estAdmin();
+    }
+
+    // Statistiques de visites : écriture ouverte (compteur anonyme), lecture admin.
+    match /stats_vues/{id} {
+      allow read: if estAdmin();
+      allow create, update: if true;
+    }
+
+    // Tout le reste : lecture publique (contenu du site), écriture réservée aux admins.
+    match /{col}/{id} {
+      allow read: if col != 'messages' && col != 'corbeille' && col != 'stats_vues' || estAdmin();
+      allow write: if estAdmin();
+    }
+  }
+}
+
+Autres conseils :
+- Activez Firebase App Check (reCAPTCHA v3) pour limiter les envois automatiques vers la base.
+- Faites une sauvegarde depuis l'admin (Accueil > Sauvegarde) avant de modifier les règles.
