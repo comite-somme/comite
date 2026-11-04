@@ -349,12 +349,12 @@ const SCHEMA = {
     title: e => e.titre, sub: e => `<span class="pill ${esc(e.type)}">${esc(CAT[e.type] || e.type || '')}</span>${[e.lieu, e.heure, e.formation, (e.lien || e.lien2) && 'avec lien'].filter(Boolean).map(esc).join(' · ')}`,
     f: [['h', 'La compétition'], ['date', 'Date', 'date'], ['type', 'Catégorie', 'select', CATOPT], ['titre', 'Titre (ex : Concours Roye)'], ['formation', 'Formation (ex : Doublette)'], ['club', 'Club organisateur (le lieu se remplit tout seul)', 'clubselect'], ['lieu', 'Lieu (modifiable)'], ['heure', 'Heure (ex : 14h00)'], ['obs', 'Remarques (ex : Limité à 48 éq.)', 'textarea'],
       ['h', 'Liens (facultatif)'], ['lienTexte', 'Texte du 1er bouton (ex : Règlement)'], ['lien', 'Adresse du 1er lien (https://…)', 'url'], ['lien2Texte', 'Texte du 2e bouton (ex : Inscription)'], ['lien2', 'Adresse du 2e lien (https://…)', 'url']] },
-  actualites: { tab: 'Actualités', desc: 'Les informations affichées sur la page d\'accueil. Un brouillon n\'est pas visible sur le site.',
+  actualites: { tab: 'Actualités', desc: 'Les informations affichées sur la page d\'accueil. Un brouillon n\'est pas visible. Pour programmer une publication : choisis « Publiée » avec une date (et une heure) à venir, elle apparaîtra toute seule ; une date de fin permet de la retirer automatiquement.',
     add: 'Ajouter une actualité', req: ['titre', 'texte'], sort: (a, b) => (b.publieLe || '').localeCompare(a.publieLe || ''),
-    group: a => a.statut || 'brouillon', glabel: k => k === 'publie' ? 'Publiées' : 'Brouillons', gorder: ['publie', 'brouillon'],
+    group: a => actuEtat(a), glabel: k => ({ publie: 'Publiées sur le site', programme: 'Programmées (pas encore visibles)', expire: 'Terminées (date de fin dépassée)', brouillon: 'Brouillons' })[k] || k, gorder: ['programme', 'publie', 'expire', 'brouillon'],
     left: a => `<div class="dt"><b>${esc((a.publieLe || '').slice(8))}</b><span>${esc((MOIS[+(a.publieLe || '').slice(5, 7) - 1] || '').slice(0, 3).toUpperCase())}</span></div>`,
-    title: a => a.titre, sub: a => esc((a.texte || '').slice(0, 110)) + ((a.texte || '').length > 110 ? '…' : ''),
-    f: [['h', 'L\'actualité'], ['statut', 'Statut', 'select', [['publie', 'Publiée sur le site'], ['brouillon', 'Brouillon (non visible)']]], ['publieLe', 'Date', 'date'], ['titre', 'Titre'], ['texte', 'Texte', 'textarea'], ['h', 'Lien (facultatif)'], ['lienTexte', 'Texte du bouton (ex : Lire le règlement)'], ['lien', 'Adresse du lien (https://…)', 'url']] },
+    title: a => a.titre, sub: a => (actuEtat(a) === 'programme' ? `<span class="pill concours">🕒 Visible le ${esc((a.publieLe || '').split('-').reverse().join('/'))}${a.publieHeure ? ' à ' + esc(a.publieHeure.replace(':', 'h')) : ''}</span>` : '') + esc((a.texte || '').slice(0, 110)) + ((a.texte || '').length > 110 ? '…' : ''),
+    f: [['h', 'L\'actualité'], ['statut', 'Statut', 'select', [['publie', 'Publiée (à partir de la date indiquée)'], ['brouillon', 'Brouillon (non visible)']]], ['publieLe', 'Date de publication (dans le futur = programmée)', 'date'], ['publieHeure', 'Heure de publication', 'select', heuresOpt()], ['finLe', 'Retirer du site après le (facultatif)', 'date'], ['titre', 'Titre'], ['texte', 'Texte', 'textarea'], ['h', 'Lien (facultatif)'], ['lienTexte', 'Texte du bouton (ex : Lire le règlement)'], ['lien', 'Adresse du lien (https://…)', 'url']] },
   clubs: { tab: 'Clubs', desc: 'Les clubs affiliés, classés par secteur.', add: 'Ajouter un club', req: ['ville'],
     sort: (a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'), group: c => c.secteur, glabel: k => SECT[k] || k,
     left: c => `<div class="bd">${esc(c.num)}</div>`, title: c => `${c.ville}${c.assoc ? ' — ' + c.assoc : ''}`, sub: c => [c.president, c.tel].filter(Boolean).map(esc).join(' · '),
@@ -436,10 +436,21 @@ const SEC_CDF = CDF.flatMap(([k, n]) => [[k + '-tirages', n + ' — Tirages'], [
 SCHEMA.championnats = SECTIONED('Championnats', 'La page Championnats : Départementaux (tirages, résultats, qualifiés pour les régionaux, suspendus) et Régionaux (tirages, résultats). Choisis la partie et la rubrique, puis écris un texte, ajoute un lien ou importe un fichier Excel.', 'Ajouter un document', SEC_CHAMP, 'championnats');
 SCHEMA.coupedefrance = SECTIONED('Coupe de France', 'La page Coupe de France : 4 épreuves (Coupe de France, Féminines, Jeu Provençal, Jeunes), chacune avec ses tirages et ses résultats. Texte, lien ou fichier Excel.', 'Ajouter un document', SEC_CDF, 'coupedefrance');
 SCHEMA.championnatsclubs = DOCS('Champ. des clubs', 'Les tirages, résultats et classements de la page Championnat des clubs. Choisis l\'épreuve (Open Féminin, Open, Vétérans, Jeu Provençal, CDC Jeunes) : le document apparaît dans l\'onglet correspondant.', 'Ajouter un document', DIVISIONS);
+/* Programmation des actualités : statut « publie » + début (publieLe + publieHeure) et fin facultative (finLe) */
+function heuresOpt() { const o = [['', 'Dès minuit (00h00)']]; for (let i = 1; i < 24; i++) o.push([String(i).padStart(2, '0') + ':00', i + 'h00']); return o; }
+function actuEtat(a) {
+  if ((a.statut || 'brouillon') !== 'publie') return 'brouillon';
+  const n = new Date(), p = x => String(x).padStart(2, '0'), jour = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`;
+  if ((a.publieLe || '0000-00-00') + 'T' + (a.publieHeure || '00:00') > `${jour}T${p(n.getHours())}:${p(n.getMinutes())}`) return 'programme';
+  if (a.finLe && a.finLe < jour) return 'expire';
+  return 'publie';
+}
 const SETTINGS = [['h', 'Page d\'accueil'], ['heroDesc', 'Texte de présentation', 'textarea'],
   ['h', 'Les 4 chiffres du bandeau doré'], ['stat1v', 'Chiffre 1 (ex : 33)'], ['stat1l', 'Légende 1 (ex : Clubs)'], ['stat2v', 'Chiffre 2'], ['stat2l', 'Légende 2'], ['stat3v', 'Chiffre 3'], ['stat3l', 'Légende 3'], ['stat4v', 'Chiffre 4'], ['stat4l', 'Légende 4'],
   ['h', 'Coordonnées (accueil et bas de page)'], ['adresse', 'Adresse du comité', 'textarea'], ['tel', 'Téléphone'], ['email', 'Email du comité'], ['emailDev', 'Email du développeur et administrateur web'],
-  ['h', 'Page Archives'], ['archivesIntro', 'Texte de présentation de la page Archives', 'textarea']];
+  ['h', 'Page Archives'], ['archivesIntro', 'Texte de présentation de la page Archives', 'textarea'],
+  ['h', 'Notifications push'], ['pushActif', 'Notifications push sur le site', 'select', [['', 'Désactivées (le bouton n\'apparaît pas)'], ['1', 'Activées (bouton « Activer les notifications » visible)']]],
+  ['vapidKey', 'Clé Web Push (VAPID) : Firebase › Paramètres du projet › Cloud Messaging › Certificats Web Push']];
 
 /* Connexion */
 $('#eye').innerHTML = ic('eye', 20);
@@ -548,6 +559,8 @@ const read = (fs, root) => Object.fromEntries(fs.filter(f => f[0] !== 'h' && f[2
 async function viewSettings() {
   const d = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
   $('#main').innerHTML = head('Infos du site', 'Textes et coordonnées affichés sur la page d\'accueil et en bas de chaque page.') + `<form id="sf" class="card" novalidate><div class="grid">${SETTINGS.map(f => field(f, d[f[0]])).join('')}</div><div class="savebar"><button class="btn b-or" id="ssv">${ic('save')}Enregistrer les modifications</button></div></form>`;
+  let nPush = '—'; try { nPush = (await getDocs(collection(db, 'push_tokens'))).size; } catch (e) {}
+  $('#main').insertAdjacentHTML('beforeend', `<div class="card"><b>${ic('mail')}Notifications push</b><p class="hint2">Appareils abonnés : <strong>${nPush}</strong>. Pour envoyer une notification : ouvre la <a href="https://console.firebase.google.com/project/comite-f1488/messaging" target="_blank" rel="noopener">console Firebase › Messaging</a>, « Nouvelle campagne » › « Notifications », cible l'application Web, saisis le titre et le texte, puis envoie (gratuit). Pour suspendre le service sur le site : passe l'option sur « Désactivées » ci-dessus et enregistre.</p></div>`);
   $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { const nv = read(SETTINGS, e.target); await setDoc(doc(db, 'settings', 'general'), nv, { merge: true }); await logAct('modif', 'Infos du site', 'Textes et coordonnées', diff({ f: SETTINGS }, d, nv)); Object.assign(d, nv); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
@@ -802,18 +815,18 @@ async function homeJournal() {
 async function viewMessages() {
   const l = (await getDocs(collection(db, 'messages'))).docs.map(d => ({ ...d.data(), _id: d.id })).sort((a, b) => (b.creeLe || 0) - (a.creeLe || 0));
   $('#main').innerHTML = head('Messages', 'Les messages envoyés depuis le formulaire de contact du site.') +
-    `<div class="bar"><select id="mf" aria-label="Filtrer les messages"><option value="">Tous les messages</option><option value="nl">Non lus</option><option value="nt">Non traités</option></select></div><div id="list"></div>`;
-  const draw = () => { const f = $('#mf').value, v = l.filter(m => f === 'nl' ? !m.lu : f === 'nt' ? !m.traite : true);
+    `<div class="bar"><select id="mf" aria-label="Filtrer les messages"><option value="">Tous les messages</option><option value="nl">Non lus</option><option value="nt">Non traités</option></select><select id="ms" aria-label="Filtrer par service"><option value="">Tous les services</option>${[...new Set(l.map(m => m.service).filter(Boolean))].map(sv => `<option>${esc(sv)}</option>`).join('')}</select></div><div id="list"></div>`;
+  const draw = () => { const f = $('#mf').value, sv = $('#ms').value, v = l.filter(m => (f === 'nl' ? !m.lu : f === 'nt' ? !m.traite : true) && (!sv || m.service === sv));
     $('#list').innerHTML = v.length ? v.map(m => `<div class="card ${m.lu ? '' : 'unread'}"><strong>${esc(m.sujet || 'Sans sujet')}</strong> ${m.lu ? '' : '<span class="pill champ">Nouveau</span>'}${m.traite ? '<span class="pill concours">Traité</span>' : ''}
-      <small style="display:block;color:var(--mut)">${esc(m.nom)} · ${esc(m.email)} · ${fdate(m.creeLe)}</small>
+      <small style="display:block;color:var(--mut)">${esc(m.nom)} · ${esc(m.email)}${m.tel ? ' · ' + esc(m.tel) : ''}${m.club ? ' · Club : ' + esc(m.club) : ''} · ${fdate(m.creeLe)}${m.service ? ' · ' + esc(m.service) : ''}${m.ref ? ' · Réf. ' + esc(m.ref) : ''}</small>
       <p style="white-space:pre-wrap;margin:.7rem 0">${esc(m.message)}</p>
-      <div class="flex"><a class="btn b-bl" data-a="re" data-id="${m._id}" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Re: ' + (m.sujet || ''))}">${ic('mail', 16)}Répondre</a>
+      <div class="flex"><a class="btn b-bl" data-a="re" data-id="${m._id}" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Re: ' + (m.sujet || '') + (m.ref ? ' [' + m.ref + ']' : ''))}">${ic('mail', 16)}Répondre</a>
       <button class="btn b-ln" data-a="lu" data-id="${m._id}">${m.lu ? 'Marquer non lu' : 'Marquer lu'}</button>
       <button class="btn b-ln" data-a="tr" data-id="${m._id}">${m.traite ? 'Rouvrir' : 'Marquer traité'}</button>
       <button class="btn b-ko b-ic" data-a="del" data-id="${m._id}" aria-label="Mettre à la corbeille" title="Mettre à la corbeille">${ic('trash', 16)}</button></div></div>`).join('')
       : empty('Aucun message pour le moment.', 'mail'); };
   const save = async (m, p) => { Object.assign(m, p); await setDoc(doc(db, 'messages', m._id), p, { merge: true }); badge(true); draw(); };
-  draw(); $('#mf').oninput = draw;
+  draw(); $('#mf').oninput = draw; $('#ms').oninput = draw;
   $('#main').onclick = async e => { const b = e.target.closest('[data-a]'); if (!b) return; const m = l.find(i => i._id === b.dataset.id), a = b.dataset.a;
     try { if (a === 'lu') await save(m, { lu: !m.lu }); else if (a === 'tr') { await save(m, { traite: !m.traite }); await logAct('modif', 'Message', labelDe('messages', m), m.traite ? 'Marqué traité' : 'Rouvert'); } else if (a === 're') { if (!m.lu) save(m, { lu: true }); }
       else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast('Placé dans la corbeille'); }

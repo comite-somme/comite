@@ -55,3 +55,20 @@
     });
   }
 })();
+
+
+/* Bandeau « hors connexion » : les données déjà consultées restent affichées */
+(function () {
+  function show(on) {
+    var b = document.getElementById('offBar');
+    if (!on) { if (b) b.remove(); return; }
+    if (b || !document.body) return;
+    b = document.createElement('div'); b.id = 'offBar'; b.setAttribute('role', 'status');
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:#c9a84c;color:#0a2342;text-align:center;font:600 .8rem "DM Sans",system-ui,sans-serif;padding:calc(.3rem + env(safe-area-inset-top,0px)) .6rem .3rem';
+    b.textContent = 'Hors connexion — affichage des dernières données enregistrées';
+    document.body.appendChild(b);
+  }
+  window.addEventListener('offline', function () { show(true); });
+  window.addEventListener('online', function () { show(false); });
+  show(!navigator.onLine);
+})();

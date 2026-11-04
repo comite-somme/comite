@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -12,5 +12,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+/* Données hors ligne : sur le site public, Firestore garde une copie locale (IndexedDB) des contenus déjà consultés.
+   L'admin reste en mode normal pour toujours travailler sur des données à jour. */
+let _db;
+try {
+  _db = /admin(\.html)?\/?$/i.test(location.pathname)
+    ? getFirestore(app)
+    : initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+} catch (e) { _db = getFirestore(app); }
+export const db = _db;
 export const auth = getAuth(app);

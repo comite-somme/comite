@@ -234,11 +234,14 @@
           <div class="form-status" id="formStatus" role="status" aria-live="polite" hidden></div>
           <div class="form-group"><label for="cf-nom">Votre nom</label><input id="cf-nom" name="nom" type="text" placeholder="Dupont Jean" autocomplete="name" maxlength="100" required></div>
           <div class="form-group"><label for="cf-email">Email</label><input id="cf-email" name="email" type="email" placeholder="email@exemple.fr" autocomplete="email" maxlength="150" required></div>
+          <div class="form-group"><label for="cf-tel">Téléphone <small>(facultatif)</small></label><input id="cf-tel" name="tel" type="tel" placeholder="06 00 00 00 00" autocomplete="tel" maxlength="20"></div>
+          <div class="form-group"><label for="cf-club">Votre club <small>(facultatif)</small></label><select id="cf-club" name="club"><option value="">Je ne représente pas de club</option></select></div>
           <div class="form-group">
             <label for="cf-sujet">Sujet</label>
-            <select id="cf-sujet" name="sujet" required><option value="">Choisir un sujet…</option><option>Informations générales</option><option>Résultats / Calendrier</option><option>Affiliation club</option><option>Problème technique</option><option>Autre</option></select>
+            <select id="cf-sujet" name="sujet" required><option value="">Choisir un sujet…</option><option>Informations générales</option><option>Résultats / Calendrier</option><option>Affiliation club</option><option>Licences</option><option>Arbitrage</option><option>Jeunes / Éducateurs</option><option>Problème technique</option><option>Autre</option></select>
           </div>
-          <div class="form-group"><label for="cf-message">Message</label><textarea id="cf-message" name="message" placeholder="Votre message…" maxlength="3000" required></textarea></div>
+          <div class="form-group"><label for="cf-message">Message</label><textarea id="cf-message" name="message" placeholder="Votre message…" maxlength="3000" required aria-describedby="cf-count"></textarea><small id="cf-count" style="display:block;text-align:right;color:#777;font-size:.75rem;margin-top:.25rem">0 / 3000</small></div>
+          <div class="form-group" style="display:flex;gap:.6rem;align-items:flex-start"><input id="cf-consent" name="consent" type="checkbox" style="width:auto;min-height:0;margin-top:.25rem" required><label for="cf-consent" style="font-size:.82rem;font-weight:400;line-height:1.4;margin:0">J'accepte que ces informations soient utilisées pour traiter ma demande (<a href="confidentialite.html">protection des données</a>).</label></div>
           <div class="hp-field" aria-hidden="true"><label for="cf-site">Ne pas remplir</label><input id="cf-site" name="site" type="text" tabindex="-1" autocomplete="off"></div>
           <button class="form-submit" id="formBtn" type="submit">Envoyer le message</button>
         </form>
@@ -290,7 +293,10 @@ const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août'
 (async () => {
   try {
     const snap = await getDocs(query(collection(db, 'actualites'), where('statut', '==', 'publie')));
-    const items = snap.docs.map(d => d.data()).sort((a, b) => (b.publieLe || '').localeCompare(a.publieLe || '')).slice(0, 4);
+    const n = new Date(), p = x => String(x).padStart(2, '0'), jour = `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`, maint = `${jour}T${p(n.getHours())}:${p(n.getMinutes())}`;
+    const debut = a => (a.publieLe || '0000-00-00') + 'T' + (a.publieHeure || '00:00');
+    /* Programmation : visible seulement à partir de la date/heure de publication et jusqu'à la date de fin (si renseignée) */
+    const items = snap.docs.map(d => d.data()).filter(a => debut(a) <= maint && (!a.finLe || a.finLe >= jour)).sort((a, b) => debut(b).localeCompare(debut(a))).slice(0, 4);
     if (!items.length) return;
     const list = document.getElementById('actusList');
     items.forEach(a => {
@@ -307,35 +313,73 @@ const MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août'
 })();
 
 /* ── Formulaire de contact ── */
-const form = document.getElementById('contactForm'), status = document.getElementById('formStatus'), btn = document.getElementById('formBtn');
-const t0 = Date.now();
-const say = (msg, ok) => { status.textContent = msg; status.className = 'form-status ' + (ok ? 'ok' : 'err'); status.hidden = false; };
+const form = document.getElementById('contactForm'), status = document.getElementById('formStatus'), btn = document.getElementById('formBtn'), cnt = document.getElementById('cf-count');
+const t0 = Date.now(), DRAFT = 'cfDraft', CHAMPS = ['nom', 'email', 'tel', 'club', 'sujet', 'message'];
+/* Chaque sujet est rattaché à un service : l'admin peut filtrer les messages par service */
+const SERVICES = { 'Informations générales': 'Secrétariat', 'Résultats / Calendrier': 'Commission sportive', 'Affiliation club': 'Affiliation et licences', 'Licences': 'Affiliation et licences', 'Arbitrage': 'Arbitrage', 'Jeunes / Éducateurs': 'Jeunes et éducateurs', 'Problème technique': 'Webmaster', 'Autre': 'Secrétariat' };
+document.head.insertAdjacentHTML('beforeend', '<style>#contactForm [aria-invalid="true"]{border-color:#c0392b!important;outline:2px solid rgba(192,57,43,.25)}</style>');
+const say = (msg, ok) => { status.textContent = msg; status.className = 'form-status ' + (ok ? 'ok' : 'err'); status.hidden = false; status.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+const bad = (el, msg) => { el.setAttribute('aria-invalid', 'true'); el.focus(); say(msg, false); };
+const count = () => { cnt.textContent = form.message.value.length + ' / 3000'; };
+
+/* Brouillon conservé le temps de la session (rien n'est perdu si la page se recharge) */
+const saved = (() => { try { return JSON.parse(sessionStorage.getItem(DRAFT) || '{}'); } catch { return {}; } })();
+CHAMPS.forEach(k => { if (saved[k] && form.elements[k] && k !== 'club') form.elements[k].value = saved[k]; });
+const qs = new URLSearchParams(location.search).get('sujet');
+if (qs && !form.sujet.value) [...form.sujet.options].forEach(o => { if (o.text.toLowerCase() === qs.toLowerCase()) form.sujet.value = o.text; });
+count();
+form.addEventListener('input', e => {
+  e.target.removeAttribute('aria-invalid'); count();
+  try { sessionStorage.setItem(DRAFT, JSON.stringify(Object.fromEntries(CHAMPS.map(k => [k, form.elements[k].value])))); } catch {}
+});
+
+/* Liste des clubs (facultatif) */
+(async () => {
+  try {
+    const l = (await getDocs(collection(db, 'clubs'))).docs.map(d => d.data()).filter(c => c.ville).sort((a, b) => a.ville.localeCompare(b.ville, 'fr'));
+    l.forEach(c => { const o = document.createElement('option'); o.textContent = c.ville + (c.assoc ? ' — ' + c.assoc : ''); form.club.append(o); });
+    if (saved.club) form.club.value = saved.club;
+  } catch (e) { /* le formulaire fonctionne sans la liste */ }
+})();
+
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const v = Object.fromEntries(new FormData(form).entries());
   if (v.site) return;                                         // robot : champ piège rempli
   if (Date.now() - t0 < 4000) return say('Merci de vérifier votre message avant de l\'envoyer.', false); // rempli trop vite : robot
-  if ((message => (message.match(/https?:\/\//gi) || []).length)(v.message) > 2) return say('Merci de ne pas mettre plus de deux liens dans votre message.', false);
-  if (!v.nom.trim() || !v.email.trim() || !v.sujet || !v.message.trim()) return say('Merci de remplir tous les champs.', false);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) return say('L\'adresse email n\'est pas valide.', false);
+  if (!v.nom.trim()) return bad(form.nom, 'Merci d\'indiquer votre nom.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) return bad(form.email, 'L\'adresse email n\'est pas valide.');
+  if (v.tel.trim() && !/^[0-9+().\s-]{6,20}$/.test(v.tel.trim())) return bad(form.tel, 'Le numéro de téléphone n\'est pas valide.');
+  if (!v.sujet) return bad(form.sujet, 'Merci de choisir un sujet.');
+  if (!v.message.trim()) return bad(form.message, 'Merci d\'écrire votre message.');
+  if ((v.message.match(/https?:\/\//gi) || []).length > 2) return bad(form.message, 'Merci de ne pas mettre plus de deux liens dans votre message.');
+  if (!form.consent.checked) return bad(form.consent, 'Merci de cocher la case d\'accord pour le traitement de votre demande.');
   const last = +localStorage.getItem('lastMsg') || 0;
   const jour = new Date().toISOString().slice(0, 10), [jd, jn] = (localStorage.getItem('msgJour') || '').split('|');
   if (jd === jour && +jn >= 5) return say('Limite d\'envois atteinte pour aujourd\'hui. Écrivez-nous à CD80@petanque.fr.', false);
   if (Date.now() - last < 30000) return say('Merci de patienter quelques secondes avant un nouvel envoi.', false);
   btn.disabled = true; btn.textContent = 'Envoi en cours…';
+  const ref = 'CD80-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   try {
-    await addDoc(collection(db, 'messages'), {
-      nom: v.nom.trim().slice(0, 100), email: v.email.trim().slice(0, 150), sujet: v.sujet.slice(0, 100),
+    const envoi = addDoc(collection(db, 'messages'), {
+      nom: v.nom.trim().slice(0, 100), email: v.email.trim().slice(0, 150), tel: v.tel.trim().slice(0, 20), club: (v.club || '').slice(0, 120),
+      sujet: v.sujet.slice(0, 100), service: SERVICES[v.sujet] || 'Secrétariat', ref, consentement: true,
       message: v.message.trim().slice(0, 3000), lu: false, traite: false, creeLe: Date.now() });
+    /* Hors connexion ou réseau lent : le message est mis en attente et part tout seul au retour du réseau */
+    const r = await Promise.race([envoi.then(() => 'ok'), new Promise(res => setTimeout(() => res(navigator.onLine ? 'lent' : 'attente'), navigator.onLine ? 12000 : 800))]);
+    envoi.catch(() => {});
     localStorage.setItem('lastMsg', String(Date.now()));
     localStorage.setItem('msgJour', jour + '|' + (jd === jour ? +jn + 1 : 1));
-    form.reset(); say('Message envoyé. Merci, nous vous répondrons dès que possible.', true);
+    form.reset(); sessionStorage.removeItem(DRAFT); count();
+    say(r === 'ok' ? `Message envoyé. Votre référence : ${ref} (à rappeler si vous nous recontactez). Nous vous répondrons dès que possible.`
+      : `Connexion indisponible ou lente : votre message (réf. ${ref}) sera envoyé automatiquement dès que le réseau revient.`, true);
   } catch (err) {
     say('Envoi impossible. Écrivez-nous directement à CD80@petanque.fr.', false);
   } finally { btn.disabled = false; btn.textContent = 'Envoyer le message'; }
 });
 </script>
 <script type="module" src="track.js"></script>
+<script type="module" src="push.js"></script>
 <script src="nav.js"></script>
 </body>
 </html>

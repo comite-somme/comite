@@ -1,14 +1,31 @@
 /* Service worker — Comité de la Somme (site + admin)
    Mises à jour automatiques : les fichiers du site sont toujours relus sur le réseau en priorité.
    Ce fichier n'a JAMAIS besoin d'être modifié lors d'une mise à jour du site. */
-const VERSION = 'v2'; /* v2 : vide les anciens caches des premiers essais */
+const VERSION = 'v3'; /* v3 : notifications push + données hors ligne */
 const SHELL = 'cd80-shell-' + VERSION;
 const RUNTIME = 'cd80-runtime-' + VERSION;
+
+/* Notifications push (Firebase Cloud Messaging) : affiche les notifications envoyées depuis la console Firebase.
+   Si le chargement échoue, le reste du service worker fonctionne normalement. */
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', 'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+  firebase.initializeApp({
+  "apiKey": "AIzaSyDmi9aL4oXkqCokL_0nM70zyuexTQcrZj4",
+  "authDomain": "comite-f1488.firebaseapp.com",
+  "projectId": "comite-f1488",
+  "storageBucket": "comite-f1488.firebasestorage.app",
+  "messagingSenderId": "892199685134",
+  "appId": "1:892199685134:web:b25f78d61bd6245c68005f"
+});
+  firebase.messaging();
+} catch (e) { /* push indisponible */ }
 
 const PRECACHE = [
   './', 'index.html', 'offline.html', 'base.css', 'hub.css', 'nav.js', 'footer.js', 'pwa.js', 'track.js',
   'logocomite.png', 'icons/icon-192.png', 'icons/icon-512.png',
-  'clubs.html', 'calendrier.html', 'cdc.html', 'championnats.html', 'classement.html', 'comite.html'
+  'clubs.html', 'calendrier.html', 'cdc.html', 'championnats.html', 'classement.html', 'comite.html',
+  'archives.html', 'resultats.html', 'tirages.html', 'documentations.html', 'annuaire.html', 'coupe-de-france.html', 'confidentialite.html',
+  'site-data.js', 'event.js', 'cms.js', 'hub.js', 'hub.css', 'push.js', 'agenda.js', 'firebase-config.js', 'fonts.css', 'manifest.webmanifest'
 ];
 
 self.addEventListener('install', e => {
