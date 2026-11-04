@@ -16,8 +16,13 @@
 
   var isAdmin = /admin\.html$/i.test(location.pathname);
   var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  if (standalone) return;
-  if (sessionStorage.getItem('pwaHide')) return;
+  var DELAY = 14 * 24 * 3600 * 1000;                      /* la pastille réapparaît après 2 semaines */
+  var K_INST = isAdmin ? 'pwaInstalledAdmin' : 'pwaInstalled', K_HIDE = isAdmin ? 'pwaHideAtAdmin' : 'pwaHideAt';
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+  if (standalone) { ls(K_INST, '1'); return; }            /* app ouverte en mode application = installée */
+  if (ls(K_INST)) return;                                 /* déjà installée : on ne l'affiche plus jamais */
+  var hideAt = parseInt(ls(K_HIDE) || '0', 10);
+  if (hideAt && Date.now() - hideAt < DELAY) return;      /* fermée il y a moins de 2 semaines */
 
   var deferred = null;
   var label = isAdmin ? "Installer l'admin" : "Installer l'application";
@@ -33,7 +38,7 @@
       (onclick ? '<button type="button" id="pwaGo" style="min-height:40px;border:0;border-radius:24px;background:#c9a84c;color:#0a2342;font:700 .85rem inherit;font-family:inherit;padding:0 1rem;cursor:pointer">Installer</button>' : '') +
       '<button type="button" id="pwaX" aria-label="Fermer" style="min-width:40px;min-height:40px;border:0;background:none;color:#fff;font-size:1.4rem;cursor:pointer">&times;</button>';
     document.body.appendChild(b);
-    document.getElementById('pwaX').onclick = function () { sessionStorage.setItem('pwaHide', '1'); b.remove(); };
+    document.getElementById('pwaX').onclick = function () { ls(K_HIDE, String(Date.now())); b.remove(); };
     if (onclick) document.getElementById('pwaGo').onclick = onclick;
   }
 
@@ -42,10 +47,10 @@
     deferred = e;
     bar(label, function () {
       deferred.prompt();
-      deferred.userChoice.finally(function () { deferred = null; var b = document.getElementById('pwaBar'); if (b) b.remove(); });
+      deferred.userChoice.then(function (r) { if (r && r.outcome === 'accepted') ls(K_INST, '1'); }).finally(function () { deferred = null; var b = document.getElementById('pwaBar'); if (b) b.remove(); });
     });
   });
-  window.addEventListener('appinstalled', function () { var b = document.getElementById('pwaBar'); if (b) b.remove(); });
+  window.addEventListener('appinstalled', function () { ls(K_INST, '1'); var b = document.getElementById('pwaBar'); if (b) b.remove(); });
 
   /* iPhone / iPad : pas d'invite automatique, on explique le geste */
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
