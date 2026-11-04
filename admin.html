@@ -139,6 +139,10 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .dt{background:var(--bleu);color:var(--or);border-radius:8px;width:54px;flex-shrink:0;text-align:center;padding:.35rem 0;font-family:'Bebas Neue';line-height:1}
 .dt b{display:block;font-size:1.6rem;font-weight:400;color:var(--or)}
 .dt span{font-size:.8rem;letter-spacing:1px;color:#fff}
+.bd.jn-h{min-width:62px;font-size:.95rem}
+.jn-who{color:var(--bleu);text-decoration:underline;text-decoration-color:var(--or);text-underline-offset:3px}
+.jn{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 9px;border-radius:10px;letter-spacing:.2px;color:#fff;background:var(--bleu2);vertical-align:1px}
+.jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
 .champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.propagande{background:#fff0e0;color:#8a4a00}
@@ -270,7 +274,7 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 <script type="module">
 import { db, auth } from './firebase-config.js';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -305,7 +309,8 @@ const ICON = {
   undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/>',
   whistle: '<circle cx="8" cy="15" r="5"/><path d="M13 13l8-3V6h-9M8 12v3"/>',
   award: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13L17 22l-5-3-5 3 1.5-9"/>',
-  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>'
+  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'
 };
 const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 
@@ -448,6 +453,22 @@ const USERS = {
 };
 let me = { nom: '', import: false };
 const profileOf = u => USERS[(u.email || '').toLowerCase()] || { nom: '', import: false };
+
+/* ===== Journal d'activité : qui a ajouté / modifié / supprimé quoi, et quand =====
+   Chaque action est écrite dans la collection « journal » (jamais modifiée ni effacée, voir SECURITE-FIREBASE.txt).
+   Si l'écriture du journal échoue, l'action de l'administrateur n'est PAS bloquée. */
+const objetDe = (C, d) => C === 'membres' ? ({ arbitre: 'Arbitre', educateur: 'Éducateur / Initiateur' }[d?.categorie] || 'Membre du comité') : (KIND[C]?.[0] || C);
+const labelDe = (C, d) => { try { return KIND[C]?.[1](d) || 'Sans titre'; } catch { return 'Sans titre'; } };
+const shortLab = l => { const t = String(l).replace(/\s*\(.*$/, '').trim(); return t.length > 45 ? t.slice(0, 44) + '…' : t; };
+/* Liste des champs qui ont changé entre l'ancienne et la nouvelle version */
+const diff = (S, a, b) => S.f.filter(f => f[0] !== 'h' && (f[2] === 'xlsx' ? JSON.stringify(a.feuilles || []) !== JSON.stringify(b.feuilles || []) : String(a[f[0]] ?? '') !== String(b[f[0]] ?? '')))
+  .map(f => f[2] === 'xlsx' ? 'Tableau Excel' : shortLab(f[1])).join(', ');
+async function logAct(action, objet, cible, detail = '') {
+  try {
+    const email = (auth.currentUser?.email || '').toLowerCase();
+    await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 500) });
+  } catch (er) { console.warn('Journal non enregistré :', er.message); }
+}
 onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) { me = profileOf(u); start(); } else me = { nom: '', import: false }; });
 $('#loginForm').onsubmit = async e => { e.preventDefault(); const er = $('#lerr'); er.hidden = true;
   if (!$('#em').value.trim() || !$('#pw').value) { er.textContent = 'Renseigne ton email et ton mot de passe.'; er.hidden = false; return; }
@@ -457,8 +478,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['award', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['file', 'Confidentialité'], stats: ['stats', 'Statistiques'], championnats: ['award', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], championnatsclubs: ['users', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['award', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['file', 'Confidentialité'], stats: ['stats', 'Statistiques'], championnats: ['award', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], championnatsclubs: ['users', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
+const GROUPS = [['Général', ['home', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -480,7 +501,7 @@ async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (tab === 'import' && !me.import) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'corbeille' ? await viewTrash() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -503,6 +524,7 @@ async function viewHome() {
     toast('Sauvegarde téléchargée');
   } catch (er) { toast('Échec de la sauvegarde', true); } }); };
   $('#main').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { tab = b.dataset.go; start(); window.scrollTo(0, 0); } };
+  homeJournal();
 }
 
 /* Formulaires */
@@ -526,7 +548,7 @@ const read = (fs, root) => Object.fromEntries(fs.filter(f => f[0] !== 'h' && f[2
 async function viewSettings() {
   const d = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
   $('#main').innerHTML = head('Infos du site', 'Textes et coordonnées affichés sur la page d\'accueil et en bas de chaque page.') + `<form id="sf" class="card" novalidate><div class="grid">${SETTINGS.map(f => field(f, d[f[0]])).join('')}</div><div class="savebar"><button class="btn b-or" id="ssv">${ic('save')}Enregistrer les modifications</button></div></form>`;
-  $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { await setDoc(doc(db, 'settings', 'general'), read(SETTINGS, e.target), { merge: true }); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
+  $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { const nv = read(SETTINGS, e.target); await setDoc(doc(db, 'settings', 'general'), nv, { merge: true }); await logAct('modif', 'Infos du site', 'Textes et coordonnées', diff({ f: SETTINGS }, d, nv)); Object.assign(d, nv); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
 async function viewList(col) {
@@ -547,7 +569,7 @@ async function viewList(col) {
       /* Lien GitHub : on le convertit en lien direct vers le fichier, et on encode espaces/accents */
       u = u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/(.+)$/i, 'https://raw.githubusercontent.com/$1/$2/$3').replace(/\?.*$/, m => /raw=true/.test(m) ? '' : m);
       try { if (u && !rel) u = new URL(u).href; else if (rel) u = encodeURI(u.replace(/^\//, '')); } catch { return toast('Adresse invalide.', 1); }
-      await busy($('#pdfSave'), async () => { try { await setDoc(doc(db, 'settings', 'general'), { pdfLabel: $('#pdfLabel').value.trim(), pdfUrl: u }, { merge: true }); toast('PDF enregistré — visible sur le calendrier'); } catch (er) { toast('Échec : ' + er.message, 1); } }); }; };
+      await busy($('#pdfSave'), async () => { try { await setDoc(doc(db, 'settings', 'general'), { pdfLabel: $('#pdfLabel').value.trim(), pdfUrl: u }, { merge: true }); await logAct('modif', 'Calendrier PDF', $('#pdfLabel').value.trim() || u, 'Bouton de téléchargement du calendrier'); toast('PDF enregistré — visible sur le calendrier'); } catch (er) { toast('Échec : ' + er.message, 1); } }); }; };
   }
   $('#main').innerHTML = head(S.tab, S.desc) + pdfCard + `<div class="bar"><div class="srch">${ic('search')}<input id="q" type="search" placeholder="Rechercher…" aria-label="Rechercher"></div>
     ${col === 'events' ? `<select id="mo" aria-label="Mois"><option value="">Tous les mois</option>${months.map(k => `<option value="${esc(k)}">${esc(S.glabel(k))}</option>`).join('')}</select><select id="ty" aria-label="Catégorie"><option value="">Toutes catégories</option>${CATOPT.map(([a, b]) => `<option value="${a}">${b}</option>`).join('')}</select>` : ''}
@@ -624,7 +646,7 @@ function edit(col, x) {
   if (cs && cs.tagName === 'SELECT') cs.onchange = () => { const l = cs.selectedOptions[0]?.dataset.lieu; if (l) f.querySelector('[name=lieu]').value = l; if (cs.value === '__autre') f.querySelector('[name=lieu]').focus(); };
   f.onsubmit = async e => { e.preventDefault(); const d = { ...read(S.f, f), ...(S.fixed || {}) }; const miss = S.req.find(k => !d[k]); if (miss) return toast('Complète le champ « ' + S.f.find(z => z[0] === miss)[1] + ' ».', 1);
     if (S.f.some(z => z[2] === 'xlsx')) { if (JSON.stringify(feuilles).length > LIM) return dzNote('Fichier trop volumineux : sépare-le en plusieurs documents.', 1); d.feuilles = feuilles; }
-    await busy($('#yes'), async () => { try { x._id ? await setDoc(doc(db, C, x._id), d) : await addDoc(collection(db, C), d); $('#dlg').close(); toast('Enregistré — visible sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
+    await busy($('#yes'), async () => { try { const neuf = !x._id; neuf ? await addDoc(collection(db, C), d) : await setDoc(doc(db, C, x._id), d); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
 /* Classements : un tableau par classement (colonnes et lignes libres) */
@@ -680,7 +702,7 @@ function paste(replace) {
 async function saveCl() {
   sync(); if (!cur.nom.trim()) return toast('Donne un nom au classement.', 1);
   const d = { nom: cur.nom.trim(), majLe: cur.majLe.trim(), ordre: cur.ordre, colonnes: cur.colonnes.map(c => c.trim()), lignes: cur.lignes.filter(r => r.v.some(x => x.trim())).map(r => ({ v: r.v.map(x => x.trim()) })) };
-  try { cur._id ? await setDoc(doc(db, 'classements', cur._id), d) : await addDoc(collection(db, 'classements'), d); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
+  try { const neuf = !cur._id; neuf ? await addDoc(collection(db, 'classements'), d) : await setDoc(doc(db, 'classements', cur._id), d); await logAct(neuf ? 'ajout' : 'modif', 'Classement', d.nom, `${d.lignes.length} lignes · ${d.colonnes.length} colonnes`); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
 }
 
 
@@ -718,7 +740,7 @@ function drawPrivacy() {
   $('#main').onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'psv') return busy(b, async () => { syncP(); const sec = P.sections.map(s => ({ titre: s.titre.trim(), texte: s.texte.trim() })).filter(s => s.titre || s.texte);
       if (!sec.length) return toast('Ajoute au moins une section.', 1);
-      try { await setDoc(doc(db, 'settings', 'confidentialite'), { majLe: P.majLe, sections: sec }); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
+      try { await setDoc(doc(db, 'settings', 'confidentialite'), { majLe: P.majLe, sections: sec }); await logAct('modif', 'Page Confidentialité', 'Textes de la page', `${sec.length} sections`); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
     const a = b.dataset.pa; if (!a) return; syncP(); const i = +b.dataset.i;
     if (a === 'add') P.sections.push({ titre: (P.sections.length + 1) + '. Nouveau titre', texte: '' });
     else if (a === 'up' && i > 0) [P.sections[i - 1], P.sections[i]] = [P.sections[i], P.sections[i - 1]];
@@ -736,6 +758,7 @@ async function trash(col, id, x) {
   const { _id, ...data } = x, b = writeBatch(db);
   b.set(doc(collection(db, 'corbeille')), { col, origId: id, data, label: KIND[col][1](data) || 'Sans titre', supprimeLe: Date.now() });
   b.delete(doc(db, col, id)); await b.commit();
+  await logAct('suppr', objetDe(col, data), labelDe(col, data), 'Mis à la corbeille (restaurable 30 jours)');
 }
 let badgeAt = 0, badgeN = 0;
 async function badge(force) {
@@ -745,6 +768,35 @@ async function badge(force) {
     if (!n) return;
     document.querySelector('#tabs [data-t=messages]')?.insertAdjacentHTML('beforeend', `<span class="nb" aria-label="${n} non lus">${n}</span>`);
     burger.insertAdjacentHTML('beforeend', `<span class="nb dot" aria-label="${n} messages non lus"></span>`); } catch {}
+}
+
+/* ===== Journal d'activité ===== */
+const ACT = { ajout: 'a ajouté', modif: 'a modifié', suppr: 'a supprimé', restaure: 'a restauré', purge: 'a supprimé définitivement', import: 'a importé' };
+const ACTL = { ajout: 'Ajouts', modif: 'Modifications', suppr: 'Suppressions', restaure: 'Restaurations', purge: 'Suppressions définitives', import: 'Imports' };
+const jrow = x => `<div class="row"><div class="bd jn-h">${esc(new Date(x.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</div><div class="m"><strong><span class="jn-who">${esc(x.qui)}</span> <span class="jn jn-${esc(x.action)}">${esc(ACT[x.action] || x.action)}</span> ${esc(x.cible)}</strong><small>${esc(x.objet)}${x.detail ? ' · ' + esc(x.detail) : ''}${x.action === 'modif' && !x.detail ? ' · aucun champ modifié' : ''}${x.email ? ' · ' + esc(x.email) : ''}</small></div></div>`;
+async function viewJournal() {
+  const snap = await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(500)));
+  const l = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+  const who = [...new Set(l.map(x => x.qui))].sort((a, b) => a.localeCompare(b, 'fr'));
+  $('#main').innerHTML = head('Journal', 'Qui a ajouté, modifié ou supprimé quelque chose dans l\'administration, et quand. Les 500 dernières actions sont affichées.') +
+    `<div class="bar"><div class="srch">${ic('search')}<input id="jq" type="search" placeholder="Rechercher (nom, élément, détail…)" aria-label="Rechercher"></div>
+    <select id="jw" aria-label="Personne"><option value="">Toutes les personnes</option>${who.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('')}</select>
+    <select id="ja" aria-label="Type d'action"><option value="">Toutes les actions</option>${Object.entries(ACTL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div><div id="list"></div>`;
+  const day = t => new Date(t).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const draw = () => { const q = $('#jq').value.toLowerCase(), w = $('#jw').value, a = $('#ja').value;
+    const v = l.filter(x => (!q || [x.qui, x.email, x.objet, x.cible, x.detail, ACT[x.action]].join(' ').toLowerCase().includes(q)) && (!w || x.qui === w) && (!a || x.action === a));
+    if (!v.length) return $('#list').innerHTML = empty(l.length ? 'Aucune action ne correspond à ta recherche.' : 'Aucune action enregistrée pour le moment. Dès qu\'une personne ajoutera, modifiera ou supprimera quelque chose, ce sera noté ici.', 'clock');
+    const g = {}; v.forEach(x => (g[day(x.date)] ||= []).push(x));
+    $('#list').innerHTML = Object.entries(g).map(([k, a]) => `<div class="gh">${esc(k)} <span>(${a.length})</span></div>` + a.map(jrow).join('')).join(''); };
+  draw(); ['#jq', '#jw', '#ja'].forEach(s => $(s).oninput = draw);
+}
+/* Les 5 dernières actions, affichées sur l'accueil (sans bloquer l'accueil si le journal est inaccessible) */
+async function homeJournal() {
+  try {
+    const l = (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(5)))).docs.map(d => d.data());
+    if (!l.length || tab !== 'home') return;
+    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Dernières actions</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
+  } catch {}
 }
 
 async function viewMessages() {
@@ -763,7 +815,7 @@ async function viewMessages() {
   const save = async (m, p) => { Object.assign(m, p); await setDoc(doc(db, 'messages', m._id), p, { merge: true }); badge(true); draw(); };
   draw(); $('#mf').oninput = draw;
   $('#main').onclick = async e => { const b = e.target.closest('[data-a]'); if (!b) return; const m = l.find(i => i._id === b.dataset.id), a = b.dataset.a;
-    try { if (a === 'lu') await save(m, { lu: !m.lu }); else if (a === 'tr') await save(m, { traite: !m.traite }); else if (a === 're') { if (!m.lu) save(m, { lu: true }); }
+    try { if (a === 'lu') await save(m, { lu: !m.lu }); else if (a === 'tr') { await save(m, { traite: !m.traite }); await logAct('modif', 'Message', labelDe('messages', m), m.traite ? 'Marqué traité' : 'Rouvert'); } else if (a === 're') { if (!m.lu) save(m, { lu: true }); }
       else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast('Placé dans la corbeille'); }
     } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
@@ -780,10 +832,10 @@ async function viewTrash() {
       : empty('La corbeille est vide.', 'trash'));
   $('#main').onclick = async e => { const b = e.target.closest('[data-r],[data-x],#emp'); if (!b) return;
     try { if (b.id === 'emp') { if (!await ask('Vider la corbeille ?', 'Tout sera supprimé définitivement.', 'Tout supprimer')) return;
-        for (let i = 0; i < l.length; i += 400) { const w = writeBatch(db); l.slice(i, i + 400).forEach(x => w.delete(doc(db, 'corbeille', x._id))); await w.commit(); } toast('Corbeille vidée'); }
+        for (let i = 0; i < l.length; i += 400) { const w = writeBatch(db); l.slice(i, i + 400).forEach(x => w.delete(doc(db, 'corbeille', x._id))); await w.commit(); } await logAct('purge', 'Corbeille', 'Corbeille vidée', `${l.length} élément${l.length > 1 ? 's' : ''} supprimé${l.length > 1 ? 's' : ''} définitivement`); toast('Corbeille vidée'); }
       else { const x = l.find(i => i._id === (b.dataset.r || b.dataset.x));
-        if (b.dataset.r) { const w = writeBatch(db); w.set(doc(db, x.col, x.origId), x.data); w.delete(doc(db, 'corbeille', x._id)); await w.commit(); toast('Restauré'); }
-        else { if (!await ask('Supprimer définitivement ?', `« ${x.label} » ne pourra plus être récupéré.`)) return; await deleteDoc(doc(db, 'corbeille', x._id)); toast('Supprimé'); } }
+        if (b.dataset.r) { const w = writeBatch(db); w.set(doc(db, x.col, x.origId), x.data); w.delete(doc(db, 'corbeille', x._id)); await w.commit(); await logAct('restaure', objetDe(x.col, x.data), x.label, 'Sorti de la corbeille'); toast('Restauré'); }
+        else { if (!await ask('Supprimer définitivement ?', `« ${x.label} » ne pourra plus être récupéré.`)) return; await deleteDoc(doc(db, 'corbeille', x._id)); await logAct('purge', objetDe(x.col, x.data), x.label, 'Supprimé définitivement'); toast('Supprimé'); } }
       badge(true); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
@@ -832,7 +884,7 @@ function viewImport() {
   `<div class="card"><div class="flex">${[['settings', 'Infos du site'], ['events', 'Le Calendrier'], ['annuaire', 'L\'Annuaire']].map(([k, l]) => `<button class="btn b-bl" data-i="${k}">${ic('dl', 16)}Importer : ${l}</button>`).join('')}</div><p id="imsg" role="status" style="font-weight:700;margin:1rem 0 0"></p></div>`;
   $('#main').onclick = async e => { const b = e.target.closest('[data-i]'); if (!b) return; const k = b.dataset.i;
     if (!await ask('Importer cette section ?', 'Les données existantes de cette section seront remplacées.', 'Importer')) return;
-    try { $('#imsg').textContent = 'Import en cours…'; const n = await IMPORT[k](); $('#imsg').textContent = `Terminé (${n} élément${n > 1 ? 's' : ''}).`; } catch (er) { $('#imsg').textContent = 'Erreur : ' + er.message; } };
+    try { $('#imsg').textContent = 'Import en cours…'; const n = await IMPORT[k](); await logAct('import', 'Import', ({ settings: 'Infos du site', events: 'Le Calendrier', annuaire: 'L\'Annuaire' })[k] || k, `${n} élément${n > 1 ? 's' : ''} importé${n > 1 ? 's' : ''} (données précédentes remplacées)`); $('#imsg').textContent = `Terminé (${n} élément${n > 1 ? 's' : ''}).`; } catch (er) { $('#imsg').textContent = 'Erreur : ' + er.message; } };
 }
 const page = async u => new DOMParser().parseFromString(await (await fetch(u + '?' + Date.now())).text(), 'text/html');
 async function replaceAll(col, items, only) {
