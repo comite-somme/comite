@@ -119,10 +119,13 @@ function applyClassements(list) {
   const badge = v => { const n = norm(v); return n === 'elite' ? 'badge-Elite' : n === 'honneur' ? 'badge-Honneur' : n === 'promotion' ? 'badge-Promotion' : 'badge-Non-Class'; };
 
   const css = `<style>.cms-rk{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font:700 .85rem 'DM Sans',sans-serif}.cms-rk.r1{background:#c9a84c;color:#0a2342}.cms-rk.r2{background:#c9ced6;color:#333}.cms-rk.r3{background:#c8855a;color:#fff}.cms-ct{width:100%;min-height:46px;margin:0 0 .6rem;border:1.5px solid var(--bleu);background:var(--bleu);color:var(--or);font:700 .95rem 'DM Sans',sans-serif;padding:.4rem 1.2rem;border-radius:25px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:.6rem}.cms-ct::after{content:'▾';transition:transform .2s}.cms-ct[aria-expanded=true]::after{transform:rotate(180deg)}.cat-tabs[hidden]{display:none}.cat-tabs.cms-list{margin:0 0 1rem}</style>`;
-  const maj = list.filter(c => c.majLe).map(c => `<strong>${esc(c.nom)}</strong> — ${esc(String(c.majLe).replace(/^mis à jour( le)?\s*/i, ''))}`).join(' &nbsp;|&nbsp; ');
+  const majD = c => { const m = String(c.majLe || '').match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/); return m ? new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[2] - 1, +m[1]).getTime() : 0; };
+  const last = list.filter(c => c.majLe).sort((a, b) => majD(b) - majD(a))[0];
+  const maj = last ? esc(String(last.majLe).replace(/^mis à jour( le)?\s*/i, '')) : '';
 
   host.innerHTML = css
-    + `<button type="button" class="cms-ct" id="cms-ct" aria-expanded="false" aria-controls="cms-tabs">${esc(list[0].nom)}</button>`
+    + `<button type="button" class="cms-ct" id="cms-ct" aria-expanded="false" aria-controls="cms-tabs">Tous les classements</button>`
+    + (maj ? `<p class="result-count" style="margin:0 0 .8rem">Dernière mise à jour : <strong>${maj}</strong></p>` : '')
     + `<div class="cat-tabs cms-list" id="cms-tabs" hidden>${list.map((c, i) => `<button class="cat-tab ${i ? '' : 'active'}" data-k="${i}">${esc(c.nom)}</button>`).join('')}</div>`
     + `<div class="controls"><button type="button" class="filter-toggle" id="cms-ft" aria-expanded="false" aria-controls="cms-fp">Rechercher ou filtrer</button>`
     + `<div class="filter-panel" id="cms-fp" hidden><div class="fgroup"><label class="fgroup-lbl" for="cms-q">Chercher un joueur ou un club</label><div class="search-wrap"><input type="search" id="cms-q" placeholder="Écrire un nom…" autocomplete="off"><button type="button" class="clear-btn" id="cms-x" hidden>Effacer</button></div></div><div class="fgroup" id="cms-fgc" role="group" aria-label="Classification"></div><div class="fgroup" id="cms-fgs" role="group" aria-label="Hommes ou femmes"></div></div></div>`
@@ -201,7 +204,7 @@ function applyClassements(list) {
 
   const ct = $('#cms-ct', host), tabs = $('#cms-tabs', host);
   ct.onclick = () => { const o = ct.getAttribute('aria-expanded') !== 'true'; ct.setAttribute('aria-expanded', o); tabs.hidden = !o; };
-  $$('.cat-tab', host).forEach(b => b.onclick = () => { cur = +b.dataset.k; $$('.cat-tab', host).forEach(x => x.classList.toggle('active', x === b)); ct.textContent = list[cur].nom; ct.setAttribute('aria-expanded', 'false'); tabs.hidden = true; setup(); render(); });
+  $$('.cat-tab', host).forEach(b => b.onclick = () => { cur = +b.dataset.k; $$('.cat-tab', host).forEach(x => x.classList.toggle('active', x === b)); ct.setAttribute('aria-expanded', 'false'); tabs.hidden = true; setup(); render(); });
   qEl.oninput = render;
   xBtn.onclick = () => { qEl.value = ''; qEl.focus(); render(); };
   ft.onclick = () => { const o = ft.getAttribute('aria-expanded') !== 'true'; ft.setAttribute('aria-expanded', o); fp.hidden = !o; drawF(); if (o) qEl.focus(); };
