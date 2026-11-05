@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="base.css">
 <style>
   /* ── ONGLETS : tous visibles à l'écran, même taille que les pages CDC / Clubs ── */
+  .cat-tabs[hidden] { display: none; }
   .cat-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
   .cat-tab { flex: 1 1 auto; white-space: nowrap; min-height: 46px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.2px; padding: 0.4rem 1rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .cat-tab.active, .cat-tab:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
@@ -136,8 +137,9 @@
 <div class="page-content">
 
   <!-- ONGLETS -->
-  <div class="cat-tabs reveal">
-    <button class="cat-tab active" onclick="setTab('senior',this)">Senior mixte</button>
+  <button type="button" class="filter-toggle reveal" id="all-toggle" aria-expanded="false" aria-controls="cat-tabs" style="margin:0 0 .8rem" onclick="toggleAll()">Tous les classements ▾</button>
+  <div class="cat-tabs reveal" id="cat-tabs" hidden>
+    <button class="cat-tab active" onclick="setTab('senior',this)">Classement général</button>
     <button class="cat-tab" onclick="setTab('fem',this)">Féminin</button>
     <button class="cat-tab" onclick="setTab('vet',this)">Vétérans</button>
     <button class="cat-tab" onclick="setTab('jeunes',this)">Jeunes</button>
@@ -202,10 +204,15 @@ function toggleFilters() {
 }
 function clearSearch() { const i = document.getElementById('search-input'); i.value = ''; i.focus(); renderTable(); }
 
+function toggleAll() {
+  const t = document.getElementById('all-toggle'), p = document.getElementById('cat-tabs'), open = t.getAttribute('aria-expanded') !== 'true';
+  t.setAttribute('aria-expanded', open); p.hidden = !open; t.textContent = 'Tous les classements ' + (open ? '▴' : '▾');
+}
 function setTab(tab, btn) {
   activeTab = tab;
   document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+  { const t = document.getElementById('all-toggle'); t.setAttribute('aria-expanded', 'false'); document.getElementById('cat-tabs').hidden = true; t.textContent = 'Tous les classements ▾'; }
   document.getElementById('search-input').value = '';
   fClassif = ''; fSexe = '';
   const isClubs = tab === 'clubs';

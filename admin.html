@@ -393,7 +393,7 @@ SCHEMA.archives = {
 const DOCCAT = [['ffpjp','Documents FFPJP'],['cd80','Documents CD80'],['utilitaires','Utilitaires CD80']];
 const DOCPILL = { ffpjp: 'champ', cd80: 'concours', utilitaires: 'gp' };
 SCHEMA.documentations = {
-  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, feuilles de match…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page.',
+  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, affiliation…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page.',
   add: 'Ajouter un document', req: ['titre', 'lien'],
   sort: (a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'),
   group: d => d.categorie || 'autre', glabel: k => Object.fromEntries(DOCCAT)[k] || k, gorder: DOCCAT.map(c => c[0]),
@@ -478,7 +478,7 @@ async function logAct(action, objet, cible, detail = '') {
   try {
     const email = (auth.currentUser?.email || '').toLowerCase();
     await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 500) });
-  } catch (er) { console.warn('Journal non enregistré :', er.message); }
+  } catch (er) { console.warn('Journal non enregistré :', er.message); if (!window._jwarn) { window._jwarn = 1; try { toast('Action faite, mais NON notée dans le journal : vérifie les règles Firebase (collection « journal »).', 1); } catch {} } }
 }
 onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) { me = profileOf(u); start(); } else me = { nom: '', import: false }; });
 $('#loginForm').onsubmit = async e => { e.preventDefault(); const er = $('#lerr'); er.hidden = true;
@@ -828,7 +828,7 @@ async function viewMessages() {
   const save = async (m, p) => { Object.assign(m, p); await setDoc(doc(db, 'messages', m._id), p, { merge: true }); badge(true); draw(); };
   draw(); $('#mf').oninput = draw; $('#ms').oninput = draw;
   $('#main').onclick = async e => { const b = e.target.closest('[data-a]'); if (!b) return; const m = l.find(i => i._id === b.dataset.id), a = b.dataset.a;
-    try { if (a === 'lu') await save(m, { lu: !m.lu }); else if (a === 'tr') { await save(m, { traite: !m.traite }); await logAct('modif', 'Message', labelDe('messages', m), m.traite ? 'Marqué traité' : 'Rouvert'); } else if (a === 're') { if (!m.lu) save(m, { lu: true }); }
+    try { if (a === 'lu') { await save(m, { lu: !m.lu }); await logAct('modif', 'Message', labelDe('messages', m), m.lu ? 'Marqué lu' : 'Marqué non lu'); } else if (a === 'tr') { await save(m, { traite: !m.traite }); await logAct('modif', 'Message', labelDe('messages', m), m.traite ? 'Marqué traité' : 'Rouvert'); } else if (a === 're') { if (!m.lu) { save(m, { lu: true }); logAct('modif', 'Message', labelDe('messages', m), 'Ouvert (marqué lu)'); } }
       else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast('Placé dans la corbeille'); }
     } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
