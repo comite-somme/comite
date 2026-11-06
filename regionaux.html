@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<link rel="icon" type="image/png" href="logocomite.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Régionaux &amp; Championnats de France — Comité de la Somme FFPJP</title>
+<meta name="description" content="Calendrier des championnats régionaux Hauts-de-France et des championnats de France de pétanque : dates, lieux et formations.">
+<link rel="canonical" href="https://comite-somme.github.io/comite/regionaux.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Comité de la Somme FFPJP">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Régionaux &amp; Championnats de France — Comité de la Somme FFPJP">
+<meta property="og:description" content="Calendrier des championnats régionaux Hauts-de-France et des championnats de France de pétanque : dates, lieux et formations.">
+<meta property="og:url" content="https://comite-somme.github.io/comite/regionaux.html">
+<meta property="og:image" content="https://comite-somme.github.io/comite/og-regionaux.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Logo du Comité de la Somme FFPJP — Pétanque 80">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Régionaux &amp; Championnats de France — Comité de la Somme FFPJP">
+<meta name="twitter:description" content="Calendrier des championnats régionaux Hauts-de-France et des championnats de France de pétanque : dates, lieux et formations.">
+<meta name="twitter:image" content="https://comite-somme.github.io/comite/og-regionaux.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a2342">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CD80 Pétanque">
+<link rel="stylesheet" href="base.css">
+<style>
+  #reg-app { font-family: 'DM Sans', sans-serif; font-size: 1rem; }
+
+  /* Filtres : une seule ligne défilable au doigt sur mobile */
+  .cal-filters { display: flex; gap: 0.45rem; flex-wrap: nowrap; overflow-x: auto; margin: 0 calc(var(--pad-x) * -1) 1rem; padding: 0 var(--pad-x) 0.35rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .cal-filters::-webkit-scrollbar { display: none; }
+  .cal-filter-btn { flex-shrink: 0; white-space: nowrap; min-height: 38px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.3px; padding: 0.4rem 0.95rem; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+  .cal-filter-btn.active, .cal-filter-btn:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
+  .cal-filter-btn small { opacity: .7; font-weight: 700; margin-left: .2rem; }
+  .cal-filter-link { flex-shrink: 0; white-space: nowrap; min-height: 38px; display: inline-flex; align-items: center; border: 1.5px dashed var(--or); background: #fff; color: var(--bleu); font-size: 0.8rem; font-weight: 700; padding: 0.4rem 0.95rem; border-radius: 20px; text-decoration: none; transition: all 0.2s; }
+  .cal-filter-link:hover { background: var(--or); }
+
+  /* Outils */
+  .cal-tools { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
+  #reg-search { flex: 1 1 260px; max-width: 520px; min-height: 46px; padding: 0.6rem 1rem; border: 2px solid var(--gris); border-radius: 10px; font: 1rem 'DM Sans', sans-serif; background: #fff; }
+  #reg-search:focus { outline: none; border-color: var(--or); }
+  #reg-year { min-height: 42px; border: 1.5px solid var(--gris); border-radius: 8px; padding: .35rem .7rem; font: 600 .9rem 'DM Sans', sans-serif; color: var(--bleu); cursor: pointer; background: #fff; }
+  .cal-view-btn { min-height: 42px; border: 1.5px solid var(--gris); background: #fff; color: var(--bleu); font: 600 0.85rem 'DM Sans', sans-serif; padding: 0.45rem 1rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .cal-view-btn:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
+  .reg-count { font-size: .85rem; color: #6b7280; margin: 0 0 .4rem; }
+
+  /* Catégories */
+  .cat-regional { background: #f3e8ff; color: #5a1a8a; }
+  .cat-france   { background: #0a2342; color: #c9a84c; }
+
+  /* Liste */
+  .cal-list { display: flex; flex-direction: column; gap: 1rem; }
+  .cal-month-sep { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; color: var(--bleu); border-bottom: 2px solid var(--or); padding-bottom: 0.1rem; margin: 0.8rem 0 0; align-self: flex-start; }
+  .cal-day { display: grid; grid-template-columns: 62px 1fr; gap: 0.8rem; align-items: start; scroll-margin-top: 90px; }
+  .cal-day-date { background: var(--bleu); color: #fff; border-radius: 10px; text-align: center; padding: 0.5rem 0 0.45rem; line-height: 1.1; }
+  .cal-day-date b { display: block; font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 1.9rem; color: var(--or); }
+  .cal-day-date span { font-size: 0.66rem; letter-spacing: 1px; text-transform: uppercase; display: block; }
+  .cal-day.is-today .cal-day-date { background: var(--or); }
+  .cal-day.is-today .cal-day-date b, .cal-day.is-today .cal-day-date span { color: var(--bleu); }
+  .cal-day.past { opacity: 0.55; }
+  .cal-ev { background: #fff; border: 1px solid var(--gris); border-left: 4px solid var(--or); border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; box-shadow: 0 1px 2px rgba(10,35,66,.05); }
+  .cal-ev:last-child { margin-bottom: 0; }
+  .cal-ev.is-france { border-left-color: var(--bleu); }
+  .cal-next-badge { background: var(--or); color: var(--bleu); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 10px; margin-left: 0.4rem; vertical-align: middle; text-transform: uppercase; }
+  .cal-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.7rem; }
+  .cal-links a { background: var(--or); color: var(--bleu); font-weight: 700; font-size: 0.8rem; text-decoration: none; padding: 0.5rem 0.9rem; border-radius: 6px; min-height: 36px; display: inline-flex; align-items: center; }
+  .cal-links a:hover { background: var(--or-light); }
+  .cal-empty { background: #fff; border: 1px dashed var(--gris); border-radius: 10px; padding: 2rem 1rem; text-align: center; color: #777; }
+
+  /* Carte de compétition (même style que le calendrier) */
+  .ev-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.9rem; }
+  .ev-main { min-width: 0; flex: 1; }
+  .ev-tag { display: inline-block; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-bottom: 0.45rem; }
+  .cal-ev-title { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 1.15rem; line-height: 1.3; color: var(--bleu); margin: 0; overflow-wrap: anywhere; }
+  .ev-time { flex-shrink: 0; background: var(--bleu); border-radius: 10px; padding: 0.4rem 0.75rem 0.45rem; text-align: center; line-height: 1; border-bottom: 3px solid var(--or); }
+  .ev-time span { display: block; font-size: 0.55rem; letter-spacing: 1.6px; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 0.2rem; }
+  .ev-time b { font-family: 'Bebas Neue', sans-serif; font-weight: 400; font-size: 1.45rem; letter-spacing: 1px; color: var(--or); white-space: nowrap; }
+  .ev-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.6rem 1rem; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--gris); }
+  .ev-i { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
+  .ev-i svg { flex-shrink: 0; padding: 7px; border-radius: 50%; background: rgba(201,168,76,0.18); stroke: #9a7a1f; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ev-i small { display: block; font-size: 0.6rem; letter-spacing: 1.2px; text-transform: uppercase; color: #8a919c; font-weight: 700; line-height: 1.2; }
+  .ev-i b { display: block; font-size: 0.92rem; color: var(--bleu); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+  .ev-obs { margin-top: 0.85rem; font-size: 0.82rem; color: #5c6470; background: #faf8f1; border-left: 3px solid var(--or); padding: 0.5rem 0.8rem; border-radius: 0 6px 6px 0; }
+
+  /* Légende */
+  .cal-legende { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.2rem; }
+  .cal-legende span { font-size: .72rem; font-weight: 600; padding: 3px 10px; border-radius: 3px; }
+
+  /* Bandeau d'info */
+  .reg-note { background: var(--bleu); border-radius: 10px; padding: 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1.5rem; color: rgba(255,255,255,.8); font-size: .95rem; }
+  .reg-note a { display: inline-flex; align-items: center; min-height: 44px; padding: .6rem 1.1rem; border-radius: 6px; text-decoration: none; font-weight: 700; font-size: .85rem; background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+  .reg-note a:hover { background: rgba(255,255,255,.2); }
+  .reg-note-btns { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+  @media (min-width: 600px) {
+    .cal-day { grid-template-columns: 78px 1fr; gap: 1.1rem; }
+    .cal-day-date b { font-size: 2.3rem; }
+    .cal-ev { padding: 1rem 1.2rem; }
+  }
+  @media (min-width: 768px) {
+    .cal-filters { flex-wrap: wrap; overflow: visible; margin: 0 0 1.2rem; padding: 0; }
+    .cal-filter-btn, .cal-filter-link { min-height: 0; font-size: 0.78rem; padding: 0.35rem 0.9rem; }
+    .reg-note { flex-direction: row; align-items: center; justify-content: space-between; padding: 1.4rem 2rem; }
+  }
+  @media (min-width: 1000px) { .page-content { max-width: 1200px; } }
+</style>
+<script type="module" src="site-data.js"></script>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav id="navbar">
+  <a class="nav-brand" href="index.html">
+    <img src="logocomite.png" alt="Logo Comité de la Somme FFPJP">
+    <div class="nav-brand-text">
+      <span>Comité de la Somme</span>
+      <small>FFPJP — Pétanque 80</small>
+    </div>
+  </a>
+  <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="drawer"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- ── PAGE HEADER ── -->
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="index.html">Accueil</a>
+    <span>›</span>
+    <span style="color:rgba(255,255,255,0.7)">Régionaux / Chp de France</span>
+  </div>
+  <div class="page-header-badge">Saison 2026</div>
+  <h1>Régionaux &amp; <em>Chp de France</em></h1>
+  <p>Championnats régionaux Hauts-de-France et championnats de France de pétanque.</p>
+</div>
+
+<!-- ── CONTENU ── -->
+<div class="page-content">
+
+  <div class="reg-note">
+    <p>🏆 Dates et lieux fixés par la ligue et la fédération.</p>
+    <div class="reg-note-btns">
+      <a href="championnats.html">Tirages &amp; résultats →</a>
+      <a href="calendrier.html">← Calendrier général</a>
+    </div>
+  </div>
+
+  <div id="reg-app">
+    <!-- Filtres -->
+    <div class="cal-filters" id="reg-filters">
+      <button class="cal-filter-btn active" data-filter="all">Tout</button>
+      <button class="cal-filter-btn" data-filter="regional">🗺️ Régionaux HdF</button>
+      <button class="cal-filter-btn" data-filter="france">🏆 Championnats de France</button>
+    </div>
+
+    <!-- Outils -->
+    <div class="cal-tools">
+      <input id="reg-search" type="search" placeholder="🔍 Rechercher un lieu, une formation…" aria-label="Rechercher une compétition">
+      <select id="reg-year" aria-label="Année" hidden></select>
+      <button type="button" id="reg-ics" class="cal-view-btn">📅 Ajouter à mon agenda</button>
+    </div>
+    <p class="reg-count" id="reg-count" aria-live="polite"></p>
+
+    <!-- Liste -->
+    <div class="cal-list" id="reg-list"></div>
+
+    <!-- Légende -->
+    <div class="cal-legende">
+      <span class="cat-regional">🗺️ Régional Hauts-de-France</span>
+      <span class="cat-france">🏆 Championnat de France</span>
+    </div>
+  </div>
+
+</div><!-- /page-content -->
+
+<!-- ── FOOTER ── -->
+<footer id="site-footer"></footer>
+<script src="footer.js"></script>
+
+<script>
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+  });
+</script>
+
+<!-- Données : liste de secours ci-dessous ; si la base (admin) contient des compétitions, elle les remplace.
+     Sont affichées ici les compétitions de type « Régional / France » (hors Coupe de France, qui est dans le calendrier). -->
+<script type="module">
+import { buildIcs } from './agenda.js';
+
+const EVENTS = [
+  {date:'2026-05-14',titre:'CHPT RÉGIONAL Hauts-de-France — Triplette Masc. + Fém.',type:'regional',lieu:'Burbure (62)',heure:'9h00',formation:'Triplette'},
+  {date:'2026-05-15',titre:'CHPT RÉGIONAL HdF — Triplette Jeunes + Tir Précision Junior',type:'regional',lieu:'Saint-Just-en-Chaussée (60)',heure:'9h30',formation:'Triplette / Tir Précision',obs:'J/C/M'},
+  {date:'2026-05-16',titre:'CHPT RÉGIONAL HdF — Doublette Mixte',type:'regional',lieu:'Pernois (80)',heure:'9h00',formation:'Doublette Mixte'},
+  {date:'2026-05-17',titre:'CHPT RÉGIONAL HdF — Triplette Mixte',type:'regional',lieu:'Pernois (80)',heure:'9h00',formation:'Triplette Mixte'},
+  {date:'2026-05-23',titre:'CHPT RÉGIONAL HdF — Triplette Promotion',type:'regional',lieu:'Armentières (59)',heure:'9h00',formation:'Triplette Promotion'},
+  {date:'2026-05-25',titre:'CHPT RÉGIONAL HdF — TT Masc. + Doublette Fém.',type:'regional',lieu:'Armentières (59)',heure:'9h00',formation:'TT / Doublette'},
+  {date:'2026-06-06',titre:'CHPT RÉGIONAL HdF — Doublette Jeu Provençal',type:'regional',lieu:'Gauchy (02)',heure:'9h00',formation:'Doublette JP'},
+  {date:'2026-06-07',titre:'CHPT RÉGIONAL HdF — Doublette Jeu Provençal (suite)',type:'regional',lieu:'Gauchy (02)',heure:'9h00',formation:'Doublette JP'},
+  {date:'2026-06-20',titre:'CHPT DE FRANCE — Triplette Masc. et Fém.',type:'regional',lieu:'Sin-le-Noble (59)',heure:'',formation:'Triplette'},
+  {date:'2026-06-27',titre:'CHPT DE FRANCE — Doublette Mixte',type:'regional',lieu:'Ajaccio (2A)',heure:'',formation:'Doublette Mixte'},
+  {date:'2026-07-03',titre:'CHPT DE FRANCE — Triplette Jeu Provençal',type:'regional',lieu:'Blaye-les-Mines (81)',heure:'',formation:'Triplette JP'},
+  {date:'2026-07-11',titre:'CHPT DE FRANCE — Triplette Jeunes',type:'regional',lieu:'Blaye-les-Mines (81)',heure:'',formation:'Triplette Jeunes',obs:'J/C/M'},
+  {date:'2026-07-18',titre:'CHPT DE FRANCE — Triplette Mixte',type:'regional',lieu:'Nice (06)',heure:'',formation:'Triplette Mixte'},
+  {date:'2026-07-25',titre:'CHPT DE FRANCE — TT Masc. + Doublette Fém.',type:'regional',lieu:'Bergerac (24)',heure:'',formation:'TT / Doublette'},
+  {date:'2026-08-19',titre:'CHPT DE FRANCE — Triplette Vétéran',type:'regional',lieu:'Saint-Yrieix (16)',heure:'',formation:'Triplette Vétéran'},
+  {date:'2026-08-22',titre:'CHPT DE FRANCE — Triplette Promotion',type:'regional',lieu:'Saint-Yrieix (16)',heure:'',formation:'Triplette Promotion'},
+  {date:'2026-08-29',titre:'CHPT DE FRANCE — Doublette Masc. + TT Fém.',type:'regional',lieu:'Saint-Florentin (89)',heure:'',formation:'Doublette / TT'},
+  {date:'2026-09-04',titre:'CHPT DE FRANCE — Doublette Jeu Provençal',type:'regional',lieu:'Briançon (05)',heure:'',formation:'Doublette JP'},
+];
+
+const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const JOURS_LONGS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const pad = n => String(n).padStart(2, '0');
+const t0 = new Date();
+const todayStr = `${t0.getFullYear()}-${pad(t0.getMonth() + 1)}-${pad(t0.getDate())}`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const safeUrl = u => /^(https?:|mailto:)/i.test(u || '') ? u : '#';
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const isCoupe = e => /coupe de france/i.test(e.titre || '');
+const isReg = e => e.type === 'regional' && !isCoupe(e);
+const kindOf = e => /(chpt|championnat)\.?\s+de\s+france/i.test(e.titre || '') ? 'france' : 'regional';
+const KIND = { regional: ['cat-regional', '🗺️ Régional HdF'], france: ['cat-france', '🏆 Chp de France'] };
+
+const ICO = {
+  pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
+};
+const ico = n => `<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">${ICO[n]}</svg>`;
+
+let filter = 'all', query = '', year = null, scrollDone = false;
+const $ = s => document.querySelector(s);
+
+const pool = () => EVENTS.filter(e => isReg(e) && e.date);
+
+function linksHtml(e) {
+  const l = [[e.lien, e.lienTexte], [e.lien2, e.lien2Texte]].filter(x => x[0]);
+  if (!l.length) return '';
+  return `<div class="cal-links">${l.map(x => `<a href="${esc(safeUrl(x[0]))}" target="_blank" rel="noopener">🔗 ${esc(x[1] || 'Plus d\'infos')}</a>`).join('')}</div>`;
+}
+
+function card(e, next) {
+  const k = kindOf(e), [cls, label] = KIND[k];
+  const info = [e.lieu && ['pin', 'Lieu', e.lieu], e.formation && ['users', 'Formule', e.formation]].filter(Boolean);
+  return `<div class="cal-ev is-${k}">
+    <div class="ev-head">
+      <div class="ev-main">
+        <span class="ev-tag ${cls}">${label}</span>${next ? '<span class="cal-next-badge">Prochaine</span>' : ''}
+        <div class="cal-ev-title">${esc(e.titre)}</div>
+      </div>
+      ${e.heure ? `<div class="ev-time"><span>Début</span><b>${esc(e.heure)}</b></div>` : ''}
+    </div>
+    ${info.length ? `<div class="ev-info">${info.map(i => `<div class="ev-i">${ico(i[0])}<div><small>${i[1]}</small><b>${esc(i[2])}</b></div></div>`).join('')}</div>` : ''}
+    ${e.obs ? `<div class="ev-obs">${esc(e.obs)}</div>` : ''}
+    ${linksHtml(e)}</div>`;
+}
+
+function visible() {
+  return pool()
+    .filter(e => (query || e.date.slice(0, 4) === String(year)) && (filter === 'all' || kindOf(e) === filter) && (!query || norm([e.titre, e.lieu, e.formation, e.obs].join(' ')).includes(query)))
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.heure || '').localeCompare(b.heure || ''));
+}
+
+function render() {
+  const all = pool();
+  // Années disponibles (le sélecteur n'apparaît que s'il y en a plusieurs)
+  const ys = [...new Set(all.map(e => e.date.slice(0, 4)))].sort();
+  if (year === null || (ys.length && !ys.includes(String(year)))) year = ys.includes(String(t0.getFullYear())) ? t0.getFullYear() : +(ys[ys.length - 1] || t0.getFullYear());
+  const sel = $('#reg-year');
+  sel.hidden = ys.length < 2;
+  sel.innerHTML = ys.map(y => `<option value="${y}"${+y === +year ? ' selected' : ''}>${y}</option>`).join('');
+
+  // Compteurs sur les filtres (pour l'année affichée)
+  const inYear = all.filter(e => query || e.date.slice(0, 4) === String(year));
+  const n = { all: inYear.length, regional: inYear.filter(e => kindOf(e) === 'regional').length, france: inYear.filter(e => kindOf(e) === 'france').length };
+  document.querySelectorAll('#reg-filters .cal-filter-btn').forEach(b => {
+    const base = b.dataset.base || (b.dataset.base = b.textContent.trim());
+    b.innerHTML = `${esc(base)}<small>${n[b.dataset.filter]}</small>`;
+    b.classList.toggle('active', b.dataset.filter === filter);
+  });
+
+  const evs = visible(), box = $('#reg-list');
+  $('#reg-count').textContent = evs.length ? `${evs.length} compétition${evs.length > 1 ? 's' : ''}${query ? '' : ' en ' + year}` : '';
+  if (!evs.length) { box.innerHTML = `<div class="cal-empty">${query ? 'Aucune compétition ne correspond à votre recherche.' : 'Aucune compétition pour ce filtre.'}</div>`; return; }
+
+  // Les dates passées ne sont estompées que s'il reste des épreuves à venir
+  const upcoming = evs.some(e => e.date >= todayStr);
+  const next = evs.find(e => e.date >= todayStr);
+  const days = {}; evs.forEach(e => (days[e.date] = days[e.date] || []).push(e));
+  let html = '', lastMonth = '';
+  Object.keys(days).forEach(ds => {
+    const [y, m, d] = ds.split('-');
+    if (y + m !== lastMonth) { lastMonth = y + m; html += `<div class="cal-month-sep">${MOIS[+m - 1]}${query || ys.length > 1 ? ' ' + y : ''}</div>`; }
+    const dt = new Date(+y, +m - 1, +d);
+    html += `<div class="cal-day${upcoming && ds < todayStr ? ' past' : ''}${ds === todayStr ? ' is-today' : ''}" data-date="${ds}">
+      <div class="cal-day-date"><span>${JOURS_LONGS[dt.getDay()].slice(0, 3)}</span><b>${+d}</b><span>${MOIS[+m - 1].slice(0, 4)}</span></div>
+      <div class="cal-day-evs">${days[ds].map(e => card(e, e === next)).join('')}</div></div>`;
+  });
+  box.innerHTML = html;
+
+  if (!scrollDone && next && !query && filter === 'all') {
+    scrollDone = true;
+    const target = [...box.querySelectorAll('.cal-day')].find(d => d.dataset.date >= todayStr);
+    if (target && target !== box.querySelector('.cal-day')) requestAnimationFrame(() => target.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
+}
+
+$('#reg-filters').addEventListener('click', e => { const b = e.target.closest('.cal-filter-btn'); if (b) { filter = b.dataset.filter; render(); } });
+$('#reg-search').addEventListener('input', e => { query = norm(e.target.value.trim()); render(); });
+$('#reg-year').addEventListener('change', e => { year = +e.target.value; render(); });
+$('#reg-ics').addEventListener('click', () => {
+  const l = visible();
+  if (!l.length) return alert('Aucune compétition à exporter.');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buildIcs(l)], { type: 'text/calendar;charset=utf-8' }));
+  a.download = 'regionaux-chp-france-cd80.ics';
+  document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
+
+// site-data.js remplace EVENTS par le contenu de la base (admin) puis rappelle renderCalendar()
+window.CMS_CAL = { EVENTS, renderCalendar: render };
+render();
+</script>
+<script src="nav.js"></script>
+<script type="module" src="track.js"></script>
+<script type="module" src="push.js"></script>
+<script src="pwa.js" defer></script>
+</body>
+</html>
