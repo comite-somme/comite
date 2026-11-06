@@ -50,6 +50,9 @@
   .cal-filters::-webkit-scrollbar { display: none; }
   .cal-filter-btn { flex-shrink: 0; white-space: nowrap; min-height: 38px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.3px; padding: 0.4rem 0.9rem; border-radius: 20px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
   .cal-filter-btn.active, .cal-filter-btn:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
+  /* Lien vers la page « Régionaux / Chp de France » (même allure qu'un filtre, mais c'est une page à part) */
+  .cal-filter-link { flex-shrink: 0; white-space: nowrap; min-height: 38px; display: inline-flex; align-items: center; border: 1.5px dashed var(--or); background: #fff; color: var(--bleu); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.3px; padding: 0.4rem 0.9rem; border-radius: 20px; text-decoration: none; font-family: 'DM Sans', sans-serif; transition: all 0.2s; }
+  .cal-filter-link:hover { background: var(--or); color: var(--bleu); }
 
   .cal-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
   .cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex: 1 1 100%; }
@@ -77,6 +80,7 @@
   .cat-jeunes   { background: #e0f8ff; color: #005a8a; }
   .cat-veterans { background: #f0ede8; color: #5a3a1a; }
   .cat-regional { background: #f3e8ff; color: #5a1a8a; }
+  .cat-coupe    { background: #fde8e8; color: #9b1c1c; }
   .cal-more { font-size: 0.6rem; color: var(--or); font-weight: 700; background: rgba(201,168,76,0.12); border-radius: 3px; padding: 1px 4px; text-align: center; margin-top: 1px; }
 
   /* Modale : feuille qui monte du bas sur mobile */
@@ -168,7 +172,7 @@
     .dl-bar { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 1.5rem 2rem; margin-bottom: 2rem; }
     .dl-btns { width: auto; }
     .cal-filters { flex-wrap: wrap; overflow: visible; margin: 0 0 1.2rem; padding: 0; }
-    .cal-filter-btn { min-height: 0; font-size: 0.73rem; padding: 0.32rem 0.85rem; }
+    .cal-filter-btn, .cal-filter-link { min-height: 0; font-size: 0.73rem; padding: 0.32rem 0.85rem; }
     .cal-toolbar { margin-bottom: 1.2rem; gap: 1rem; }
     #cal-year-jump { font-size: 0.82rem !important; min-height: 0; }
   }
@@ -218,7 +222,7 @@
 .cal-view-btn { font-size: .85rem; min-height: 42px; padding: .45rem 1rem; }
 #cal-year-jump { font-size: .9rem !important; min-height: 42px; }
 #cal-search { max-width: 520px; font-size: 1rem; min-height: 46px; }
-.cal-filter-btn { font-size: .8rem; padding: .4rem .95rem; }
+.cal-filter-btn, .cal-filter-link { font-size: .8rem; padding: .4rem .95rem; }
 
 /* Fenêtre de détail */
 .cal-modal { max-width: 560px; }
@@ -291,8 +295,9 @@
       <button class="cal-filter-btn" data-filter="cdc">🏅 Champ. Clubs</button>
       <button class="cal-filter-btn" data-filter="jeunes">👦 Jeunes</button>
       <button class="cal-filter-btn" data-filter="veterans">🎖️ Vétérans</button>
-      <button class="cal-filter-btn" data-filter="regional">🗺️ Régional/France</button>
+      <button class="cal-filter-btn" data-filter="coupe">🥇 Coupe de France</button>
       <button class="cal-filter-btn" data-filter="propagande">📣 Propagande</button>
+      <a class="cal-filter-link" href="regionaux.html">🗺️ Régionaux / Chp de France →</a>
     </div>
 
     <!-- Navigation mois + affichage -->
@@ -327,7 +332,7 @@
       <span class="cal-event-dot cat-cdc" style="font-size:.72rem;padding:3px 8px">🏅 Champ. Clubs</span>
       <span class="cal-event-dot cat-jeunes" style="font-size:.72rem;padding:3px 8px">👦 Jeunes</span>
       <span class="cal-event-dot cat-veterans" style="font-size:.72rem;padding:3px 8px">🎖️ Vétérans</span>
-      <span class="cal-event-dot cat-regional" style="font-size:.72rem;padding:3px 8px">🗺️ Régional/France</span>
+      <span class="cal-event-dot cat-coupe" style="font-size:.72rem;padding:3px 8px">🥇 Coupe de France</span>
       <span class="cal-event-dot cat-propagande" style="font-size:.72rem;padding:3px 8px">📣 Propagande</span>
     </div>
   </div>
@@ -364,7 +369,8 @@
     // ════════════════════════════════════════════════════════════════
 // EVENTS.JS — Calendrier Comité de la Somme 2026
 // Source : Calendrier officiel 2ème version (01/02/2026)
-// Types : champ | concours | gp | cdc | jeunes | veterans | regional | propagande
+// Types : champ | concours | gp | cdc | jeunes | veterans | coupe | propagande
+// (type 'regional' = régionaux / chp de France : affichés sur regionaux.html, PAS dans ce calendrier)
 // ════════════════════════════════════════════════════════════════
 
 const EVENTS = [
@@ -408,17 +414,17 @@ const EVENTS = [
   {date:'2026-03-05',titre:'Feuquières/Friville — Triplette Qualificatif 60 ans',type:'veterans',lieu:'Boulodrome Feuquières',heure:'9h00',formation:'Triplette',obs:'Limité à 48 éq.'},
   {date:'2026-03-07',titre:'Concours Gamaches',type:'concours',lieu:'Gamaches',heure:'14h00',formation:'Doublette',obs:'½J'},
   {date:'2026-03-07',titre:'Concours ASPTT Amiens — Challenge André Dournel',type:'concours',lieu:'ASPTT Amiens',heure:'14h00',formation:'Triplette Mixte',obs:'½J — Challenge André DOURNEL'},
-  {date:'2026-03-07',titre:'Coupe de France Jeu Provençal (2 tours)',type:'regional',lieu:'Fienvillers / St Léger-lès-Domart',heure:'9h00',formation:'Jeu Provençal',obs:'2 tours'},
+  {date:'2026-03-07',titre:'Coupe de France Jeu Provençal (2 tours)',type:'coupe',lieu:'Fienvillers / St Léger-lès-Domart',heure:'9h00',formation:'Jeu Provençal',obs:'2 tours'},
   {date:'2026-03-08',titre:'Concours Bourdon',type:'concours',lieu:'Bourdon',heure:'14h00',formation:'Doublette Mixte',obs:'½J'},
   {date:'2026-03-08',titre:'Concours Feuquières',type:'concours',lieu:'Feuquières (Boulodrome)',heure:'14h00',formation:'Doublette Mixte',obs:'½J — Limité à 48 éq.'},
-  {date:'2026-03-08',titre:'Coupe de France Jeu Provençal (suite)',type:'regional',lieu:'Fienvillers / St Léger-lès-Domart',heure:'9h00',formation:'Jeu Provençal'},
+  {date:'2026-03-08',titre:'Coupe de France Jeu Provençal (suite)',type:'coupe',lieu:'Fienvillers / St Léger-lès-Domart',heure:'9h00',formation:'Jeu Provençal'},
   {date:'2026-03-10',titre:'ASPTT Amiens — Vétérans Doublette',type:'veterans',lieu:'ASPTT Amiens',heure:'14h00',formation:'Doublette',obs:'½J'},
   {date:'2026-03-12',titre:'Feuquières/Friville — Triplette Qualificatif 60 ans',type:'veterans',lieu:'Boulodrome Feuquières',heure:'9h00',formation:'Triplette',obs:'Limité à 48 éq.'},
   {date:'2026-03-13',titre:'Friville — Doublette Mêlée Qualificatif 60 ans',type:'veterans',lieu:'Friville',heure:'14h00',formation:'Doublette Mêlée',obs:'½J Qualificatif'},
   {date:'2026-03-14',titre:'Concours Ault',type:'concours',lieu:'Ault',heure:'14h00',formation:'Doublette',obs:'½J'},
   {date:'2026-03-14',titre:'Concours Boves',type:'concours',lieu:'Boves',heure:'9h00',formation:'Doublette',obs:'Journée'},
-  {date:'2026-03-14',titre:'Coupe de France + Coupe de la Somme',type:'regional',lieu:'Oisemont',heure:'9h30',formation:'',obs:'2 tours — Jet du but 9h30'},
-  {date:'2026-03-15',titre:'Coupe de France + Coupe de la Somme (suite)',type:'regional',lieu:'Oisemont',heure:'9h00',formation:''},
+  {date:'2026-03-14',titre:'Coupe de France + Coupe de la Somme',type:'coupe',lieu:'Oisemont',heure:'9h30',formation:'',obs:'2 tours — Jet du but 9h30'},
+  {date:'2026-03-15',titre:'Coupe de France + Coupe de la Somme (suite)',type:'coupe',lieu:'Oisemont',heure:'9h00',formation:''},
   {date:'2026-03-15',titre:'Concours Feuquières',type:'concours',lieu:'Feuquières (Boulodrome)',heure:'14h00',formation:'Triplette',obs:'½J — Limité à 48 éq.'},
   {date:'2026-03-17',titre:'Corbie — Vétérans Doublette',type:'veterans',lieu:'Corbie',heure:'14h00',formation:'Doublette',obs:'½J'},
   {date:'2026-03-19',titre:'Feuquières/Friville — Triplette Finale 60 ans',type:'veterans',lieu:'Boulodrome Feuquières',heure:'9h00',formation:'Triplette',obs:'Finale — 24 éq.'},
@@ -747,8 +753,8 @@ const EVENTS = [
 
     const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const TYPE_CLASS = {champ:'cat-champ',concours:'cat-concours',gp:'cat-gp',cdc:'cat-cdc',jeunes:'cat-jeunes',veterans:'cat-veterans',regional:'cat-regional',propagande:'cat-propagande'};
-    const TYPE_LABEL = {champ:'🏆 Championnat',concours:'🎯 Concours',gp:'⭐ Grand Prix',cdc:'🏅 Champ. Clubs',jeunes:'👦 Jeunes',veterans:'🎖️ Vétérans',regional:'🗺️ Régional/France',propagande:'📣 Propagande'};
+    const TYPE_CLASS = {champ:'cat-champ',concours:'cat-concours',gp:'cat-gp',cdc:'cat-cdc',jeunes:'cat-jeunes',veterans:'cat-veterans',regional:'cat-regional',coupe:'cat-coupe',propagande:'cat-propagande'};
+    const TYPE_LABEL = {champ:'🏆 Championnat',concours:'🎯 Concours',gp:'⭐ Grand Prix',cdc:'🏅 Champ. Clubs',jeunes:'👦 Jeunes',veterans:'🎖️ Vétérans',regional:'🗺️ Régional/France',coupe:'🥇 Coupe de France',propagande:'📣 Propagande'};
 
     const today = new Date();
     const pad = n => String(n).padStart(2,'0');
@@ -760,7 +766,11 @@ const EVENTS = [
     const safeUrl = u => /^(https?:|mailto:)/i.test(u||'') ? u : '#';
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
+    // Les régionaux / championnats de France ont leur propre page (regionaux.html).
+    // Une « Coupe de France » saisie à l'ancienne avec le type 'regional' est rangée dans 'coupe'.
+    function fixTypes(){ EVENTS.forEach(e=>{ if(e.type==='regional' && /coupe de france/i.test(e.titre||'')) e.type='coupe'; }); }
     function matches(e){
+      if(e.type==='regional') return false;
       if(activeFilter!=='all'&&e.type!==activeFilter) return false;
       return !query || norm([e.titre,e.lieu,e.formation,e.obs].join(' ')).includes(query);
     }
@@ -818,7 +828,8 @@ if(scrollToToday){ scrollToToday=false; goToToday(); }
     }
 
     function renderCalendar(){
-      const ys=[...new Set(EVENTS.map(e=>(e.date||'').slice(0,4)).concat([String(today.getFullYear()),String(year)]))].filter(Boolean).sort();
+      fixTypes();
+      const ys=[...new Set(EVENTS.filter(e=>e.type!=='regional').map(e=>(e.date||'').slice(0,4)).concat([String(today.getFullYear()),String(year)]))].filter(Boolean).sort();
       document.getElementById('cal-year-jump').innerHTML=ys.map(y=>`<option value="${y}"${+y===year?' selected':''}>${y}</option>`).join('');
       document.getElementById('cal-month-label').textContent = (query&&view==='list') ? 'Résultats de la recherche' : MOIS[month]+' '+year;
       document.querySelectorAll('.cal-view-btn[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));

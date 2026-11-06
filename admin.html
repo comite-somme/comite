@@ -145,7 +145,7 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
-.champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.propagande{background:#fff0e0;color:#8a4a00}
+.champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.coupe{background:#fde8e8;color:#9b1c1c}.propagande{background:#fff0e0;color:#8a4a00}
 .act{display:flex;gap:.4rem;flex-shrink:0}
 .act .btn{min-height:40px;padding:.3rem .8rem}
 .card{background:#fff;border:1px solid var(--gris);border-radius:12px;padding:1.3rem;margin-bottom:1rem;box-shadow:var(--sh)}
@@ -323,7 +323,7 @@ const ask = (title, msg, label = 'Supprimer') => new Promise(res => {
 async function busy(btn, fn) { const h = btn.innerHTML; btn.disabled = true; btn.classList.add('load'); try { return await fn(); } finally { btn.disabled = false; btn.classList.remove('load'); btn.innerHTML = h; } }
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const CAT = { champ: 'Championnat', concours: 'Concours officiel', gp: 'Grand Prix', cdc: 'Championnat des clubs', jeunes: 'Jeunes', veterans: 'Vétérans', regional: 'Régional / France', propagande: 'Propagande' };
+const CAT = { champ: 'Championnat', concours: 'Concours officiel', gp: 'Grand Prix', cdc: 'Championnat des clubs', jeunes: 'Jeunes', veterans: 'Vétérans', coupe: 'Coupe de France', regional: 'Régionaux / Chp de France (page à part)', propagande: 'Propagande' };
 const CATOPT = Object.entries(CAT);
 const SECT = { centre: 'Secteur Centre', maritime: 'Secteur Maritime', santerre: 'Secteur Santerre' };
 const GRP = { president: 'Président', vice: 'Vice-présidents', admin: 'Secrétaires et trésoriers', membre: 'Membres du comité directeur' };

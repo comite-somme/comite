@@ -24,7 +24,7 @@ const PRECACHE = [
   './', 'index.html', 'offline.html', 'base.css', 'hub.css', 'nav.js', 'footer.js', 'pwa.js', 'track.js',
   'logocomite.png', 'icons/icon-192.png', 'icons/icon-512.png',
   'clubs.html', 'calendrier.html', 'cdc.html', 'championnats.html', 'classement.html', 'comite.html',
-  'archives.html', 'resultats.html', 'tirages.html', 'documentations.html', 'annuaire.html', 'coupe-de-france.html', 'confidentialite.html',
+  'archives.html', 'resultats.html', 'tirages.html', 'documentations.html', 'annuaire.html', 'coupe-de-france.html', 'regionaux.html', 'confidentialite.html',
   'site-data.js', 'event.js', 'cms.js', 'hub.js', 'hub.css', 'push.js', 'agenda.js', 'firebase-config.js', 'fonts.css', 'manifest.webmanifest'
 ];
 

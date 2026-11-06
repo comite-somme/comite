@@ -6,6 +6,7 @@
     { href: 'comite.html',         label: 'Le Comité',       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>' },
     { href: 'clubs.html',          label: 'Les Clubs',       icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>' },
     { href: 'calendrier.html',     label: 'Calendrier',      icon: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+    { href: 'regionaux.html',      label: 'Régionaux / France', icon: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><path d="M8 2v16M16 6v16"/>' },
     { href: 'championnats.html',   label: 'Championnats',    icon: '<path d="M6 9H4a2 2 0 0 1-2-2V5h4M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M6 3h12v6a6 6 0 0 1-12 0z"/><path d="M12 15v4M8 21h8"/>' },
     { href: 'cdc.html',            label: 'Champ. des Clubs',icon: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>' },
     { href: 'classement.html',     label: 'Classements',     icon: '<path d="M18 20V10M12 20V4M6 20v-6"/>' },
