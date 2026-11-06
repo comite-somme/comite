@@ -32,6 +32,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CD80 Pétanque">
 <link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="hub.css">
 <style>
   #reg-app { font-family: 'DM Sans', sans-serif; font-size: 1rem; }
 
@@ -147,7 +148,7 @@
   <div class="reg-note">
     <p>🏆 Dates et lieux fixés par la ligue et la fédération.</p>
     <div class="reg-note-btns">
-      <a href="championnats.html">Tirages &amp; résultats →</a>
+      <a href="#hubRoot">Tirages &amp; résultats ↓</a>
       <a href="calendrier.html">← Calendrier général</a>
     </div>
   </div>
@@ -179,6 +180,9 @@
   </div>
 
 </div><!-- /page-content -->
+
+<!-- ── TIRAGES & RÉSULTATS (documents gérés dans l'admin, onglet « Régionaux / France ») ── -->
+<main class="hub" id="hubRoot" aria-live="polite"></main>
 
 <!-- ── FOOTER ── -->
 <footer id="site-footer"></footer>
@@ -329,6 +333,10 @@ $('#reg-ics').addEventListener('click', () => {
 // site-data.js remplace EVENTS par le contenu de la base (admin) puis rappelle renderCalendar()
 window.CMS_CAL = { EVENTS, renderCalendar: render };
 render();
+</script>
+<script type="module">
+import { initHub } from './hub.js';
+initHub({"col": "regionaux", "label": "Tirages et résultats", "root": "#hubRoot", "groups": [{"k": "reg", "titre": "Régionaux HdF", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}, {"k": "france", "titre": "Championnats de France", "rubriques": [{"k": "tirages", "titre": "Tirages"}, {"k": "resultats", "titre": "Résultats"}]}]});
 </script>
 <script src="nav.js"></script>
 <script type="module" src="track.js"></script>
