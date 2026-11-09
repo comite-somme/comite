@@ -142,6 +142,7 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .bd.jn-h{min-width:62px;font-size:.95rem}
 .jn-who{color:var(--bleu);text-decoration:underline;text-decoration-color:var(--or);text-underline-offset:3px}
 .jn{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 9px;border-radius:10px;letter-spacing:.2px;color:#fff;background:var(--bleu2);vertical-align:1px}
+.jd{margin:.35rem 0 0;padding:0;list-style:none;font-size:.85rem;color:var(--txt,#1a1a2e);display:grid;gap:.2rem}.jd li{padding:.2rem .55rem;background:#f6f4ee;border-left:3px solid var(--or);border-radius:4px;overflow-wrap:anywhere}.jd li.more{background:none;border:0;color:var(--mut);font-style:italic;padding-left:0}
 .jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
@@ -478,13 +479,45 @@ const profileOf = u => USERS[(u.email || '').toLowerCase()] || { nom: '', import
 const objetDe = (C, d) => C === 'membres' ? ({ arbitre: 'Arbitre', educateur: 'Éducateur / Initiateur' }[d?.categorie] || 'Membre du comité') : (KIND[C]?.[0] || C);
 const labelDe = (C, d) => { try { return KIND[C]?.[1](d) || 'Sans titre'; } catch { return 'Sans titre'; } };
 const shortLab = l => { const t = String(l).replace(/\s*\(.*$/, '').trim(); return t.length > 45 ? t.slice(0, 44) + '…' : t; };
-/* Liste des champs qui ont changé entre l'ancienne et la nouvelle version */
-const diff = (S, a, b) => S.f.filter(f => f[0] !== 'h' && (f[2] === 'xlsx' ? JSON.stringify(a.feuilles || []) !== JSON.stringify(b.feuilles || []) : String(a[f[0]] ?? '') !== String(b[f[0]] ?? '')))
-  .map(f => f[2] === 'xlsx' ? 'Tableau Excel' : shortLab(f[1])).join(', ');
+/* Détail des changements : une ligne par champ modifié, « Champ : avant → après » */
+const clip = (v, n = 60) => { const t = String(v ?? '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+const q = v => { const t = clip(v); return t ? '« ' + t + ' »' : '(vide)'; };
+function chg(nom, a, b) {
+  a = String(a ?? '').trim(); b = String(b ?? '').trim();
+  if (a === b) return '';
+  if (a.length > 70 || b.length > 70) {   // long texte : on montre seulement ce qui a changé
+    let p = 0; while (p < a.length && p < b.length && a[p] === b[p]) p++;
+    let e = 0; while (e < a.length - p && e < b.length - p && a[a.length - 1 - e] === b[b.length - 1 - e]) e++;
+    const x = a.slice(p, a.length - e), y = b.slice(p, b.length - e);
+    return nom + ' : ' + (x && y ? `« ${clip(x, 50)} » remplacé par « ${clip(y, 50)} »` : y ? `ajout de « ${clip(y, 60)} »` : `retrait de « ${clip(x, 60)} »`);
+  }
+  return nom + ' : ' + q(a) + ' → ' + q(b);
+}
+const nbF = a => (a || []).length;
+const diff = (S, a, b) => S.f.filter(f => f[0] !== 'h').map(f => {
+  if (f[2] === 'xlsx') { const x = a.feuilles || [], y = b.feuilles || []; return JSON.stringify(x) === JSON.stringify(y) ? '' : 'Tableau Excel : ' + (!y.length ? 'fichier retiré' : !x.length ? `fichier ajouté (${y.length} feuille${y.length > 1 ? 's' : ''})` : `fichier remplacé (${x.length} → ${y.length} feuille${y.length > 1 ? 's' : ''})`); }
+  return chg(shortLab(f[1]), a[f[0]], b[f[0]]);
+}).filter(Boolean).join('\n');
+/* Même principe pour un classement (colonnes, lignes, cellules) */
+function diffCl(a, b) {
+  const L = [chg('Nom', a.nom, b.nom), chg('Date de mise à jour', a.majLe, b.majLe), chg('Position', a.ordre, b.ordre)];
+  const ca = a.colonnes, cb = b.colonnes;
+  if (ca.length === cb.length) ca.forEach((c, i) => L.push(chg('Colonne ' + (i + 1), c, cb[i])));
+  else L.push(`Colonnes : ${ca.length} → ${cb.length} (${cb.map(c => clip(c, 20)).join(', ')})`);
+  const la = a.lignes, lb = b.lignes;
+  if (la.length !== lb.length) L.push(`Lignes : ${la.length} → ${lb.length}`);
+  let n = 0, shown = 0;
+  for (let i = 0; i < Math.min(la.length, lb.length); i++) for (let j = 0; j < cb.length; j++) {
+    const x = String(la[i].v[j] ?? ''), y = String(lb[i].v[j] ?? '');
+    if (ca.length === cb.length && x !== y) { n++; if (shown < 6) { shown++; L.push(`Ligne ${i + 1} (${clip(lb[i].v[1] || lb[i].v[0], 25) || '—'}), ${clip(cb[j], 20)} : ${q(x)} → ${q(y)}`); } }
+  }
+  if (n > shown) L.push(`… et ${n - shown} autre${n - shown > 1 ? 's' : ''} cellule${n - shown > 1 ? 's' : ''} modifiée${n - shown > 1 ? 's' : ''}`);
+  return L.filter(Boolean).join('\n');
+}
 async function logAct(action, objet, cible, detail = '') {
   try {
     const email = (auth.currentUser?.email || '').toLowerCase();
-    await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 500) });
+    await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 1500) });
   } catch (er) { console.warn('Journal non enregistré :', er.message); if (!window._jwarn) { window._jwarn = 1; try { toast('Action faite, mais NON notée dans le journal : vérifie les règles Firebase (collection « journal »).', 1); } catch {} } }
 }
 onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) { me = profileOf(u); start(); } else me = { nom: '', import: false }; });
@@ -690,7 +723,7 @@ async function viewClass() {
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, c = l.find(i => i._id === id);
     if (b.dataset.e) openEd(c); else if (await ask('Mettre à la corbeille ?', `« ${c.nom} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash('classements', id, c); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
-function openEd(c) { cur = { nom: '', majLe: '', ordre: 1, colonnes: ['Rang', 'Nom', 'Club', 'Points'], lignes: [], ...c }; drawEd(); window.scrollTo(0, 0); }
+function openEd(c) { cur = { nom: '', majLe: '', ordre: 1, colonnes: ['Rang', 'Nom', 'Club', 'Points'], lignes: [], ...c }; cur.orig = JSON.parse(JSON.stringify({ nom: cur.nom, majLe: cur.majLe, ordre: cur.ordre, colonnes: cur.colonnes, lignes: cur.lignes })); drawEd(); window.scrollTo(0, 0); }
 function sync() { if (!$('#cn')) return; cur.nom = $('#cn').value; cur.majLe = $('#cm').value; cur.ordre = Number($('#co').value) || 1;
   cur.colonnes = [...document.querySelectorAll('.th')].map(i => i.value); cur.lignes = [...document.querySelectorAll('#tb tr')].map(tr => ({ v: [...tr.querySelectorAll('.td')].map(i => i.value) })); }
 function drawEd() {
@@ -723,7 +756,7 @@ function paste(replace) {
 async function saveCl() {
   sync(); if (!cur.nom.trim()) return toast('Donne un nom au classement.', 1);
   const d = { nom: cur.nom.trim(), majLe: cur.majLe.trim(), ordre: cur.ordre, colonnes: cur.colonnes.map(c => c.trim()), lignes: cur.lignes.filter(r => r.v.some(x => x.trim())).map(r => ({ v: r.v.map(x => x.trim()) })) };
-  try { const neuf = !cur._id; neuf ? await addDoc(collection(db, 'classements'), d) : await setDoc(doc(db, 'classements', cur._id), d); await logAct(neuf ? 'ajout' : 'modif', 'Classement', d.nom, `${d.lignes.length} lignes · ${d.colonnes.length} colonnes`); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
+  try { const neuf = !cur._id; neuf ? await addDoc(collection(db, 'classements'), d) : await setDoc(doc(db, 'classements', cur._id), d); await logAct(neuf ? 'ajout' : 'modif', 'Classement', d.nom, neuf ? `${d.lignes.length} lignes · ${d.colonnes.length} colonnes` : diffCl(cur.orig || d, d)); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
 }
 
 
@@ -741,11 +774,21 @@ const DEFAULT_PRIVACY = [
     texte: "Vous pouvez demander l'accès à vos données, leur rectification, leur effacement, la limitation de leur traitement, ou vous y opposer. Quand une donnée est publiée avec votre accord, vous pouvez le retirer à tout moment : elle sera retirée du site rapidement. Écrivez à l'adresse indiquée plus haut ; nous répondons dans un délai d'un mois.\n\nSi vous estimez que vos droits ne sont pas respectés, vous pouvez saisir la CNIL : [www.cnil.fr](https://www.cnil.fr), 3 Place de Fontenoy, TSA 80715, 75334 Paris Cedex 07." }
 ];
 let P;
+function diffPriv(a, b) {
+  const L = [chg('Date de mise à jour', a.majLe, b.majLe)], A = a.sections || [], B = b.sections || [];
+  const ta = new Set(A.map(x => x.titre)), tb = new Set(B.map(x => x.titre));
+  A.filter(x => !tb.has(x.titre)).forEach(x => { const m = B.find(y => !ta.has(y.titre) && y.texte === x.texte); L.push(m ? `Section renommée : ${q(x.titre)} → ${q(m.titre)}` : `Section supprimée : ${q(x.titre)}`); });
+  B.filter(x => !ta.has(x.titre) && !A.some(y => !tb.has(y.titre) && y.texte === x.texte)).forEach(x => L.push(`Section ajoutée : ${q(x.titre)}`));
+  B.forEach(x => { const o = A.find(y => y.titre === x.titre); if (o) L.push(chg('Section ' + q(x.titre) + ' — texte', o.texte, x.texte)); });
+  const ordA = A.filter(x => tb.has(x.titre)).map(x => x.titre).join('|'), ordB = B.filter(x => ta.has(x.titre)).map(x => x.titre).join('|');
+  if (ordA !== ordB) L.push('Ordre des sections modifié');
+  return L.filter(Boolean).join('\n') || 'Aucun texte modifié';
+}
 function syncP() { if (!$('#pmaj')) return; P.majLe = $('#pmaj').value; P.sections = [...document.querySelectorAll('.psec')].map(c => ({ titre: c.querySelector('.pt').value, texte: c.querySelector('.px').value })); }
 async function viewPrivacy() {
   const d = (await getDoc(doc(db, 'settings', 'confidentialite'))).data();
   const saved = !!(d && d.sections && d.sections.length);
-  P = { saved, majLe: (d && d.majLe) || today, sections: (saved ? d.sections : DEFAULT_PRIVACY).map(s => ({ titre: s.titre || '', texte: s.texte || '' })) };
+  P = { saved, majLe: (d && d.majLe) || today, sections: (saved ? d.sections : DEFAULT_PRIVACY).map(s => ({ titre: s.titre || '', texte: s.texte || '' })) }; P.orig = JSON.parse(JSON.stringify({ majLe: P.majLe, sections: P.sections }));
   drawPrivacy();
 }
 function drawPrivacy() {
@@ -761,7 +804,7 @@ function drawPrivacy() {
   $('#main').onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'psv') return busy(b, async () => { syncP(); const sec = P.sections.map(s => ({ titre: s.titre.trim(), texte: s.texte.trim() })).filter(s => s.titre || s.texte);
       if (!sec.length) return toast('Ajoute au moins une section.', 1);
-      try { await setDoc(doc(db, 'settings', 'confidentialite'), { majLe: P.majLe, sections: sec }); await logAct('modif', 'Page Confidentialité', 'Textes de la page', `${sec.length} sections`); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
+      try { await setDoc(doc(db, 'settings', 'confidentialite'), { majLe: P.majLe, sections: sec }); await logAct('modif', 'Page Confidentialité', 'Textes de la page', diffPriv(P.orig, { majLe: P.majLe, sections: sec })); P.orig = JSON.parse(JSON.stringify({ majLe: P.majLe, sections: sec })); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
     const a = b.dataset.pa; if (!a) return; syncP(); const i = +b.dataset.i;
     if (a === 'add') P.sections.push({ titre: (P.sections.length + 1) + '. Nouveau titre', texte: '' });
     else if (a === 'up' && i > 0) [P.sections[i - 1], P.sections[i]] = [P.sections[i], P.sections[i - 1]];
@@ -794,7 +837,9 @@ async function badge(force) {
 /* ===== Journal d'activité ===== */
 const ACT = { ajout: 'a ajouté', modif: 'a modifié', suppr: 'a supprimé', restaure: 'a restauré', purge: 'a supprimé définitivement', import: 'a importé' };
 const ACTL = { ajout: 'Ajouts', modif: 'Modifications', suppr: 'Suppressions', restaure: 'Restaurations', purge: 'Suppressions définitives', import: 'Imports' };
-const jrow = x => `<div class="row"><div class="bd jn-h">${esc(new Date(x.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</div><div class="m"><strong><span class="jn-who">${esc(x.qui)}</span> <span class="jn jn-${esc(x.action)}">${esc(ACT[x.action] || x.action)}</span> ${esc(x.cible)}</strong><small>${esc(x.objet)}${x.detail ? ' · ' + esc(x.detail) : ''}${x.action === 'modif' && !x.detail ? ' · aucun champ modifié' : ''}${x.email ? ' · ' + esc(x.email) : ''}</small></div></div>`;
+const jrow = (x, compact) => { const L = String(x.detail || '').split('\n').filter(Boolean), multi = L.length > 1 || (x.action === 'modif' && /^.+ : .+→.+$|remplacé par|ajout de|retrait de/.test(L[0] || ''));
+  const det = !L.length ? (x.action === 'modif' ? '<small>aucun champ modifié</small>' : '') : multi ? `<ul class="jd">${(compact ? L.slice(0, 2) : L).map(l => `<li>${esc(l)}</li>`).join('')}${compact && L.length > 2 ? `<li class="more">+ ${L.length - 2} autre${L.length - 2 > 1 ? 's' : ''} changement${L.length - 2 > 1 ? 's' : ''}</li>` : ''}</ul>` : '';
+  return `<div class="row"><div class="bd jn-h">${esc(new Date(x.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</div><div class="m"><strong><span class="jn-who">${esc(x.qui)}</span> <span class="jn jn-${esc(x.action)}">${esc(ACT[x.action] || x.action)}</span> ${esc(x.cible)}</strong><small>${esc(x.objet)}${L.length && !multi ? ' · ' + esc(L[0]) : ''}${x.email ? ' · ' + esc(x.email) : ''}</small>${det}</div></div>`; };
 async function viewJournal() {
   const snap = await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(500)));
   const l = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
@@ -808,7 +853,7 @@ async function viewJournal() {
     const v = l.filter(x => (!q || [x.qui, x.email, x.objet, x.cible, x.detail, ACT[x.action]].join(' ').toLowerCase().includes(q)) && (!w || x.qui === w) && (!a || x.action === a));
     if (!v.length) return $('#list').innerHTML = empty(l.length ? 'Aucune action ne correspond à ta recherche.' : 'Aucune action enregistrée pour le moment. Dès qu\'une personne ajoutera, modifiera ou supprimera quelque chose, ce sera noté ici.', 'clock');
     const g = {}; v.forEach(x => (g[day(x.date)] ||= []).push(x));
-    $('#list').innerHTML = Object.entries(g).map(([k, a]) => `<div class="gh">${esc(k)} <span>(${a.length})</span></div>` + a.map(jrow).join('')).join(''); };
+    $('#list').innerHTML = Object.entries(g).map(([k, a]) => `<div class="gh">${esc(k)} <span>(${a.length})</span></div>` + a.map(x => jrow(x)).join('')).join(''); };
   draw(); ['#jq', '#jw', '#ja'].forEach(s => $(s).oninput = draw);
 }
 /* Les 5 dernières actions, affichées sur l'accueil (sans bloquer l'accueil si le journal est inaccessible) */
@@ -816,7 +861,7 @@ async function homeJournal() {
   try {
     const l = (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(5)))).docs.map(d => d.data());
     if (!l.length || tab !== 'home') return;
-    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Dernières actions</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
+    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Dernières actions</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }, true).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
   } catch {}
 }
 
