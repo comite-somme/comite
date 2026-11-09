@@ -274,7 +274,7 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 <script type="module">
 import { db, auth } from './firebase-config.js';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDocs, getDoc, setDoc, addDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -599,7 +599,7 @@ async function viewList(col) {
     if (!l.length) return $('#list').innerHTML = empty('Aucun résultat. Utilise le bouton « Ajouter » pour en créer un.');
     const g = {}; l.forEach(x => (g[S.group(x)] ||= []).push(x));
     const keys = S.gorder ? S.gorder.filter(k => g[k]).concat(Object.keys(g).filter(k => !S.gorder.includes(k))) : Object.keys(g);
-    $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act"><button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
+    $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act">${S.f.some(z => z[0] === 'consentement') && x.consentement ? `<button class="btn b-ko" data-ra="${x._id}" title="Retirer la date d'accord : téléphone, email et adresse ne seront plus affichés sur le site">Retirer l'accord</button>` : ''}<button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
   pdfBind();
   draw(); ['#q', '#mo', '#ty'].forEach(s => $(s) && ($(s).oninput = draw));
   if (XL) { $('#xl').onclick = () => $('#xf').click();
@@ -611,7 +611,8 @@ async function viewList(col) {
         edit(col, { titre: f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), saison: y + '-' + (y + 1), ordre: cache[col].length + 1, feuilles: s });
         toast('Fichier lu — choisis la partie et la rubrique puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } }; }
   $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'cd80', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
-  $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, x = cache[col].find(i => i._id === id);
+  $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d],[data-ra]'); if (!b) return; const id = b.dataset.e || b.dataset.d || b.dataset.ra, x = cache[col].find(i => i._id === id);
+    if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré'); toast('Accord retiré — coordonnées masquées sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
     if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
 /* Dépôt d'un fichier Excel : chaque feuille devient un tableau (comme les classements) */

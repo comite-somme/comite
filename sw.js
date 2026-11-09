@@ -1,7 +1,7 @@
 /* Service worker — Comité de la Somme (site + admin)
    Mises à jour automatiques : les fichiers du site sont toujours relus sur le réseau en priorité.
    Ce fichier n'a JAMAIS besoin d'être modifié lors d'une mise à jour du site. */
-const VERSION = 'v3'; /* v3 : notifications push + données hors ligne */
+const VERSION = 'v4'; /* v4 : menu sans Régionaux ; v3 : notifications push + données hors ligne */
 const SHELL = 'cd80-shell-' + VERSION;
 const RUNTIME = 'cd80-runtime-' + VERSION;
 
