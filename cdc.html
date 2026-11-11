@@ -174,6 +174,8 @@
   let active = (ONGLETS.find(o => o.k === location.hash.slice(1)) || ONGLETS[0]).k;
   /* PDF réellement déposés (voir DIR) — AJOUTE ici le nom de chaque nouveau fichier (tirage ou résultats) pour activer son bouton */
   const DISPO = new Set([
+    'cnc-1a-resultats.pdf', 'cncf-1a-resultats.pdf', 'cncf-2a-resultats.pdf', 'crc-1a-resultats.pdf', 'crc-2a-resultats.pdf', 'crcf-1a-resultats.pdf', 'crcf-2a-resultats.pdf',
+    'crc-veterans-resultats.pdf', 'crc-jeu-provencal-resultats.pdf',
     'cdc-d1-resultats.pdf', 'cdc-d2-resultats.pdf', 'cdc-d3-resultats.pdf', 'cdc-d4-resultats.pdf',
     'cdcf-resultats.pdf', 'cdc-veteran-resultats.pdf', 'cdc-jeu-provencal-resultats.pdf'
   ].map(f => DIR + f));
