@@ -137,15 +137,17 @@
 
   /* ══════════ CONTENU DE LA PAGE ══════════
      Chaque championnat a DEUX PDF : le tirage et les résultats.
-     Dépose les fichiers dans le dossier « cdc/ » du site avec ces noms :
-         cdc/<code>-tirage.pdf      (ex. cdc/cdc-d1-tirage.pdf)
-         cdc/<code>-resultats.pdf   (ex. cdc/cdc-d1-resultats.pdf)
-     Tant qu'un PDF n'existe pas, son bouton reste grisé « bientôt ».
+     Dépose les fichiers à la racine du site (voir DIR plus bas) avec ces noms :
+         <code>-tirage.pdf      (ex. cdc-d1-tirage.pdf)
+         <code>-resultats.pdf   (ex. cdc-d1-resultats.pdf)
+     Un bouton est actif uniquement si son fichier est listé dans DISPO (plus bas) ; sinon il reste grisé « bientôt ».
      Pour remplacer un PDF : même nom de fichier. */
-  const GENERAL = { titre: 'Calendrier général 2026', texte: 'CNC · CRC · CDC — toutes les journées de la saison', lien: { t: 'Télécharger (PDF)', u: 'cdc/calendrier-general.pdf' } };
+  /* Dossier des PDF : '' = à la racine du dépôt (à côté de cdc.html) ; mets 'cdc/' si tu les ranges dans un dossier cdc */
+  const DIR = '';
+  const GENERAL = { titre: 'Calendrier général 2026', texte: 'CNC · CRC · CDC — toutes les journées de la saison', lien: { t: 'Télécharger (PDF)', u: DIR + 'calendrier-general.pdf' } };
 
   /* t = nom affiché · f = code du fichier (sans extension) */
-  const P = (t, f) => ({ t, tirage: 'cdc/' + f + '-tirage.pdf', res: 'cdc/' + f + '-resultats.pdf' });
+  const P = (t, f) => ({ t, tirage: DIR + f + '-tirage.pdf', res: DIR + f + '-resultats.pdf' });
   const ONGLETS = [
     { k: 'openfem',   titre: 'Open Féminin', sous: [P('CNCF 1A', 'cncf-1a'), P('CNCF 2A', 'cncf-2a'), P('CRCF 1A', 'crcf-1a'), P('CRCF 2A', 'crcf-2a'), P('CDCF', 'cdcf')] },
     { k: 'open',      titre: 'Open', sous: [P('CNC 1A', 'cnc-1a'), P('CRC 1A', 'crc-1a'), P('CRC 2A', 'crc-2a'), P('CDC D1', 'cdc-d1'), P('CDC D2', 'cdc-d2'), P('CDC D3', 'cdc-d3'), P('CDC D4', 'cdc-d4')] },
@@ -171,7 +173,12 @@
   const link = l => `<a class="cdc-link" href="${esc(safe(l.u))}" target="_blank" rel="noopener">${FILE}<span class="cdc-l-t">${esc(l.t)}</span>${l.d ? `<span class="cdc-l-d">${esc(l.d)}</span>` : ''}</a>`;
 
   let active = (ONGLETS.find(o => o.k === location.hash.slice(1)) || ONGLETS[0]).k;
-  const missing = new Set(); /* PDF introuvables, grisés */
+  /* PDF réellement déposés (voir DIR) — AJOUTE ici le nom de chaque nouveau fichier (tirage ou résultats) pour activer son bouton */
+  const DISPO = new Set([
+    'cdc-d1-resultats.pdf', 'cdc-d2-resultats.pdf', 'cdc-d3-resultats.pdf', 'cdc-d4-resultats.pdf',
+    'cdcf-resultats.pdf', 'cdc-veteran-resultats.pdf', 'cdc-jeu-provencal-resultats.pdf'
+  ].map(f => DIR + f));
+  const missing = { has: u => !DISPO.has(u) }; /* grisé = pas dans la liste ci-dessus */
 
   /* Un bouton (Tirage ou Résultats) : lien actif si le PDF existe, sinon pastille grisée */
   const pill = (label, u, name, cls) => missing.has(u)
@@ -203,13 +210,7 @@
   });
   panel();
 
-  /* Grise les boutons dont le PDF n'est pas encore déposé (uniquement en ligne) */
-  if (location.protocol.startsWith('http')) {
-    const all = [...new Set([GENERAL.lien.u, ...ONGLETS.flatMap(o => o.sous.flatMap(p => [p.tirage, p.res]))])];
-    Promise.all(all.map(u => fetch(u, { method: 'HEAD' }).then(r => { if (!r.ok) missing.add(u); }).catch(() => {}))).then(() => {
-      panel(); if (missing.has(GENERAL.lien.u)) $('#cdcGen').classList.add('off');
-    });
-  }
+  if (missing.has(GENERAL.lien.u)) $('#cdcGen').classList.add('off');
 </script>
 <script src="nav.js"></script>
 <script type="module" src="track.js"></script>
