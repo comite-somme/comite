@@ -72,18 +72,26 @@
   .cdc-act:disabled { opacity: .6; cursor: wait; }
   .cdc-hint { display: flex; align-items: center; gap: 0.5rem; margin: 0.6rem 0 0; color: rgba(255,255,255,0.88); font-size: 0.85rem; }
   .cdc-hint svg { flex-shrink: 0; width: 18px; height: 18px; stroke: var(--or-light, #e2c87a); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .cdc-pills { display: flex; flex-wrap: wrap; gap: 0.7rem; }
-  .cdc-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0.5rem 1.4rem; border-radius: 26px; border: 2px solid var(--or); background: #fffdf6; color: var(--bleu); font: 700 0.95rem 'DM Sans', sans-serif; letter-spacing: 0.4px; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.1s, box-shadow 0.2s; }
-  .cdc-pill:hover { background: var(--or); box-shadow: 0 3px 10px rgba(201,168,76,.4); transform: translateY(-1px); }
-  .cdc-pill:focus-visible { outline: 3px solid var(--bleu); outline-offset: 2px; }
-  .cdc-pill.off { border-color: var(--gris); background: #f4f5f7; color: #98a2b3; cursor: default; pointer-events: none; }
-  .cdc-pill.off::after { content: 'bientôt'; margin-left: 0.5rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
   .cdc-btn.off { opacity: .55; pointer-events: none; }
   .cdc-empty { text-align: center; color: #667085; padding: 2rem 1rem; border: 1px dashed var(--gris); border-radius: 10px; }
+
+  /* ── Championnats : une ligne par championnat, deux boutons Tirage / Résultats ── */
+  .cdc-champs { display: grid; grid-template-columns: 1fr; gap: 0.8rem; }
+  .cdc-champ { display: flex; flex-direction: column; gap: 0.6rem; border: 1.5px solid var(--gris); border-radius: 10px; padding: 0.8rem 1rem; background: #fff; }
+  .cdc-champ-n { font-family: 'Bebas Neue', sans-serif; font-weight: 400; letter-spacing: 1.5px; font-size: 1.35rem; color: var(--bleu); line-height: 1.1; }
+  .cdc-champ-b { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .cdc-pill { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 46px; padding: 0.45rem 1rem; border-radius: 26px; border: 2px solid var(--or); background: #fffdf6; color: var(--bleu); font: 700 0.9rem 'DM Sans', sans-serif; letter-spacing: 0.3px; text-decoration: none; cursor: pointer; transition: background 0.2s, transform 0.1s, box-shadow 0.2s; }
+  .cdc-pill.res { background: var(--or); }
+  .cdc-pill:hover { background: var(--or); box-shadow: 0 3px 10px rgba(201,168,76,.4); transform: translateY(-1px); }
+  .cdc-pill.res:hover { background: var(--or-light); }
+  .cdc-pill:focus-visible { outline: 3px solid var(--bleu); outline-offset: 2px; }
+  .cdc-pill.off { border-color: var(--gris); background: #f4f5f7; color: #98a2b3; cursor: default; pointer-events: none; box-shadow: none; transform: none; }
+  .cdc-pill.off::after { content: 'bientôt'; margin-left: 0.3rem; font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
   @media (min-width: 768px) {
     .cdc-hero { flex-direction: row; align-items: center; justify-content: space-between; padding: 1.5rem 2rem; }
     .cdc-grid { grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+    .cdc-champs { grid-template-columns: 1fr 1fr; }
     }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -128,16 +136,19 @@
   window.addEventListener('scroll', () => { document.getElementById('navbar').style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none'; });
 
   /* ══════════ CONTENU DE LA PAGE ══════════
-     Chaque pastille ouvre un PDF. Dépose les fichiers dans le dossier « cdc/ » du site
-     avec le nom indiqué ci-dessous (ex. cdc/cncf-1a.pdf). Tant qu'un PDF n'existe pas,
-     sa pastille reste grisée « bientôt ». Pour remplacer un PDF : même nom de fichier. */
+     Chaque championnat a DEUX PDF : le tirage et les résultats.
+     Dépose les fichiers dans le dossier « cdc/ » du site avec ces noms :
+         cdc/<code>-tirage.pdf      (ex. cdc/cdc-d1-tirage.pdf)
+         cdc/<code>-resultats.pdf   (ex. cdc/cdc-d1-resultats.pdf)
+     Tant qu'un PDF n'existe pas, son bouton reste grisé « bientôt ».
+     Pour remplacer un PDF : même nom de fichier. */
   const GENERAL = { titre: 'Calendrier général 2026', texte: 'CNC · CRC · CDC — toutes les journées de la saison', lien: { t: 'Télécharger (PDF)', u: 'cdc/calendrier-general.pdf' } };
 
-  /* t = texte de la pastille · u = PDF associé */
-  const P = (t, f) => ({ t, u: 'cdc/' + f + '.pdf' });
+  /* t = nom affiché · f = code du fichier (sans extension) */
+  const P = (t, f) => ({ t, tirage: 'cdc/' + f + '-tirage.pdf', res: 'cdc/' + f + '-resultats.pdf' });
   const ONGLETS = [
     { k: 'openfem',   titre: 'Open Féminin', sous: [P('CNCF 1A', 'cncf-1a'), P('CNCF 2A', 'cncf-2a'), P('CRCF 1A', 'crcf-1a'), P('CRCF 2A', 'crcf-2a'), P('CDCF', 'cdcf')] },
-    { k: 'open',      titre: 'Open', sous: [P('CNC 1A', 'cnc-1a'), P('CRC 1A', 'crc-1a'), P('CRC 2A', 'crc-2a'), P('CDC D1', 'cdc-d1'), P('D2', 'cdc-d2'), P('D3', 'cdc-d3'), P('D4', 'cdc-d4')] },
+    { k: 'open',      titre: 'Open', sous: [P('CNC 1A', 'cnc-1a'), P('CRC 1A', 'crc-1a'), P('CRC 2A', 'crc-2a'), P('CDC D1', 'cdc-d1'), P('CDC D2', 'cdc-d2'), P('CDC D3', 'cdc-d3'), P('CDC D4', 'cdc-d4')] },
     { k: 'veterans',  titre: 'Vétérans', sous: [P('CRC', 'crc-veterans'), P('CDC Vétéran', 'cdc-veteran')] },
     { k: 'provencal', titre: 'Jeu Provençal', sous: [P('CRC', 'crc-jeu-provencal'), P('CDC Jeu Provençal', 'cdc-jeu-provencal')] },
     { k: 'jeunes',    titre: 'CDC Jeunes', sous: [P('CDC Jeunes', 'cdc-jeunes')] }
@@ -162,12 +173,15 @@
   let active = (ONGLETS.find(o => o.k === location.hash.slice(1)) || ONGLETS[0]).k;
   const missing = new Set(); /* PDF introuvables, grisés */
 
+  /* Un bouton (Tirage ou Résultats) : lien actif si le PDF existe, sinon pastille grisée */
+  const pill = (label, u, name, cls) => missing.has(u)
+    ? `<span class="cdc-pill off" aria-disabled="true">${esc(label)}</span>`
+    : `<a class="cdc-pill ${cls}" href="${esc(safe(u))}" target="_blank" rel="noopener" aria-label="${esc(label)} ${esc(name)} — ouvrir le PDF">${esc(label)}</a>`;
+
   function panel() {
     const o = ONGLETS.find(x => x.k === active);
-    const pills = o.sous.map(p => missing.has(p.u)
-      ? `<span class="cdc-pill off" aria-disabled="true">${esc(p.t)}</span>`
-      : `<a class="cdc-pill" href="${esc(safe(p.u))}" target="_blank" rel="noopener" aria-label="${esc(p.t)} — ouvrir le PDF">${esc(p.t)}</a>`).join('');
-    $('#cdcPanel').innerHTML = `<header><h3>${esc(o.titre)}</h3><p class="cdc-hint">${HAND}<span><strong>Clique sur les cases</strong> ci-dessous pour ouvrir le PDF (tirages, résultats…) de chaque championnat.</span></p></header><div class="cdc-body"><div class="cdc-pills">${pills}</div></div>`;
+    const rows = o.sous.map(p => `<div class="cdc-champ"><div class="cdc-champ-n">${esc(p.t)}</div><div class="cdc-champ-b">${pill('Tirage', p.tirage, p.t, 'tir')}${pill('Résultats', p.res, p.t, 'res')}</div></div>`).join('');
+    $('#cdcPanel').innerHTML = `<header><h3>${esc(o.titre)}</h3><p class="cdc-hint">${HAND}<span><strong>Clique sur « Tirage » ou « Résultats »</strong> pour ouvrir le PDF de chaque championnat.</span></p></header><div class="cdc-body"><div class="cdc-champs">${rows}</div></div>`;
     $('#cdcPanel').setAttribute('aria-labelledby', 'tab-' + o.k);
     document.querySelectorAll('.cdc-tab').forEach(b => { const on = b.dataset.k === o.k; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
   }
@@ -189,9 +203,9 @@
   });
   panel();
 
-  /* Grise les pastilles dont le PDF n'est pas encore déposé (uniquement en ligne) */
+  /* Grise les boutons dont le PDF n'est pas encore déposé (uniquement en ligne) */
   if (location.protocol.startsWith('http')) {
-    const all = [...new Set([GENERAL.lien.u, ...ONGLETS.flatMap(o => o.sous.map(p => p.u))])];
+    const all = [...new Set([GENERAL.lien.u, ...ONGLETS.flatMap(o => o.sous.flatMap(p => [p.tirage, p.res]))])];
     Promise.all(all.map(u => fetch(u, { method: 'HEAD' }).then(r => { if (!r.ok) missing.add(u); }).catch(() => {}))).then(() => {
       panel(); if (missing.has(GENERAL.lien.u)) $('#cdcGen').classList.add('off');
     });
