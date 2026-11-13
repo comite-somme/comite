@@ -140,6 +140,15 @@
   .ev-i small { display: block; font-size: 0.6rem; letter-spacing: 1.2px; text-transform: uppercase; color: #8a919c; font-weight: 700; line-height: 1.2; }
   .ev-i b { display: block; font-size: 0.92rem; color: var(--bleu); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
   .ev-obs { margin-top: 0.85rem; font-size: 0.82rem; color: #5c6470; background: #faf8f1; border-left: 3px solid var(--or); padding: 0.5rem 0.8rem; border-radius: 0 6px 6px 0; }
+  /* Météo de la compétition (fenêtre) — même style que les infos Lieu / Formule */
+  .ev-meteo:not(.ok) { display: none; }
+  .ev-meteo .ev-info { margin-top: 0.85rem; }
+  .ev-i .wx { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: rgba(201,168,76,0.18); display: grid; place-items: center; font-size: 1rem; line-height: 1; }
+  .ev-i .wx-sub { font-weight: 400; font-size: 0.78rem; color: #8a919c; white-space: nowrap; }
+  .ev-meteo .ev-obs { margin-top: 0.7rem; }
+  .wx-note { margin-top: 0.85rem; }
+  .wx-load { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--gris); font-size: 0.78rem; color: #8a919c; }
+  .wx-src { margin-top: 0.5rem; font-size: 0.62rem; letter-spacing: 0.6px; color: #a3a9b3; text-align: right; }
   .cal-modal-event { background: #fff; border: 1px solid var(--gris); border-left: 4px solid var(--or); border-radius: 8px; padding: 1rem 1.1rem; }
 
   /* Légende (les pastilles restent visibles à toutes les tailles) */
@@ -798,6 +807,7 @@ const EVENTS = [
         </div>
         ${info.length?`<div class="ev-info">${info.map(i=>`<div class="ev-i">${ico(i[0])}<div><small>${i[1]}</small><b>${esc(i[2])}</b></div></div>`).join('')}</div>`:''}
         ${e.obs?`<div class="ev-obs">${esc(e.obs)}</div>`:''}
+        ${(cls==='cal-modal-event'&&e.lieu&&e.date)?`<div class="ev-meteo" data-date="${esc(e.date)}" data-lieu="${esc(e.lieu)}" data-heure="${esc(e.heure||'')}"></div>`:''}
         ${linksHtml(e)}</div>`;
     }
 let scrollToToday = true;
@@ -898,6 +908,7 @@ if(scrollToToday){ scrollToToday=false; goToToday(); }
   <script type="module" src="track.js"></script>
 <script type="module" src="push.js"></script>
 <script type="module" src="agenda.js"></script>
+<script src="meteo.js" defer></script>
 <script src="pwa.js" defer></script>
 </body>
 </html>
