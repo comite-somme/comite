@@ -226,6 +226,20 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .st-help{background:#fbf7e9;border-left:4px solid var(--or);border-radius:8px;padding:.8rem 1rem;color:#5b4a14;font-size:.86rem}
 @media(max-width:520px){.row{flex-wrap:wrap}.act{width:100%}.act .btn:not(.b-ic){flex:1}.brand small{display:none}.hr a span{display:none}.brand>div{display:none}#curname{max-width:6rem}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Tableau de bord */
+.db-todo{display:grid;gap:.5rem;margin-bottom:1.2rem}
+.db-it{display:flex;align-items:center;gap:.8rem;width:100%;text-align:left;background:#fff;border:1px solid var(--gris);border-left:5px solid var(--gris);border-radius:10px;padding:.65rem .9rem;min-height:48px;font-size:.92rem;color:var(--txt)}
+.db-it.hi{border-left-color:var(--ko)}.db-it.mid{border-left-color:var(--or)}.db-it.lo{border-left-color:var(--bleu2)}
+.db-it:hover{background:#fffdf6;border-color:var(--or)}
+.db-it b{font-family:'Bebas Neue';font-weight:400;font-size:1.6rem;color:var(--bleu);min-width:2.2ch;text-align:center;line-height:1}
+.db-it span{flex:1}.db-it em{font-style:normal;color:var(--mut);font-size:.8rem;white-space:nowrap}
+.db-ok{background:#eaf6f0;border:1px solid #bfe3d0;color:var(--ok);border-radius:10px;padding:.8rem 1rem;font-weight:700;margin-bottom:1.2rem}
+.db-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:1rem;margin-bottom:1rem}
+.db-2>.st-card{margin-bottom:0}
+.st-pg.ok .t i{background:var(--ok)}
+.db-line{width:100%;height:150px;display:block}
+.db-note{font-size:.8rem;color:var(--mut);margin:.6rem 0 0}
 </style>
 </head>
 <body>
@@ -527,8 +541,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], stats: ['stats', 'Statistiques'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], stats: ['stats', 'Statistiques'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -550,7 +564,7 @@ async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (tab === 'import' && !me.import) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -938,6 +952,111 @@ async function viewStats() {
     `<div class="st-card"><h2>Pages les plus consultées</h2><p>Sur les ${n} derniers jours.</p>${top.length ? top.map(([k, v]) => `<div class="st-pg"><span>${esc(name(k))}</span><div class="t"><i style="width:${v / top[0][1] * 100}%"></i></div><b>${v} <small>(${Math.round(v / total * 100)} %)</small></b></div>`).join('') : '<p class="ex-empty">Aucune visite sur cette période.</p>'}</div>` +
     `<div class="st-help"><b>À savoir :</b> une « vue » correspond à une page ouverte par un visiteur, comptée une seule fois par visite. Aucun cookie ni donnée personnelle n'est utilisé, donc les chiffres sont des ordres de grandeur.</div>`;
   $('#main').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { statsDays = +b.dataset.p; viewStats(); } };
+}
+
+
+/* ───────── Tableau de bord ─────────
+   Vue d'ensemble : ce qui demande une action, l'audience, les abonnés aux notifications, l'activité des administrateurs.
+   Lecture seule. Chaque bloc se débrouille seul : si une collection est inaccessible, les autres s'affichent quand même. */
+let dbDays = 30;
+async function viewDashboard() {
+  const col = async c => { try { return (await getDocs(collection(db, c))).docs.map(d => ({ ...d.data(), _id: d.id })); } catch (e) { return null; } };
+  const jr = async () => { try { return (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(500)))).docs.map(d => d.data()); } catch (e) { return null; } };
+  const [events, clubs, messages, push, actus, vues, journal] = await Promise.all([col('events'), col('clubs'), col('messages'), col('push_tokens'), col('actualites'), col('stats_vues'), jr()]);
+  const DAY = 864e5, now = Date.now(), iso = ms => new Date(ms).toISOString().slice(0, 10), plus = n => iso(now + n * DAY);
+  const n = dbDays, plural = (k, a, b) => k > 1 ? b : a;
+  const ago = t => { const d = Math.floor((now - t) / DAY); return d <= 0 ? 'aujourd\'hui' : d === 1 ? 'hier' : `il y a ${d} jours`; };
+  const trend = (cur, bef) => bef ? (() => { const d = Math.round((cur - bef) / bef * 100); return d === 0 ? 'Stable' : `<span class="${d > 0 ? 'st-up' : 'st-dn'}">${d > 0 ? '▲ +' : '▼ '}${d} %</span> vs période précédente`; })() : 'Pas de période précédente';
+  const tile = (l, v, s, cls = '') => `<div class="st-tile"><small>${l}</small><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`;
+
+  /* Audience */
+  const byDay = {};
+  (vues || []).forEach(d => { let t = 0; const p = {}; for (const [k, v] of Object.entries(d)) if (k !== '_id' && typeof v === 'number') { p[k] = v; t += v; } byDay[d._id] = { t, p }; });
+  const rng = (len, off) => Array.from({ length: len }, (_, i) => { const d = iso(now - (len - 1 - i + off) * DAY); return { d, t: byDay[d]?.t || 0, p: byDay[d]?.p || {} }; });
+  const cur = rng(n, 0), prev = rng(n, n), sum = a => a.reduce((x, y) => x + y.t, 0);
+  const w7 = sum(rng(7, 0)), w7b = sum(rng(7, 7)), todayN = byDay[iso(now)]?.t || 0, total = sum(cur);
+
+  /* À traiter */
+  const todo = [], add = (lvl, k, txt, go) => k > 0 && todo.push({ lvl, k, txt, go });
+  if (messages) {
+    add('hi', messages.filter(m => !m.lu).length, 'message(s) non lu(s) dans la boîte de contact', 'messages');
+    add('mid', messages.filter(m => m.lu && !m.traite).length, 'message(s) lu(s) mais pas encore marqué(s) « traité »', 'messages');
+  }
+  if (clubs) {
+    add('hi', clubs.filter(c => (c.adresse || c.tel || c.email) && !c.consentement).length, 'club(s) dont les coordonnées sont publiées sans accord enregistré (RGPD)', 'clubs');
+    add('lo', clubs.filter(c => !c.tel && !c.email).length, 'club(s) sans téléphone ni email', 'clubs');
+  }
+  if (events) {
+    const nx = events.filter(e => e.date >= today && e.date <= plus(30));
+    add('mid', nx.filter(e => !e.lieu || !e.heure).length, 'compétition(s) des 30 prochains jours sans lieu ou sans heure', 'events');
+    if (!events.some(e => e.date >= today && e.date <= plus(60))) todo.push({ lvl: 'hi', k: 0, txt: 'Aucune compétition au calendrier dans les 60 prochains jours', go: 'events' });
+  }
+  if (actus) {
+    add('lo', actus.filter(a => actuEtat(a) === 'brouillon').length, 'actualité(s) en brouillon, non visible(s)', 'actualites');
+    add('lo', actus.filter(a => actuEtat(a) === 'programme').length, 'actualité(s) programmée(s) pour plus tard', 'actualites');
+    if (!actus.some(a => actuEtat(a) === 'publie')) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune actualité publiée en ce moment sur la page d\'accueil', go: 'actualites' });
+  }
+  if (vues && Object.keys(byDay).length && rng(3, 0).every(x => !x.t)) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune visite enregistrée depuis 3 jours : vérifier que le comptage fonctionne', go: 'stats' });
+  const rank = { hi: 0, mid: 1, lo: 2 }; todo.sort((a, b) => rank[a.lvl] - rank[b.lvl]);
+  const allKO = [events, clubs, messages, push, actus, vues, journal].every(x => x === null);
+  const todoH = allKO ? `<div class="lerr">Impossible de lire les données : vérifie ta connexion et les règles Firestore.</div>` : todo.length ? `<div class="db-todo">${todo.map(t => `<button class="db-it ${t.lvl}" data-go="${t.go}"><b>${t.k || '!'}</b><span>${t.k ? t.txt.replace(/\(s\)/g, t.k > 1 ? 's' : '') : t.txt}</span><em>Ouvrir ›</em></button>`).join('')}</div>` : `<div class="db-ok">✓ Rien à signaler : tout est à jour.</div>`;
+
+  /* Tuiles */
+  const nextEv = (events || []).filter(e => e.date >= today).sort(SCHEMA.events.sort)[0];
+  const pushN = push ? push.length : null, push30 = push ? push.filter(x => x.creeLe > now - 30 * DAY).length : 0;
+  const unread = messages ? messages.filter(m => !m.lu).length : null;
+  const tiles = `<div class="st-tiles">${tile('Vues sur 7 jours', vues ? w7 : '—', vues ? trend(w7, w7b) : 'Statistiques inaccessibles')}${tile('Aujourd\'hui', vues ? todayN : '—', plural(todayN, 'page vue', 'pages vues'))}${tile('Appareils abonnés', pushN ?? '—', pushN === null ? 'Inaccessible' : (push30 ? `+${push30} sur 30 jours` : 'Aucun nouvel abonné sur 30 jours'))}${tile('Messages non lus', unread ?? '—', unread ? 'À lire dans « Messages »' : 'Boîte à jour')}${tile('Prochaine compétition', nextEv ? esc((nextEv.date || '').split('-').reverse().slice(0, 2).join('/')) : '—', nextEv ? esc(nextEv.titre || '') : 'Aucune à venir', 'txt')}</div>`;
+
+  /* Audience : courbe, jours, pages */
+  const mx = Math.max(...cur.map(x => x.t), 1), step = Math.ceil(n / 6), short = d => d.slice(8) + '/' + d.slice(5, 7), long = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const chart = vues ? `<div class="st-card"><h2>Fréquentation</h2><p>Pages vues par jour. Aujourd'hui est en doré.</p>
+    <div class="st-chart" role="img" aria-label="Pages vues par jour sur ${n} jours, maximum ${mx}"><span class="mx">${mx} vues</span>${cur.map(x => `<div class="st-col ${x.d === iso(now) ? 'td' : ''}" title="${esc(long(x.d))} : ${x.t}"><div class="st-bar" style="height:${x.t / mx * 100}%"></div></div>`).join('')}</div>
+    <div class="st-x" aria-hidden="true">${cur.map((x, i) => `<span>${i === n - 1 || i % step === 0 ? short(x.d) : ''}</span>`).join('')}</div></div>` : '';
+  const pages = {}; cur.forEach(x => Object.entries(x.p).forEach(([k, v]) => pages[k] = (pages[k] || 0) + v));
+  const top = Object.entries(pages).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const wd = [0, 0, 0, 0, 0, 0, 0], wdN = [0, 0, 0, 0, 0, 0, 0]; rng(90, 0).forEach(x => { const k = (new Date(x.d + 'T12:00:00').getDay() + 6) % 7; wd[k] += x.t; wdN[k]++; });
+  const wdA = wd.map((v, i) => wdN[i] ? v / wdN[i] : 0), wmx = Math.max(...wdA, 0.0001), JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const pagesCard = vues ? `<div class="db-2"><div class="st-card"><h2>Pages les plus vues</h2><p>Sur ${n} jours.</p>${top.length ? top.map(([k, v]) => `<div class="st-pg"><span>${esc(PAGES[k] || k)}</span><div class="t"><i style="width:${v / top[0][1] * 100}%"></i></div><b>${v}</b></div>`).join('') : '<p class="ex-empty">Aucune visite.</p>'}</div>
+    <div class="st-card"><h2>Jours les plus fréquentés</h2><p>Moyenne de pages vues par jour de la semaine, sur 90 jours.</p>${JOURS.map((j, i) => `<div class="st-pg"><span>${j}</span><div class="t"><i style="width:${wdA[i] / wmx * 100}%"></i></div><b>${wdA[i].toFixed(1).replace('.', ',')}</b></div>`).join('')}</div></div>` : '';
+
+  /* Abonnés notifications */
+  let pushCard = '';
+  if (push) {
+    const start = now - (n - 1) * DAY, before = push.filter(x => x.creeLe < start).length;
+    const pts = Array.from({ length: n }, (_, i) => before + push.filter(x => x.creeLe >= start && x.creeLe < start + (i + 1) * DAY).length);
+    const pm = Math.max(...pts, 1), W = 600, Hh = 140, X = i => n > 1 ? i / (n - 1) * W : W, Y = v => Hh - 6 - v / pm * (Hh - 16);
+    const line = pts.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    const dev = { 'iPhone / iPad': 0, 'Android': 0, 'Ordinateur': 0, 'Autre': 0 };
+    push.forEach(x => { const u = String(x.ua || ''); dev[/iPhone|iPad|iPod/i.test(u) ? 'iPhone / iPad' : /Android/i.test(u) ? 'Android' : /Windows|Macintosh|Linux|CrOS/i.test(u) ? 'Ordinateur' : 'Autre']++; });
+    pushCard = `<div class="db-2"><div class="st-card"><h2>Abonnés aux notifications</h2><p>Appareils abonnés sur ${n} jours : <b>${pushN}</b> au total.</p>
+      <svg class="db-line" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Évolution du nombre d'appareils abonnés, de ${pts[0]} à ${pts[n - 1]}"><polygon points="0,${Hh} ${line} ${W},${Hh}" fill="rgba(201,168,76,.22)"/><polyline points="${line}" fill="none" stroke="var(--bleu)" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>
+      <p class="db-note">Compte les appareils encore abonnés : un désabonnement fait baisser la courbe.</p></div>
+      <div class="st-card"><h2>Type d'appareil</h2><p>Sur iPhone, les notifications ne marchent que si le site est installé sur l'écran d'accueil.</p>${pushN ? Object.entries(dev).filter(([, v]) => v).map(([k, v]) => `<div class="st-pg"><span>${k}</span><div class="t"><i style="width:${v / pushN * 100}%"></i></div><b>${v} <small>(${Math.round(v / pushN * 100)} %)</small></b></div>`).join('') : '<p class="ex-empty">Aucun appareil abonné.</p>'}</div></div>`;
+  }
+
+  /* Qualité des contenus */
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0, bar = (l, a, b) => `<div class="st-pg ok"><span>${l}</span><div class="t"><i style="width:${pct(a, b)}%"></i></div><b>${pct(a, b)} % <small>(${a}/${b})</small></b></div>`;
+  const upc = (events || []).filter(e => e.date >= today);
+  const qual = (clubs || events) ? `<div class="st-card"><h2>Qualité des informations</h2><p>Part des fiches complètes.</p>${clubs ? bar('Clubs avec un contact', clubs.filter(c => c.tel || c.email).length, clubs.length) + bar('Clubs avec accord RGPD', clubs.filter(c => c.consentement).length, clubs.length) : ''}${events ? bar('Compétitions à venir complètes', upc.filter(e => e.lieu && e.heure).length, upc.length) + bar('Compétitions à venir avec lien', upc.filter(e => e.lien || e.lien2).length, upc.length) : ''}</div>` : '';
+
+  /* Activité des administrateurs */
+  let actCard = '';
+  if (journal) {
+    const who = {}, obj = {}; journal.forEach(x => { if (x.date > now - 30 * DAY) who[x.qui || 'Inconnu'] = (who[x.qui || 'Inconnu'] || 0) + 1; const o = x.objet || 'Autre'; if (!obj[o] || x.date > obj[o]) obj[o] = x.date; });
+    const wl = Object.entries(who).sort((a, b) => b[1] - a[1]).slice(0, 6), ol = Object.entries(obj).sort((a, b) => a[1] - b[1]).slice(0, 8);
+    actCard = `<div class="db-2"><div class="st-card"><h2>Qui modifie le site ?</h2><p>Actions des 30 derniers jours.</p>${wl.length ? wl.map(([k, v]) => `<div class="st-pg"><span>${esc(k)}</span><div class="t"><i style="width:${v / wl[0][1] * 100}%"></i></div><b>${v}</b></div>`).join('') : '<p class="ex-empty">Aucune action ce mois-ci.</p>'}</div>
+      <div class="st-card"><h2>Rubriques à rafraîchir</h2><p>Dernière modification, des plus anciennes aux plus récentes.</p>${ol.length ? ol.map(([k, t]) => `<div class="st-pg"><span>${esc(k)}</span><div class="t"></div><b style="${now - t > 90 * DAY ? 'color:var(--ko)' : ''}">${ago(t)}</b></div>`).join('') : '<p class="ex-empty">Journal vide.</p>'}<p class="db-note">Calculé sur les 500 dernières actions du journal.</p></div></div>`;
+  }
+
+  /* Prochaines compétitions */
+  const S = SCHEMA.events, nx5 = upc.sort(S.sort).slice(0, 5);
+  const nextH = nx5.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir le calendrier</button></div>${nx5.map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : '';
+
+  $('#main').innerHTML = head('Tableau de bord', 'Ce qui demande ton attention, et comment vit le site.') +
+    `<div class="sech"><h2>À traiter</h2></div>${todoH}${tiles}` +
+    `<div class="st-top" role="group" aria-label="Période">${[7, 30, 90].map(d => `<button data-d="${d}" class="${d === n ? 'on' : ''}">${d} derniers jours</button>`).join('')}</div>` +
+    chart + pagesCard + pushCard + `<div class="db-2">${qual}</div>` + actCard + nextH;
+  $('#main').onclick = e => { const g = e.target.closest('[data-go]'); if (g) { tab = g.dataset.go; start(); window.scrollTo(0, 0); return; } const b = e.target.closest('[data-d]'); if (b) { dbDays = +b.dataset.d; viewDashboard(); } };
 }
 
 /* Import du contenu actuel
