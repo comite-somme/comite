@@ -240,6 +240,10 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .st-pg.ok .t i{background:var(--ok)}
 .db-line{width:100%;height:150px;display:block}
 .db-note{font-size:.8rem;color:var(--mut);margin:.6rem 0 0}
+.st-col{cursor:crosshair}.st-col:hover .st-bar,.st-col.hv .st-bar{background:var(--or)}
+.db-tip{position:fixed;z-index:60;background:var(--bleu);color:#fff;border:1px solid var(--or);padding:.4rem .7rem;border-radius:8px;font-size:.82rem;font-weight:700;white-space:nowrap;pointer-events:none;box-shadow:var(--sh2)}
+.db-tip[hidden]{display:none}
+
 </style>
 </head>
 <body>
@@ -541,8 +545,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], stats: ['stats', 'Statistiques'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'stats']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -561,10 +565,11 @@ function start() {
 const head = (t, d) => `<div class="ph"><h1>${t}</h1><p>${d}</p></div>`;
 const empty = (m, i = 'inbox') => `<div class="empty">${ic(i, 32)}${m}</div>`;
 async function show() {
+  if (tab === 'stats') tab = 'dashboard';
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (tab === 'import' && !me.import) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'stats' ? await viewStats() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -918,43 +923,6 @@ async function viewTrash() {
 }
 
 const PAGES = { accueil: 'Accueil', comite: 'Le Comité', clubs: 'Les clubs', calendrier: 'Calendrier', annuaire: 'Annuaire', classement: 'Classements', archives: 'Archives', documentations: 'Documentations', cdc: 'Champ. des clubs', championnats: 'Championnats', 'coupe-de-france': 'Coupe de France', regionaux: 'Régionaux / France' };
-let statsDays = 30;
-async function viewStats() {
-  const snap = await getDocs(collection(db, 'stats_vues'));
-  const byDay = {};
-  snap.docs.forEach(d => { const p = {}; let t = 0; for (const [k, v] of Object.entries(d.data())) if (typeof v === 'number') { p[k] = v; t += v; } byDay[d.id] = { p, t }; });
-  const H = head('Statistiques', 'Combien de personnes consultent le site, et quelles pages elles regardent.');
-  if (!Object.values(byDay).some(x => x.t)) { $('#main').innerHTML = H + empty('Pas encore de visites enregistrées. Les chiffres apparaîtront dès que quelqu\'un ouvrira une page du site.', 'stats'); return; }
-
-  const n = statsDays, DAY = 864e5, iso = ms => new Date(ms).toISOString().slice(0, 10);
-  const range = (len, off) => Array.from({ length: len }, (_, i) => { const d = iso(Date.now() - (len - 1 - i + off) * DAY); return { d, t: byDay[d]?.t || 0, p: byDay[d]?.p || {} }; });
-  const curP = range(n, 0), prev = range(n, n), sum = a => a.reduce((x, y) => x + y.t, 0);
-  const total = sum(curP), before = sum(prev), todayN = byDay[iso(Date.now())]?.t || 0;
-  const long = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-  const short = d => d.slice(8) + '/' + d.slice(5, 7);
-
-  const pages = {}; curP.forEach(x => Object.entries(x.p).forEach(([k, v]) => pages[k] = (pages[k] || 0) + v));
-  const top = Object.entries(pages).sort((a, b) => b[1] - a[1]), name = k => PAGES[k] || k;
-  const best = curP.reduce((m, x) => x.t > m.t ? x : m, curP[0]);
-  const diff = before ? Math.round((total - before) / before * 100) : null;
-  const trend = diff === null ? 'Pas de période précédente à comparer' : diff === 0 ? 'Stable par rapport à la période précédente' : `<span class="${diff > 0 ? 'st-up' : 'st-dn'}">${diff > 0 ? '▲ +' : '▼ '}${diff} %</span> par rapport aux ${n} jours d'avant`;
-
-  const mx = Math.max(...curP.map(x => x.t), 1), step = Math.ceil(n / 6);
-  const lab = (x, i) => n === 7 ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][new Date(x.d + 'T12:00:00').getDay()] : (i === n - 1 || i % step === 0) ? short(x.d) : '';
-  const tile = (l, v, s, cls = '') => `<div class="st-tile"><small>${l}</small><div class="v ${cls}">${v}</div><div class="s">${s}</div></div>`;
-
-  $('#main').innerHTML = H +
-    `<div class="st-top" role="group" aria-label="Période">${[7, 30, 90].map(d => `<button data-p="${d}" class="${d === n ? 'on' : ''}">${d} derniers jours</button>`).join('')}</div>` +
-    `<div class="st-tiles">${tile('Aujourd\'hui', todayN, todayN > 1 ? 'pages vues' : 'page vue')}${tile(`Vues sur ${n} jours`, total, trend)}${tile('Moyenne par jour', (total / n).toFixed(1).replace('.', ','), total ? `Meilleur jour : ${esc(long(best.d))} (${best.t})` : 'Aucune visite sur la période')}${tile('Page la plus vue', top.length ? esc(name(top[0][0])) : '—', top.length ? `${top[0][1]} vues (${Math.round(top[0][1] / total * 100)} %)` : '', 'txt')}</div>` +
-    `<div class="st-card"><h2>Visites jour après jour</h2><p>Chaque barre est un jour. Passez la souris (ou appuyez) sur une barre pour voir la date exacte. Aujourd'hui est en doré.</p>
-      <div class="st-chart" role="img" aria-label="Graphique des vues par jour sur ${n} jours, maximum ${mx} vues en un jour"><span class="mx">${mx} vues</span>${curP.map(x => `<div class="st-col ${x.d === iso(Date.now()) ? 'td' : ''}" title="${esc(long(x.d))} : ${x.t} vue${x.t > 1 ? 's' : ''}"><div class="st-bar" style="height:${x.t / mx * 100}%"></div></div>`).join('')}</div>
-      <div class="st-x" aria-hidden="true">${curP.map((x, i) => `<span>${lab(x, i)}</span>`).join('')}</div></div>` +
-    `<div class="st-card"><h2>Pages les plus consultées</h2><p>Sur les ${n} derniers jours.</p>${top.length ? top.map(([k, v]) => `<div class="st-pg"><span>${esc(name(k))}</span><div class="t"><i style="width:${v / top[0][1] * 100}%"></i></div><b>${v} <small>(${Math.round(v / total * 100)} %)</small></b></div>`).join('') : '<p class="ex-empty">Aucune visite sur cette période.</p>'}</div>` +
-    `<div class="st-help"><b>À savoir :</b> une « vue » correspond à une page ouverte par un visiteur, comptée une seule fois par visite. Aucun cookie ni donnée personnelle n'est utilisé, donc les chiffres sont des ordres de grandeur.</div>`;
-  $('#main').onclick = e => { const b = e.target.closest('[data-p]'); if (b) { statsDays = +b.dataset.p; viewStats(); } };
-}
-
-
 /* ───────── Tableau de bord ─────────
    Vue d'ensemble : ce qui demande une action, l'audience, les abonnés aux notifications, l'activité des administrateurs.
    Lecture seule. Chaque bloc se débrouille seul : si une collection est inaccessible, les autres s'affichent quand même. */
@@ -975,6 +943,7 @@ async function viewDashboard() {
   const rng = (len, off) => Array.from({ length: len }, (_, i) => { const d = iso(now - (len - 1 - i + off) * DAY); return { d, t: byDay[d]?.t || 0, p: byDay[d]?.p || {} }; });
   const cur = rng(n, 0), prev = rng(n, n), sum = a => a.reduce((x, y) => x + y.t, 0);
   const w7 = sum(rng(7, 0)), w7b = sum(rng(7, 7)), todayN = byDay[iso(now)]?.t || 0, total = sum(cur);
+  const long = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), best = cur.reduce((m, x) => x.t > m.t ? x : m, cur[0]);
 
   /* À traiter */
   const todo = [], add = (lvl, k, txt, go) => k > 0 && todo.push({ lvl, k, txt, go });
@@ -983,7 +952,7 @@ async function viewDashboard() {
     add('mid', messages.filter(m => m.lu && !m.traite).length, 'message(s) lu(s) mais pas encore marqué(s) « traité »', 'messages');
   }
   if (clubs) {
-    add('hi', clubs.filter(c => (c.adresse || c.tel || c.email) && !c.consentement).length, 'club(s) dont les coordonnées sont publiées sans accord enregistré (RGPD)', 'clubs');
+    add('mid', clubs.filter(c => (c.adresse || c.tel || c.email) && !c.consentement).length, 'club(s) dont l\'adresse, le téléphone ou l\'email est renseigné mais masqué sur le site (accord du dirigeant non enregistré)', 'clubs');
     add('lo', clubs.filter(c => !c.tel && !c.email).length, 'club(s) sans téléphone ni email', 'clubs');
   }
   if (events) {
@@ -996,7 +965,7 @@ async function viewDashboard() {
     add('lo', actus.filter(a => actuEtat(a) === 'programme').length, 'actualité(s) programmée(s) pour plus tard', 'actualites');
     if (!actus.some(a => actuEtat(a) === 'publie')) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune actualité publiée en ce moment sur la page d\'accueil', go: 'actualites' });
   }
-  if (vues && Object.keys(byDay).length && rng(3, 0).every(x => !x.t)) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune visite enregistrée depuis 3 jours : vérifier que le comptage fonctionne', go: 'stats' });
+  if (vues && Object.keys(byDay).length && rng(3, 0).every(x => !x.t)) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune visite enregistrée depuis 3 jours : vérifier que le comptage fonctionne', go: 'dashboard' });
   const rank = { hi: 0, mid: 1, lo: 2 }; todo.sort((a, b) => rank[a.lvl] - rank[b.lvl]);
   const allKO = [events, clubs, messages, push, actus, vues, journal].every(x => x === null);
   const todoH = allKO ? `<div class="lerr">Impossible de lire les données : vérifie ta connexion et les règles Firestore.</div>` : todo.length ? `<div class="db-todo">${todo.map(t => `<button class="db-it ${t.lvl}" data-go="${t.go}"><b>${t.k || '!'}</b><span>${t.k ? t.txt.replace(/\(s\)/g, t.k > 1 ? 's' : '') : t.txt}</span><em>Ouvrir ›</em></button>`).join('')}</div>` : `<div class="db-ok">✓ Rien à signaler : tout est à jour.</div>`;
@@ -1005,18 +974,18 @@ async function viewDashboard() {
   const nextEv = (events || []).filter(e => e.date >= today).sort(SCHEMA.events.sort)[0];
   const pushN = push ? push.length : null, push30 = push ? push.filter(x => x.creeLe > now - 30 * DAY).length : 0;
   const unread = messages ? messages.filter(m => !m.lu).length : null;
-  const tiles = `<div class="st-tiles">${tile('Vues sur 7 jours', vues ? w7 : '—', vues ? trend(w7, w7b) : 'Statistiques inaccessibles')}${tile('Aujourd\'hui', vues ? todayN : '—', plural(todayN, 'page vue', 'pages vues'))}${tile('Appareils abonnés', pushN ?? '—', pushN === null ? 'Inaccessible' : (push30 ? `+${push30} sur 30 jours` : 'Aucun nouvel abonné sur 30 jours'))}${tile('Messages non lus', unread ?? '—', unread ? 'À lire dans « Messages »' : 'Boîte à jour')}${tile('Prochaine compétition', nextEv ? esc((nextEv.date || '').split('-').reverse().slice(0, 2).join('/')) : '—', nextEv ? esc(nextEv.titre || '') : 'Aucune à venir', 'txt')}</div>`;
+  const tiles = `<div class="st-tiles">${tile('Vues sur 7 jours', vues ? w7 : '—', vues ? trend(w7, w7b) : 'Statistiques inaccessibles')}${tile('Aujourd\'hui', vues ? todayN : '—', plural(todayN, 'page vue', 'pages vues'))}${tile(`Moyenne sur ${n} jours`, vues ? (total / n).toFixed(1).replace('.', ',') : '—', vues && total ? `Meilleur jour : ${esc(long(best.d))} (${best.t})` : 'Aucune visite sur la période')}${tile('Appareils abonnés', pushN ?? '—', pushN === null ? 'Inaccessible' : (push30 ? `+${push30} sur 30 jours` : 'Aucun nouvel abonné sur 30 jours'))}${tile('Messages non lus', unread ?? '—', unread ? 'À lire dans « Messages »' : 'Boîte à jour')}${tile('Prochaine compétition', nextEv ? esc((nextEv.date || '').split('-').reverse().slice(0, 2).join('/')) : '—', nextEv ? esc(nextEv.titre || '') : 'Aucune à venir', 'txt')}</div>`;
 
   /* Audience : courbe, jours, pages */
-  const mx = Math.max(...cur.map(x => x.t), 1), step = Math.ceil(n / 6), short = d => d.slice(8) + '/' + d.slice(5, 7), long = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-  const chart = vues ? `<div class="st-card"><h2>Fréquentation</h2><p>Pages vues par jour. Aujourd'hui est en doré.</p>
-    <div class="st-chart" role="img" aria-label="Pages vues par jour sur ${n} jours, maximum ${mx}"><span class="mx">${mx} vues</span>${cur.map(x => `<div class="st-col ${x.d === iso(now) ? 'td' : ''}" title="${esc(long(x.d))} : ${x.t}"><div class="st-bar" style="height:${x.t / mx * 100}%"></div></div>`).join('')}</div>
+  const mx = Math.max(...cur.map(x => x.t), 1), step = Math.ceil(n / 6), short = d => d.slice(8) + '/' + d.slice(5, 7);
+  const chart = vues && !Object.values(byDay).some(x => x.t) ? `<div class="st-card"><h2>Fréquentation</h2><p class="ex-empty">Pas encore de visites enregistrées. Les chiffres apparaîtront dès que quelqu'un ouvrira une page du site.</p></div>` : vues ? `<div class="st-card"><h2>Fréquentation</h2><p>Pages vues par jour. Aujourd'hui est en doré.</p>
+    <div class="st-chart" role="img" aria-label="Pages vues par jour sur ${n} jours, maximum ${mx}"><span class="mx">${mx} vues</span>${cur.map(x => `<div class="st-col ${x.d === iso(now) ? 'td' : ''}" data-tip="${esc(long(x.d))} : ${x.t} ${x.t > 1 ? 'vues' : 'vue'}"><div class="st-bar" style="height:${x.t / mx * 100}%"></div></div>`).join('')}</div>
     <div class="st-x" aria-hidden="true">${cur.map((x, i) => `<span>${i === n - 1 || i % step === 0 ? short(x.d) : ''}</span>`).join('')}</div></div>` : '';
   const pages = {}; cur.forEach(x => Object.entries(x.p).forEach(([k, v]) => pages[k] = (pages[k] || 0) + v));
-  const top = Object.entries(pages).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const top = Object.entries(pages).sort((a, b) => b[1] - a[1]);
   const wd = [0, 0, 0, 0, 0, 0, 0], wdN = [0, 0, 0, 0, 0, 0, 0]; rng(90, 0).forEach(x => { const k = (new Date(x.d + 'T12:00:00').getDay() + 6) % 7; wd[k] += x.t; wdN[k]++; });
   const wdA = wd.map((v, i) => wdN[i] ? v / wdN[i] : 0), wmx = Math.max(...wdA, 0.0001), JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-  const pagesCard = vues ? `<div class="db-2"><div class="st-card"><h2>Pages les plus vues</h2><p>Sur ${n} jours.</p>${top.length ? top.map(([k, v]) => `<div class="st-pg"><span>${esc(PAGES[k] || k)}</span><div class="t"><i style="width:${v / top[0][1] * 100}%"></i></div><b>${v}</b></div>`).join('') : '<p class="ex-empty">Aucune visite.</p>'}</div>
+  const pagesCard = vues ? `<div class="db-2"><div class="st-card"><h2>Pages les plus vues</h2><p>Sur ${n} jours.</p>${top.length ? top.map(([k, v]) => `<div class="st-pg"><span>${esc(PAGES[k] || k)}</span><div class="t"><i style="width:${v / top[0][1] * 100}%"></i></div><b>${v} <small>(${Math.round(v / total * 100)} %)</small></b></div>`).join('') : '<p class="ex-empty">Aucune visite.</p>'}</div>
     <div class="st-card"><h2>Jours les plus fréquentés</h2><p>Moyenne de pages vues par jour de la semaine, sur 90 jours.</p>${JOURS.map((j, i) => `<div class="st-pg"><span>${j}</span><div class="t"><i style="width:${wdA[i] / wmx * 100}%"></i></div><b>${wdA[i].toFixed(1).replace('.', ',')}</b></div>`).join('')}</div></div>` : '';
 
   /* Abonnés notifications */
@@ -1037,7 +1006,7 @@ async function viewDashboard() {
   /* Qualité des contenus */
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0, bar = (l, a, b) => `<div class="st-pg ok"><span>${l}</span><div class="t"><i style="width:${pct(a, b)}%"></i></div><b>${pct(a, b)} % <small>(${a}/${b})</small></b></div>`;
   const upc = (events || []).filter(e => e.date >= today);
-  const qual = (clubs || events) ? `<div class="st-card"><h2>Qualité des informations</h2><p>Part des fiches complètes.</p>${clubs ? bar('Clubs avec un contact', clubs.filter(c => c.tel || c.email).length, clubs.length) + bar('Clubs avec accord RGPD', clubs.filter(c => c.consentement).length, clubs.length) : ''}${events ? bar('Compétitions à venir complètes', upc.filter(e => e.lieu && e.heure).length, upc.length) + bar('Compétitions à venir avec lien', upc.filter(e => e.lien || e.lien2).length, upc.length) : ''}</div>` : '';
+  const qual = (clubs || events) ? `<div class="st-card"><h2>Qualité des informations</h2><p>Part des fiches complètes.</p>${clubs ? bar('Clubs avec un contact', clubs.filter(c => c.tel || c.email).length, clubs.length) + bar('Coordonnées du dirigeant publiables', clubs.filter(c => (c.adresse || c.tel || c.email) && c.consentement).length, clubs.filter(c => c.adresse || c.tel || c.email).length) : ''}${events ? bar('Compétitions à venir complètes', upc.filter(e => e.lieu && e.heure).length, upc.length) + bar('Compétitions à venir avec lien', upc.filter(e => e.lien || e.lien2).length, upc.length) : ''}</div>` : '';
 
   /* Activité des administrateurs */
   let actCard = '';
@@ -1052,10 +1021,21 @@ async function viewDashboard() {
   const S = SCHEMA.events, nx5 = upc.sort(S.sort).slice(0, 5);
   const nextH = nx5.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir le calendrier</button></div>${nx5.map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : '';
 
-  $('#main').innerHTML = head('Tableau de bord', 'Ce qui demande ton attention, et comment vit le site.') +
+  $('#main').innerHTML = head('Tableau de bord', 'Ce qui demande ton attention, la fréquentation du site et l\'activité du comité.') +
     `<div class="sech"><h2>À traiter</h2></div>${todoH}${tiles}` +
     `<div class="st-top" role="group" aria-label="Période">${[7, 30, 90].map(d => `<button data-d="${d}" class="${d === n ? 'on' : ''}">${d} derniers jours</button>`).join('')}</div>` +
-    chart + pagesCard + pushCard + `<div class="db-2">${qual}</div>` + actCard + nextH;
+    chart + pagesCard + pushCard + `<div class="db-2">${qual}</div>` + actCard + nextH + `<div class="st-help"><b>À savoir :</b> une « vue » correspond à une page ouverte par un visiteur, comptée une seule fois par visite. Aucun cookie ni donnée personnelle n'est utilisé, donc les chiffres sont des ordres de grandeur.</div>`;
+
+  const ch = $('#main').querySelector?.('.st-chart');
+  if (ch) {
+    let tip = document.getElementById('dbtip');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'dbtip'; tip.className = 'db-tip'; tip.hidden = true; tip.setAttribute('role', 'status'); document.body.append(tip); }
+    const hide = () => { tip.hidden = true; ch.querySelectorAll('.st-col.hv').forEach(c => c.classList.remove('hv')); };
+    const show = e => { const c = e.target.closest('.st-col'); if (!c) return hide(); ch.querySelectorAll('.st-col.hv').forEach(o => o !== c && o.classList.remove('hv')); c.classList.add('hv'); tip.textContent = c.dataset.tip; tip.hidden = false;
+      const r = c.getBoundingClientRect(), w = tip.offsetWidth, x = Math.max(6, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 6)); tip.style.left = x + 'px'; tip.style.top = Math.max(6, r.top - tip.offsetHeight - 8) + 'px'; };
+    ch.addEventListener('pointerover', show); ch.addEventListener('pointermove', show); ch.addEventListener('pointerdown', show); ch.addEventListener('pointerleave', hide);
+    window.addEventListener('scroll', hide, { passive: true, once: true });
+  }
   $('#main').onclick = e => { const g = e.target.closest('[data-go]'); if (g) { tab = g.dataset.go; start(); window.scrollTo(0, 0); return; } const b = e.target.closest('[data-d]'); if (b) { dbDays = +b.dataset.d; viewDashboard(); } };
 }
 
