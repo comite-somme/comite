@@ -999,7 +999,7 @@ async function viewDashboard() {
     push.forEach(x => { const u = String(x.ua || ''); dev[/iPhone|iPad|iPod/i.test(u) ? 'iPhone / iPad' : /Android/i.test(u) ? 'Android' : /Windows|Macintosh|Linux|CrOS/i.test(u) ? 'Ordinateur' : 'Autre']++; });
     pushCard = `<div class="db-2"><div class="st-card"><h2>Abonnés aux notifications</h2><p>Appareils abonnés sur ${n} jours : <b>${pushN}</b> au total.</p>
       <svg class="db-line" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" role="img" aria-label="Évolution du nombre d'appareils abonnés, de ${pts[0]} à ${pts[n - 1]}"><polygon points="0,${Hh} ${line} ${W},${Hh}" fill="rgba(201,168,76,.22)"/><polyline points="${line}" fill="none" stroke="var(--bleu)" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>
-      <p class="db-note">Compte les appareils encore abonnés : un désabonnement fait baisser la courbe.</p></div>
+      <p class="db-note">Compte les appareils encore abonnés : un désabonnement fait baisser la courbe.${pushN === 0 ? ' Compteur à 0 alors que des appareils ont activé les notifications ? Vérifie que les règles Firestore autorisent l\'écriture dans « push_tokens ».' : ''}</p></div>
       <div class="st-card"><h2>Type d'appareil</h2><p>Sur iPhone, les notifications ne marchent que si le site est installé sur l'écran d'accueil.</p>${pushN ? Object.entries(dev).filter(([, v]) => v).map(([k, v]) => `<div class="st-pg"><span>${k}</span><div class="t"><i style="width:${v / pushN * 100}%"></i></div><b>${v} <small>(${Math.round(v / pushN * 100)} %)</small></b></div>`).join('') : '<p class="ex-empty">Aucun appareil abonné.</p>'}</div></div>`;
   }
 
