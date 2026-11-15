@@ -17,6 +17,11 @@ async function messaging() {
     if (!('serviceWorker' in navigator && 'Notification' in window && 'PushManager' in window)) return;
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
     if (/admin(\.html)?\/?$/i.test(location.pathname)) return;
+    /* la bulle n'existe que dans l'application installée, jamais dans le navigateur */
+    const inApp = ['standalone', 'window-controls-overlay'].some(m => { try { return matchMedia('(display-mode: ' + m + ')').matches; } catch (e) { return false; } })
+      || navigator.standalone === true
+      || (() => { try { if (/[?&]source=pwa\b/.test(location.search)) sessionStorage.setItem('inPwa', '1'); return !!sessionStorage.getItem('inPwa'); } catch (e) { return false; } })();
+    if (!inApp) return;
     const s = (await getDoc(doc(db, 'settings', 'general'))).data() || {};
     const vapidKey = String(s.vapidKey || '').trim();
     if (!s.pushActif || !vapidKey) return;                 // option coupée dans l'admin : rien n'est affiché
@@ -37,7 +42,7 @@ async function messaging() {
       const t = await token(); if (!t) throw new Error('Jeton indisponible');
       ls(SINCE, String(Date.now()));
       try { await rec(t); ls(REC, String(Date.now())); } catch (e) { console.warn('Jeton non enregistré dans la base (comptage admin) :', e && (e.code || e.message)); }   // les notifications fonctionnent quand même
-      localStorage.setItem(KEY, t); ls(HIDE, String(Date.now())); flash('✅ Notifications activées'); setTimeout(place, 3600);
+      localStorage.setItem(KEY, t); flash('✅ Notifications activées');
     }
     async function disable() {
       const t = localStorage.getItem(KEY);
@@ -46,16 +51,13 @@ async function messaging() {
       localStorage.removeItem(KEY); try { localStorage.removeItem(HIDE); localStorage.removeItem(REC); localStorage.removeItem(SINCE); } catch (e) {} flash('Notifications désactivées');
     }
     b.onclick = async () => { b.disabled = true; try { await (isOn() ? disable() : enable()); } catch (e) { console.warn(e); flash('Activation impossible'); } b.disabled = false; };
-    // une fois activées : pastille cachée, elle ne revient qu'après 2 semaines (avec une croix pour la recacher)
+    // une fois activées : la bulle « désactiver » s'affiche 30 s à chaque page (croix pour la fermer)
     const x = document.createElement('span');
     x.textContent = ' ×'; x.setAttribute('aria-label', 'Masquer'); x.style.cssText = 'margin-left:.3rem;font-size:1.1rem;line-height:1';
-    x.onclick = e => { e.stopPropagation(); ls(HIDE, String(Date.now())); b.remove(); };
-    const hidden = () => isOn() && Date.now() - (parseInt(ls(HIDE) || '0', 10) || 0) < DELAY;
-    if (isOn() && !ls(HIDE)) ls(HIDE, String(Date.now()));   // déjà activées avant cette mise à jour : on démarre le délai
+    x.onclick = e => { e.stopPropagation(); b.remove(); };
     /* la bulle reste 30 secondes maximum à chaque affichage, puis disparaît (elle revient au prochain chargement de page) */
     let timer = null;
     const place = () => {
-      if (hidden()) { b.remove(); return; }
       if (!b.isConnected) { document.body.append(b); clearTimeout(timer); timer = setTimeout(() => b.remove(), 30000); }
       render();
     };

@@ -16,11 +16,11 @@
 
   var isAdmin = /admin\.html$/i.test(location.pathname);
   /* détection robuste de l'app installée : tous les modes d'affichage « application », l'iPhone, le lancement via ?source=pwa
-     (retenu pour toute la session, car les autres pages n'ont plus ce paramètre) et l'ouverture depuis une app Android */
-  var standalone = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'].some(function (m) { try { return window.matchMedia('(display-mode: ' + m + ')').matches; } catch (e) { return false; } }) || navigator.standalone === true;
+     (retenu pour toute la session, car les autres pages n'ont plus ce paramètre) */
+  var standalone = ['standalone', 'window-controls-overlay'].some(function (m) { try { return window.matchMedia('(display-mode: ' + m + ')').matches; } catch (e) { return false; } }) || navigator.standalone === true;
   try {
     if (/[?&]source=pwa\b/.test(location.search)) sessionStorage.setItem('inPwa', '1');
-    if (sessionStorage.getItem('inPwa') || /^android-app:\/\//.test(document.referrer)) standalone = true;
+    if (sessionStorage.getItem('inPwa')) standalone = true;
   } catch (e) {}
   var SHOW_MS = 30 * 1000;                                /* la bulle reste 30 secondes maximum, puis disparaît */
   var DELAY = 15 * 24 * 3600 * 1000;                      /* après un clic sur la croix : plus de bulle pendant 15 jours */
