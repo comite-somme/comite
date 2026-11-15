@@ -15,14 +15,18 @@
   }
 
   var isAdmin = /admin\.html$/i.test(location.pathname);
-  var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  var DELAY = 14 * 24 * 3600 * 1000;                      /* la pastille réapparaît après 2 semaines */
-  var K_INST = isAdmin ? 'pwaInstalledAdmin' : 'pwaInstalled', K_HIDE = isAdmin ? 'pwaHideAtAdmin' : 'pwaHideAt';
+  /* détection robuste de l'app installée : tous les modes d'affichage « application », l'iPhone, le lancement via ?source=pwa
+     (retenu pour toute la session, car les autres pages n'ont plus ce paramètre) et l'ouverture depuis une app Android */
+  var standalone = ['standalone', 'fullscreen', 'minimal-ui', 'window-controls-overlay'].some(function (m) { try { return window.matchMedia('(display-mode: ' + m + ')').matches; } catch (e) { return false; } }) || navigator.standalone === true;
+  try {
+    if (/[?&]source=pwa\b/.test(location.search)) sessionStorage.setItem('inPwa', '1');
+    if (sessionStorage.getItem('inPwa') || /^android-app:\/\//.test(document.referrer)) standalone = true;
+  } catch (e) {}
+  var SHOW_MS = 30 * 1000;                                /* la bulle reste 30 secondes maximum, puis disparaît */
+  var K_INST = isAdmin ? 'pwaInstalledAdmin' : 'pwaInstalled';
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
   if (standalone) { ls(K_INST, '1'); return; }            /* app ouverte en mode application = installée */
   if (ls(K_INST)) return;                                 /* déjà installée : on ne l'affiche plus jamais */
-  var hideAt = parseInt(ls(K_HIDE) || '0', 10);
-  if (hideAt && Date.now() - hideAt < DELAY) return;      /* fermée il y a moins de 2 semaines */
 
   var deferred = null;
   var label = isAdmin ? "Installer l'admin" : "Installer l'application";
@@ -38,7 +42,9 @@
       (onclick ? '<button type="button" id="pwaGo" style="min-height:40px;border:0;border-radius:24px;background:#c9a84c;color:#0a2342;font:700 .85rem inherit;font-family:inherit;padding:0 1rem;cursor:pointer">Installer</button>' : '') +
       '<button type="button" id="pwaX" aria-label="Fermer" style="min-width:40px;min-height:40px;border:0;background:none;color:#fff;font-size:1.4rem;cursor:pointer">&times;</button>';
     document.body.appendChild(b);
-    document.getElementById('pwaX').onclick = function () { ls(K_HIDE, String(Date.now())); b.remove(); };
+    /* disparaît seule après 30 s ; la croix la ferme tout de suite ; elle revient au prochain chargement de page */
+    setTimeout(function () { if (b.isConnected) b.remove(); }, SHOW_MS);
+    document.getElementById('pwaX').onclick = function () { b.remove(); };
     if (onclick) document.getElementById('pwaGo').onclick = onclick;
   }
 

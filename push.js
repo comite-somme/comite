@@ -52,7 +52,13 @@ async function messaging() {
     x.onclick = e => { e.stopPropagation(); ls(HIDE, String(Date.now())); b.remove(); };
     const hidden = () => isOn() && Date.now() - (parseInt(ls(HIDE) || '0', 10) || 0) < DELAY;
     if (isOn() && !ls(HIDE)) ls(HIDE, String(Date.now()));   // déjà activées avant cette mise à jour : on démarre le délai
-    const place = () => { if (hidden()) { b.remove(); return; } if (!b.isConnected) document.body.append(b); render(); };
+    /* la bulle reste 30 secondes maximum à chaque affichage, puis disparaît (elle revient au prochain chargement de page) */
+    let timer = null;
+    const place = () => {
+      if (hidden()) { b.remove(); return; }
+      if (!b.isConnected) { document.body.append(b); clearTimeout(timer); timer = setTimeout(() => b.remove(), 30000); }
+      render();
+    };
     place();
     /* Appareil déjà abonné : on (ré)enregistre le jeton s'il a changé ou s'il n'a pas été enregistré depuis plus d'un jour.
        Cela rattrape les abonnements faits avant, ou quand l'écriture avait échoué. */
