@@ -1,7 +1,28 @@
 /* Service worker — Comité de la Somme (site + admin)
    Mises à jour automatiques : les fichiers du site sont toujours relus sur le réseau en priorité.
    Ce fichier n'a JAMAIS besoin d'être modifié lors d'une mise à jour du site. */
-const VERSION = 'v4'; /* v4 : menu sans Régionaux ; v3 : notifications push + données hors ligne */
+/* Clic sur une notification : ouvre la page indiquée dans « Données personnalisées » (clé : url) de la console Firebase.
+   Ex. : url = calendrier  ·  url = actus  ·  url = clubs.html  ·  url = index.html#actus
+   Sans lien, la notification ouvre l'accueil. Ce bloc DOIT rester avant l'initialisation de Firebase ci-dessous :
+   il prend alors la main sur le comportement par défaut de Firebase. */
+self.addEventListener('notificationclick', event => {
+  event.stopImmediatePropagation();
+  event.notification.close();
+  const d = event.notification.data || {};
+  const msg = d.FCM_MSG || d;                                   /* Firebase range le message dans FCM_MSG */
+  let u = String((msg.data && msg.data.url) || (msg.fcmOptions && msg.fcmOptions.link) || d.url || '').trim();
+  if (u && !/^https?:/i.test(u) && !/[./#]/.test(u)) u = u === 'actus' ? 'index.html#actus' : u + '.html';   /* « calendrier » → calendrier.html */
+  let target;
+  try { target = new URL(u || 'index.html', self.registration.scope); if (target.origin !== self.location.origin) throw 0; }
+  catch (e) { target = new URL('index.html', self.registration.scope); }   /* lien invalide ou extérieur au site → accueil */
+  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const mine = list.find(c => c.url.startsWith(self.registration.scope));
+    if (mine) return mine.navigate(target.href).then(c => (c || mine).focus()).catch(() => clients.openWindow(target.href));
+    return clients.openWindow(target.href);
+  }));
+});
+
+const VERSION = 'v5'; /* v4 : menu sans Régionaux ; v3 : notifications push + données hors ligne */
 const SHELL = 'cd80-shell-' + VERSION;
 const RUNTIME = 'cd80-runtime-' + VERSION;
 
