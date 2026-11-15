@@ -23,10 +23,15 @@
     if (sessionStorage.getItem('inPwa') || /^android-app:\/\//.test(document.referrer)) standalone = true;
   } catch (e) {}
   var SHOW_MS = 30 * 1000;                                /* la bulle reste 30 secondes maximum, puis disparaît */
-  var K_INST = isAdmin ? 'pwaInstalledAdmin' : 'pwaInstalled';
+  var DELAY = 15 * 24 * 3600 * 1000;                      /* après un clic sur la croix : plus de bulle pendant 15 jours */
+  var K_INST = isAdmin ? 'pwaInstalledAdmin' : 'pwaInstalled', K_HIDE = isAdmin ? 'pwaHideAtAdmin' : 'pwaHideAt';
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+  var isHome = /(^|\/)(index\.html)?$/i.test(location.pathname);
   if (standalone) { ls(K_INST, '1'); return; }            /* app ouverte en mode application = installée */
   if (ls(K_INST)) return;                                 /* déjà installée : on ne l'affiche plus jamais */
+  if (!isAdmin && !isHome) return;                        /* la bulle n'apparaît que sur la page d'accueil (et sur l'admin pour l'app admin) */
+  var hideAt = parseInt(ls(K_HIDE) || '0', 10);
+  if (hideAt && Date.now() - hideAt < DELAY) return;      /* croix cliquée il y a moins de 15 jours */
 
   var deferred = null;
   var label = isAdmin ? "Installer l'admin" : "Installer l'application";
@@ -42,9 +47,9 @@
       (onclick ? '<button type="button" id="pwaGo" style="min-height:40px;border:0;border-radius:24px;background:#c9a84c;color:#0a2342;font:700 .85rem inherit;font-family:inherit;padding:0 1rem;cursor:pointer">Installer</button>' : '') +
       '<button type="button" id="pwaX" aria-label="Fermer" style="min-width:40px;min-height:40px;border:0;background:none;color:#fff;font-size:1.4rem;cursor:pointer">&times;</button>';
     document.body.appendChild(b);
-    /* disparaît seule après 30 s ; la croix la ferme tout de suite ; elle revient au prochain chargement de page */
+    /* disparaît seule après 30 s ; la croix la cache pour 15 jours sur tout le site */
     setTimeout(function () { if (b.isConnected) b.remove(); }, SHOW_MS);
-    document.getElementById('pwaX').onclick = function () { b.remove(); };
+    document.getElementById('pwaX').onclick = function () { ls(K_HIDE, String(Date.now())); b.remove(); };
     if (onclick) document.getElementById('pwaGo').onclick = onclick;
   }
 
