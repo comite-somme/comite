@@ -2,8 +2,8 @@
    Source : Open-Meteo (gratuit, sans clé). Prévisions disponibles jusqu'à 15 jours avant la date.
    Aucune donnée personnelle envoyée : seulement le nom de la commune et la date. */
 (function () {
-  var box = document.getElementById('cal-modal-content');
-  if (!box) return;
+  var boxes = ['cal-modal-content', 'cal-list'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  if (!boxes.length) return;
 
   var GEO = 'https://geocoding-api.open-meteo.com/v1/search';
   var API = 'https://api.open-meteo.com/v1/forecast';
@@ -30,6 +30,7 @@
     rain: '<path d="M12 2.7l5.66 5.66a8 8 0 1 1-11.31 0z"/>',
     wind: '<path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>'
   };
+  var chip = function (n) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ICO[n] + '</svg>'; };
   var ico = function (n) { return '<svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">' + ICO[n] + '</svg>'; };
 
   /* Noms de lieux du calendrier → noms de communes (« Feuquières (Boulodrome) », « ASPTT Amiens », « Roye et Friville »…) */
@@ -102,6 +103,15 @@
     return '';
   }
 
+  function theme(code) {
+    if (code >= 95) return 'wx-storm';
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'wx-rain';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'wx-snow';
+    if (code === 45 || code === 48) return 'wx-fog';
+    if (code === 2 || code === 3) return 'wx-cloud';
+    return 'wx-sun';
+  }
+
   function render(el, lieuNom, e) {
     var d = e.daily, h = e.hourly, hr = startHour(el.dataset.heure);
     var i = hr != null && h && h.time && h.time.length > hr ? hr : null;
@@ -112,20 +122,28 @@
     var w = WMO[code] || ['Variable', '🌡️'];
     var quand = i != null ? 'à ' + pad(i) + 'h' : 'dans la journée';
     var tip = conseil(t, pluie || 0, vent, code);
+    var mn = Math.round(d.temperature_2m_min[0]), mx = Math.round(d.temperature_2m_max[0]);
+    var pos = mx > mn ? Math.max(0, Math.min(100, (t - mn) / (mx - mn) * 100)) : 50;
     el.innerHTML =
-      '<div class="ev-info">' +
-        '<div class="ev-i"><span class="wx" aria-hidden="true">' + w[1] + '</span><div><small>Météo · ' + esc(quand) + '</small><b>' + esc(w[0]) + '</b></div></div>' +
-        '<div class="ev-i">' + ico('temp') + '<div><small>Température</small><b>' + t + '° <span class="wx-sub">(' + Math.round(d.temperature_2m_min[0]) + '° / ' + Math.round(d.temperature_2m_max[0]) + '°)</span></b></div></div>' +
-        '<div class="ev-i">' + ico('rain') + '<div><small>Risque de pluie</small><b>' + (pluie == null ? '—' : pluie + ' %') + '</b></div></div>' +
-        '<div class="ev-i">' + ico('wind') + '<div><small>Vent</small><b>' + vent + ' km/h</b></div></div>' +
-      '</div>' +
-      (tip ? '<div class="ev-obs">' + esc(tip) + '</div>' : '') +
-      '<div class="wx-src">Prévisions pour ' + esc(lieuNom) + ' · Open-Meteo</div>';
+      '<div class="wx-card ' + theme(code) + '">' +
+        '<div class="wx-top">' +
+          '<span class="wx-emo" aria-hidden="true">' + w[1] + '</span>' +
+          '<div class="wx-main"><small>Météo ' + esc(quand) + ' · ' + esc(lieuNom) + '</small><b>' + esc(w[0]) + '</b></div>' +
+          '<div class="wx-temp">' + t + '°</div>' +
+        '</div>' +
+        '<div class="wx-range"><span>' + mn + '°</span><i style="--pos:' + pos + '%"></i><span>' + mx + '°</span></div>' +
+        '<div class="wx-chips">' +
+          '<span class="wx-chip">' + chip('rain') + 'Pluie ' + (pluie == null ? '—' : pluie + ' %') + '</span>' +
+          '<span class="wx-chip">' + chip('wind') + 'Vent ' + vent + ' km/h</span>' +
+        '</div>' +
+        (tip ? '<div class="wx-tip">' + esc(tip) + '</div>' : '') +
+        '<div class="wx-src">Open-Meteo</div>' +
+      '</div>';
     el.classList.add('ok');
   }
 
   function note(el, txt) {
-    el.innerHTML = '<div class="ev-obs wx-note">🌦️ ' + esc(txt) + '</div>';
+    el.innerHTML = '<div class="wx-note">🌦️ ' + esc(txt) + '</div>';
     el.classList.add('ok');
   }
 
@@ -135,7 +153,7 @@
     var date = el.dataset.date, lieu = el.dataset.lieu;
     var n = daysFromToday(date);
     if (n < 0) return;                     /* compétition passée : rien à afficher */
-    if (n > HORIZON) { note(el, 'Prévisions météo disponibles à partir de 15 jours avant la compétition.'); return; }
+    if (n > HORIZON) { if (el.dataset.ctx === 'list') return; note(el, 'Prévisions météo disponibles à partir de 15 jours avant la compétition.'); return; }
     el.innerHTML = '<div class="wx-load">Chargement de la météo…</div>';
     el.classList.add('ok');
     locate(lieu).then(function (pos) {
@@ -147,7 +165,7 @@
     }).catch(function () { el.innerHTML = ''; el.classList.remove('ok'); }); /* hors ligne / service indisponible : on n'affiche rien */
   }
 
-  function scan() { box.querySelectorAll('.ev-meteo:not([data-done])').forEach(fill); }
-  new MutationObserver(scan).observe(box, { childList: true, subtree: true });
+  function scan() { boxes.forEach(function (b) { b.querySelectorAll('.ev-meteo:not([data-done])').forEach(fill); }); }
+  boxes.forEach(function (b) { new MutationObserver(scan).observe(b, { childList: true, subtree: true }); });
   scan();
 })();

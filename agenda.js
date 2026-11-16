@@ -51,20 +51,22 @@ if (typeof document !== 'undefined' && document.querySelector) {
     };
   }
 
-  const box = $('#cal-modal-content');
-  if (box) {
-    const fill = () => {
-      const [d, m, y] = ($('#cal-modal-date').textContent || '').trim().split(' ');
-      const ds = `${y}-${pad(MOIS.indexOf((m || '').toLowerCase()) + 1)}-${pad(d || 0)}`;
-      box.querySelectorAll('.cal-modal-event').forEach(el => {
-        if (el.querySelector('.ics-btn')) return;
-        const t = (el.querySelector('.cal-modal-event-title') || {}).textContent;
-        const e = evs().find(x => x.date === ds && x.titre === (t || '').trim());
-        if (!e) return;
-        el.insertAdjacentHTML('beforeend', '<button type="button" class="ics-btn" style="margin-top:.7rem;background:transparent;color:#0a2342;border:1.5px solid #c9a84c;font:700 .8rem inherit;font-family:inherit;padding:.5rem .9rem;border-radius:6px;cursor:pointer">📅 Ajouter à mon agenda</button>');
-        el.querySelector('.ics-btn').onclick = () => download([e], (slug(e.titre) || 'competition') + '.ics');
-      });
-    };
-    new MutationObserver(fill).observe(box, { childList: true });
-  }
+  const addButtons = root => {
+    root.querySelectorAll('[data-ev-date]').forEach(el => {
+      if (el.querySelector('.ics-btn')) return;
+      const e = evs().find(x => x.date === el.dataset.evDate && x.titre === el.dataset.evTitre);
+      if (!e) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ics-btn'; b.textContent = '📅 Ajouter à mon agenda';
+      b.onclick = () => download([e], (slug(e.titre) || 'competition') + '.ics');
+      const links = el.querySelector('.cal-links');
+      links ? el.insertBefore(b, links) : el.append(b);
+    });
+  };
+  ['cal-modal-content', 'cal-list'].forEach(id => {
+    const box = document.getElementById(id);
+    if (!box) return;
+    new MutationObserver(() => addButtons(box)).observe(box, { childList: true, subtree: true });
+    addButtons(box);
+  });
 }
