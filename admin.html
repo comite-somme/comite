@@ -332,7 +332,10 @@ const ICON = {
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   edu: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5M22 10v6"/>',
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
-  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  note: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  circle: '<circle cx="12" cy="12" r="10"/>',
+  pinned: '<path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3z"/>'
 };
 const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 
@@ -545,8 +548,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -569,7 +572,7 @@ async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (tab === 'import' && !me.import) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -853,6 +856,57 @@ async function badge(force) {
     if (!n) return;
     document.querySelector('#tabs [data-t=messages]')?.insertAdjacentHTML('beforeend', `<span class="nb" aria-label="${n} non lus">${n}</span>`);
     burger.insertAdjacentHTML('beforeend', `<span class="nb dot" aria-label="${n} messages non lus"></span>`); } catch {}
+}
+
+/* ===== Bloc-notes partagé =====
+   Notes internes visibles par tous les administrateurs (collection « notes »), jamais affichées sur le site. */
+let notesFilter = 'todo';
+async function viewNotes() {
+  const l = (await getDocs(collection(db, 'notes'))).docs.map(d => ({ ...d.data(), _id: d.id }));
+  let editId = null;
+  const who = () => me.nom || (auth.currentUser?.email || '').toLowerCase() || 'Inconnu';
+  $('#main').innerHTML = head('Bloc-notes', 'Notes partagées entre tous les administrateurs : rappels, choses à faire, informations utiles. Elles ne sont jamais visibles sur le site.') +
+    `<div class="card"><div class="f" style="margin-bottom:.7rem"><label for="nt">Nouvelle note</label><textarea id="nt" rows="3" placeholder="Ex : relancer le club de Roye pour la licence… (Ctrl + Entrée pour ajouter)"></textarea></div>
+    <button class="btn b-or" data-a="add">${ic('plus')}Ajouter la note</button></div>
+    <div class="st-top" role="group" aria-label="Filtrer les notes"><button data-f="todo"></button><button data-f="done"></button><button data-f="all"></button><button data-a="refresh" title="Voir les notes ajoutées par les autres">${ic('undo', 16)} Actualiser</button></div><div id="list"></div>`;
+  const draw = () => {
+    const cnt = { todo: l.filter(n => !n.fait).length, done: l.filter(n => n.fait).length, all: l.length };
+    document.querySelectorAll('.st-top [data-f]').forEach(b => { b.classList.toggle('on', b.dataset.f === notesFilter); b.textContent = ({ todo: 'À faire', done: 'Faites', all: 'Toutes' })[b.dataset.f] + ' (' + cnt[b.dataset.f] + ')'; });
+    const v = l.filter(n => notesFilter === 'all' || (notesFilter === 'done' ? n.fait : !n.fait)).sort((a, b) => (b.epingle ? 1 : 0) - (a.epingle ? 1 : 0) || (b.creeLe || 0) - (a.creeLe || 0));
+    $('#list').innerHTML = v.length ? v.map(n => n._id === editId
+      ? `<div class="card"><textarea id="ne" rows="4" aria-label="Modifier la note">${esc(n.texte)}</textarea><div class="flex" style="margin-top:.7rem"><button class="btn b-or" data-a="save" data-id="${n._id}">${ic('save', 16)}Enregistrer</button><button class="btn b-ln" data-a="cancel">Annuler</button></div></div>`
+      : `<div class="row ${n.fait ? 'past' : ''}"><button class="btn b-ln b-ic" data-a="fait" data-id="${n._id}" aria-pressed="${!!n.fait}" aria-label="${n.fait ? 'Marquer à faire' : 'Marquer comme faite'}" title="${n.fait ? 'Marquer à faire' : 'Marquer comme faite'}">${ic(n.fait ? 'ok' : 'circle', 20)}</button>
+        <div class="m"><strong style="white-space:pre-wrap;font-weight:600;${n.fait ? 'text-decoration:line-through' : ''}">${esc(n.texte)}</strong>
+        <small>${n.epingle ? '📌 ' : ''}${esc(n.auteur || 'Inconnu')} · ${fdate(n.creeLe)}${n.majPar ? ` · modifiée par ${esc(n.majPar)} le ${fdate(n.majLe)}` : ''}${n.fait && n.faitPar ? ` · faite par ${esc(n.faitPar)}` : ''}</small></div>
+        <div class="act"><button class="btn b-ln b-ic" data-a="pin" data-id="${n._id}" aria-pressed="${!!n.epingle}" aria-label="${n.epingle ? 'Désépingler' : 'Épingler en haut'}" title="${n.epingle ? 'Désépingler' : 'Épingler en haut'}">${ic('pinned', 16)}</button><button class="btn b-ln b-ic" data-a="edit" data-id="${n._id}" aria-label="Modifier" title="Modifier">${ic('edit', 16)}</button><button class="btn b-ko b-ic" data-a="del" data-id="${n._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')
+      : empty(notesFilter === 'done' ? 'Aucune note terminée.' : notesFilter === 'todo' ? 'Rien à faire : toutes les notes sont terminées, ou aucune note n\'a encore été ajoutée.' : 'Aucune note pour le moment.', 'note');
+  };
+  const fail = er => toast('Échec : ' + er.message + (/permission/i.test(er.message) ? ' — vérifie les règles Firebase (collection « notes »).' : ''), 1);
+  draw();
+  $('#nt').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('#main').querySelector('[data-a=add]').click(); } };
+  $('#main').onclick = async e => {
+    const fb = e.target.closest('[data-f]'); if (fb) { notesFilter = fb.dataset.f; return draw(); }
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a, n = l.find(x => x._id === b.dataset.id);
+    try {
+      if (a === 'refresh') return viewNotes();
+      if (a === 'cancel') { editId = null; return draw(); }
+      if (a === 'add') {
+        const t = $('#nt').value.trim(); if (!t) return toast('Écris d\'abord ta note.', 1);
+        await busy(b, async () => { const d = { texte: t, auteur: who(), creeLe: Date.now(), fait: false, epingle: false }; const ref = await addDoc(collection(db, 'notes'), d); l.push({ ...d, _id: ref.id }); $('#nt').value = ''; if (notesFilter === 'done') notesFilter = 'todo'; draw(); toast('Note ajoutée'); });
+        return;
+      }
+      if (!n) return;
+      if (a === 'fait') { const p = { fait: !n.fait, faitPar: n.fait ? '' : who() }; await updateDoc(doc(db, 'notes', n._id), p); Object.assign(n, p); draw(); }
+      else if (a === 'pin') { const p = { epingle: !n.epingle }; await updateDoc(doc(db, 'notes', n._id), p); Object.assign(n, p); draw(); }
+      else if (a === 'edit') { editId = n._id; draw(); const t = $('#ne'); t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+      else if (a === 'save') {
+        const t = $('#ne').value.trim(); if (!t) return toast('La note ne peut pas être vide.', 1);
+        await busy(b, async () => { const p = { texte: t, majLe: Date.now(), majPar: who() }; await updateDoc(doc(db, 'notes', n._id), p); Object.assign(n, p); editId = null; draw(); toast('Note modifiée'); });
+      }
+      else if (a === 'del' && await ask('Supprimer cette note ?', 'Elle disparaîtra pour tous les administrateurs et ne pourra pas être récupérée.', 'Supprimer')) { await deleteDoc(doc(db, 'notes', n._id)); l.splice(l.indexOf(n), 1); draw(); toast('Note supprimée'); }
+    } catch (er) { fail(er); }
+  };
 }
 
 /* ===== Journal d'activité ===== */
