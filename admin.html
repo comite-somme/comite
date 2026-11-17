@@ -144,7 +144,7 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
-.champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.coupe{background:#fde8e8;color:#9b1c1c}.propagande{background:#fff0e0;color:#8a4a00}
+.champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.coupe{background:#fde8e8;color:#9b1c1c}.propagande{background:#fff0e0;color:#8a4a00}.autre{background:#e9ecef;color:#344054}
 .act{display:flex;gap:.4rem;flex-shrink:0}
 .act .btn{min-height:40px;padding:.3rem .8rem}
 .card{background:#fff;border:1px solid var(--gris);border-radius:12px;padding:1.3rem;margin-bottom:1rem;box-shadow:var(--sh)}
@@ -345,7 +345,7 @@ const ask = (title, msg, label = 'Supprimer') => new Promise(res => {
 async function busy(btn, fn) { const h = btn.innerHTML; btn.disabled = true; btn.classList.add('load'); try { return await fn(); } finally { btn.disabled = false; btn.classList.remove('load'); btn.innerHTML = h; } }
 
 const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const CAT = { champ: 'Championnat', concours: 'Concours officiel', gp: 'Grand Prix', cdc: 'Championnat des clubs', jeunes: 'Jeunes', veterans: 'Vétérans', coupe: 'Coupe de France', regional: 'Régionaux / Chp de France (page à part)', propagande: 'Propagande' };
+const CAT = { champ: 'Championnat', concours: 'Concours officiel', gp: 'Grand Prix', cdc: 'Championnat des clubs', jeunes: 'Jeunes', veterans: 'Vétérans', coupe: 'Coupe de France', regional: 'Régionaux / Chp de France (page à part)', propagande: 'Propagande', autre: 'Autre (à préciser)' };
 const CATOPT = Object.entries(CAT);
 const SECT = { centre: 'Secteur Centre', maritime: 'Secteur Maritime', santerre: 'Secteur Santerre' };
 const GRP = { president: 'Président', vice: 'Vice-présidents', admin: 'Secrétaires et trésoriers', membre: 'Membres du comité directeur' };
@@ -368,8 +368,8 @@ const SCHEMA = {
     add: 'Ajouter une compétition', req: ['date', 'titre'], sort: (a, b) => (a.date || '').localeCompare(b.date || '') || (a.heure || '').localeCompare(b.heure || ''),
     group: e => (e.date || '').slice(0, 7), glabel: k => k ? `${MOIS[+k.slice(5) - 1]} ${k.slice(0, 4)}` : 'Sans date',
     left: e => `<div class="dt"><b>${esc((e.date || '').slice(8))}</b><span>${esc((MOIS[+(e.date || '').slice(5, 7) - 1] || '').slice(0, 3).toUpperCase())}</span></div>`,
-    title: e => e.titre, sub: e => `<span class="pill ${esc(e.type)}">${esc(CAT[e.type] || e.type || '')}</span>${[e.lieu, e.heure, e.formation, (e.lien || e.lien2) && 'avec lien'].filter(Boolean).map(esc).join(' · ')}`,
-    f: [['h', 'La compétition'], ['date', 'Date', 'date'], ['type', 'Catégorie', 'select', CATOPT], ['titre', 'Titre (ex : Concours Roye)'], ['formation', 'Formation (ex : Doublette)'], ['club', 'Club organisateur (le lieu se remplit tout seul)', 'clubselect'], ['lieu', 'Lieu (modifiable)'], ['heure', 'Heure (ex : 14h00)'], ['obs', 'Remarques (ex : Limité à 48 éq.)', 'textarea'],
+    title: e => e.titre, sub: e => `<span class="pill ${esc(e.type)}">${esc(e.type === 'autre' && e.typeAutre ? e.typeAutre : (CAT[e.type] || e.type || ''))}</span>${[e.lieu, e.heure, e.formation, (e.lien || e.lien2) && 'avec lien'].filter(Boolean).map(esc).join(' · ')}`,
+    f: [['h', 'La compétition'], ['date', 'Date', 'date'], ['type', 'Catégorie', 'select', CATOPT], ['typeAutre', 'Précisez ce que c\'est (ex : Assemblée générale, Stage, Remise de récompenses)'], ['titre', 'Titre (ex : Concours Roye)'], ['formation', 'Formation (ex : Doublette)'], ['club', 'Club organisateur (le lieu se remplit tout seul)', 'clubselect'], ['lieu', 'Lieu (modifiable)'], ['heure', 'Heure (ex : 14h00)'], ['obs', 'Remarques (ex : Limité à 48 éq.)', 'textarea'],
       ['h', 'Liens (facultatif)'], ['lienTexte', 'Texte du 1er bouton (ex : Règlement)'], ['lien', 'Adresse du 1er lien (https://…)', 'url'], ['lien2Texte', 'Texte du 2e bouton (ex : Inscription)'], ['lien2', 'Adresse du 2e lien (https://…)', 'url']] },
   actualites: { tab: 'Actualités', desc: 'Les informations affichées sur la page d\'accueil. Un brouillon n\'est pas visible. Pour programmer une publication : choisis « Publiée » avec une date (et une heure) à venir, elle apparaîtra toute seule ; une date de fin permet de la retirer automatiquement.',
     add: 'Ajouter une actualité', req: ['titre', 'texte'], sort: (a, b) => (b.publieLe || '').localeCompare(a.publieLe || ''),
@@ -713,9 +713,13 @@ function edit(col, x) {
   f.innerHTML = `<h2 id="dlg-t">${x._id ? 'Modifier' : S.add}</h2><div class="grid">${S.f.map(fl => field(fl, x[fl[0]], S.req)).join('')}</div><div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
   $('#dlg').showModal(); $('#no').onclick = () => $('#dlg').close();
   if (f.querySelector('#dz')) initDz(x);
+  /* Catégorie « Autre » : la zone de texte « Précisez » n'apparaît que dans ce cas */
+  const ts = f.querySelector('[name=type]'), ta = f.querySelector('[name=typeAutre]');
+  if (ts && ta) { const box = ta.closest('.f'), sync = () => { box.hidden = ts.value !== 'autre'; }; ts.onchange = () => { sync(); if (ts.value === 'autre') ta.focus(); }; sync(); }
   const cs = f.querySelector('[name=club]');
   if (cs && cs.tagName === 'SELECT') cs.onchange = () => { const l = cs.selectedOptions[0]?.dataset.lieu; if (l) f.querySelector('[name=lieu]').value = l; if (cs.value === '__autre') f.querySelector('[name=lieu]').focus(); };
   f.onsubmit = async e => { e.preventDefault(); const d = { ...read(S.f, f), ...(S.fixed || {}) }; const miss = S.req.find(k => !d[k]); if (miss) return toast('Complète le champ « ' + S.f.find(z => z[0] === miss)[1] + ' ».', 1);
+    if ('typeAutre' in d) { if (d.type !== 'autre') d.typeAutre = ''; else if (!d.typeAutre) return toast('Précise ce que c\'est dans la zone de texte (catégorie « Autre »).', 1); }
     if (S.f.some(z => z[2] === 'xlsx')) { if (JSON.stringify(feuilles).length > LIM) return dzNote('Fichier trop volumineux : sépare-le en plusieurs documents.', 1); d.feuilles = feuilles; }
     await busy($('#yes'), async () => { try { const neuf = !x._id; neuf ? await addDoc(collection(db, C), d) : await setDoc(doc(db, C, x._id), d); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }

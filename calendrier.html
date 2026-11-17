@@ -97,6 +97,7 @@
 
   /* ── AFFICHAGE LISTE + OUTILS ── */
   .cat-propagande { background: #fff0e0; color: #8a4a00; }
+  .cat-autre { background: #e9ecef; color: #344054; }
   .cal-tools { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
   .cal-view-btns { display: flex; gap: 0.4rem; }
   .cal-view-btn { min-height: 40px; border: 1.5px solid var(--gris); background: #fff; color: var(--bleu); font: 600 0.8rem 'DM Sans', sans-serif; padding: 0.4rem 0.9rem; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
@@ -323,6 +324,7 @@
       <button class="cal-filter-btn" data-filter="veterans">🎖️ Vétérans</button>
       <button class="cal-filter-btn" data-filter="coupe">🥇 Coupe de France</button>
       <button class="cal-filter-btn" data-filter="propagande">📣 Propagande</button>
+      <button class="cal-filter-btn" data-filter="autre">📌 Autre</button>
       <a class="cal-filter-link" href="regionaux.html">🗺️ Régionaux / Chp de France →</a>
     </div>
 
@@ -360,6 +362,7 @@
       <span class="cal-event-dot cat-veterans" style="font-size:.72rem;padding:3px 8px">🎖️ Vétérans</span>
       <span class="cal-event-dot cat-coupe" style="font-size:.72rem;padding:3px 8px">🥇 Coupe de France</span>
       <span class="cal-event-dot cat-propagande" style="font-size:.72rem;padding:3px 8px">📣 Propagande</span>
+      <span class="cal-event-dot cat-autre" style="font-size:.72rem;padding:3px 8px">📌 Autre</span>
     </div>
   </div>
 
@@ -779,8 +782,8 @@ const EVENTS = [
 
     const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
     const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const TYPE_CLASS = {champ:'cat-champ',concours:'cat-concours',gp:'cat-gp',cdc:'cat-cdc',jeunes:'cat-jeunes',veterans:'cat-veterans',regional:'cat-regional',coupe:'cat-coupe',propagande:'cat-propagande'};
-    const TYPE_LABEL = {champ:'🏆 Championnat',concours:'🎯 Concours',gp:'⭐ Grand Prix',cdc:'🏅 Champ. Clubs',jeunes:'👦 Jeunes',veterans:'🎖️ Vétérans',regional:'🗺️ Régional/France',coupe:'🥇 Coupe de France',propagande:'📣 Propagande'};
+    const TYPE_CLASS = {champ:'cat-champ',concours:'cat-concours',gp:'cat-gp',cdc:'cat-cdc',jeunes:'cat-jeunes',veterans:'cat-veterans',regional:'cat-regional',coupe:'cat-coupe',propagande:'cat-propagande',autre:'cat-autre'};
+    const TYPE_LABEL = {champ:'🏆 Championnat',concours:'🎯 Concours',gp:'⭐ Grand Prix',cdc:'🏅 Champ. Clubs',jeunes:'👦 Jeunes',veterans:'🎖️ Vétérans',regional:'🗺️ Régional/France',coupe:'🥇 Coupe de France',propagande:'📣 Propagande',autre:'📌 Autre'};
 
     const today = new Date();
     const pad = n => String(n).padStart(2,'0');
@@ -818,7 +821,7 @@ const EVENTS = [
       return `<div class="${cls}" data-ev-date="${esc(e.date||'')}" data-ev-titre="${esc(e.titre||'')}">
         <div class="ev-head">
           <div class="ev-main">
-            <span class="ev-tag ${t}">${esc(TYPE_LABEL[e.type]||e.type)}</span>${next?'<span class="cal-next-badge">Prochaine</span>':''}
+            <span class="ev-tag ${t}">${esc(e.type==='autre'&&e.typeAutre?'📌 '+e.typeAutre:(TYPE_LABEL[e.type]||e.type))}</span>${next?'<span class="cal-next-badge">Prochaine</span>':''}
             <div class="${cls}-title">${esc(e.titre)}</div>
           </div>
           ${e.heure?`<div class="ev-time"><span>Début</span><b>${esc(e.heure)}</b></div>`:''}
