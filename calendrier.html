@@ -268,7 +268,12 @@
   .cal-cell .cal-event-dot { font-size: .85rem; padding: 7px 9px; }
   .cal-cell .cal-event-dot .ce-h,
   .cal-cell .cal-event-dot .ce-l { font-size: .76rem; }
+  /* Remarques du concours visibles directement sur téléphone */
+  .cal-cell .cal-event-dot .ce-o { display: block; margin-top: 5px; padding: 4px 7px; font-size: .76rem; font-weight: 500; line-height: 1.35; color: #5c6470; background: #faf8f1; border-left: 3px solid var(--or); border-radius: 0 5px 5px 0; white-space: normal; overflow-wrap: anywhere; }
 }
+/* Sur ordinateur : la remarque reste dans la fenêtre de détail (clic sur le concours) */
+.cal-cell .cal-event-dot .ce-o { display: none; }
+@media (max-width: 599px) { .cal-cell .cal-event-dot .ce-o { display: block; } }
   .cal-day { scroll-margin-top: 90px; }
 </style>
 </head>
@@ -890,6 +895,7 @@ if(scrollToToday){ scrollToToday=false; goToToday(); }
         +(e.heure?`<span class="ce-h">${esc(e.heure)}</span>`:'')
         +esc(e.titre)
         +(e.lieu?`<span class="ce-l">📍 ${esc(e.lieu)}</span>`:'')
+        +(e.obs?`<span class="ce-o">${esc(e.obs)}</span>`:'')
         +`</span>`;
   });
   html+='</div>';
