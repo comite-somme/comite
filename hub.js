@@ -14,6 +14,10 @@ const count = (n, m) => `${n} ${m}${n > 1 ? 's' : ''}`;
 export function initHub(cfg) {
   const root = $(cfg.root);
   let docs = [], failed = false, cur = null;
+  /* Documents « en dur » (cfg.defaults) : toujours affichés ; un document créé dans l'admin, dans la même rubrique et avec le même titre, les remplace. */
+  const nrm = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const withDefaults = l => { (cfg.defaults || []).forEach((d, i) => { if (!l.some(x => x.section === d.section && nrm(x.titre) === nrm(d.titre))) l.push({ ...d, ordre: 1000 + i }); }); return l.map((x, i) => ({ ...x, _i: i })); };
+  docs = withDefaults([]);
   const fromHash = () => {
     const h = location.hash.slice(1), g = cfg.groups.find(x => h.startsWith(x.k + '-')) || cfg.groups[0];
     const r = g.rubriques.find(x => h === g.k + '-' + x.k) || g.rubriques[0];
@@ -98,6 +102,6 @@ export function initHub(cfg) {
 
   draw();
   getDocs(collection(db, cfg.col))
-    .then(s => { docs = s.docs.map(d => d.data()).map((x, i) => ({ ...x, _i: i })); draw(); })
+    .then(s => { docs = withDefaults(s.docs.map(d => d.data())); draw(); })
     .catch(() => { failed = true; draw(); });
 }

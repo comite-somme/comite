@@ -415,10 +415,10 @@ SCHEMA.archives = {
       ['h','Lien vers un fichier (facultatif)'], ['lienTexte','Texte du bouton (ex : Télécharger le PDF)'], ['lien','Adresse du fichier (https://…)','url']]
 };
 /* Documentations : une ligne = un document avec son lien (page publique documentations.html) */
-const DOCCAT = [['ffpjp','Documents FFPJP'],['cd80','Documents CD80'],['utilitaires','Utilitaires CD80']];
-const DOCPILL = { ffpjp: 'champ', cd80: 'concours', utilitaires: 'gp' };
+const DOCCAT = [['ffpjp','Documents FFPJP'],['cd80','Documents CD80'],['comptes-rendus','Comptes rendus'],['utilitaires','Utilitaires CD80']];
+const DOCPILL = { ffpjp: 'champ', cd80: 'concours', 'comptes-rendus': 'veterans', utilitaires: 'gp' };
 SCHEMA.documentations = {
-  tab: 'Documentations', desc: 'Les 3 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements, comptes rendus…) et Utilitaires CD80 (licences, affiliation…). Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page.',
+  tab: 'Documentations', desc: 'Les 4 rubriques de la page Documentations : Documents FFPJP, Documents CD80 (statuts, règlements…), Comptes rendus (assemblée générale, réunions) et Utilitaires CD80 (licences, affiliation…). Les documents des championnats (tirages, résultats, qualifiés, suspendus) se gèrent dans l\'onglet Championnats. Colle l\'adresse du fichier (PDF, Word, Excel…) ou de la page.',
   add: 'Ajouter un document', req: ['titre', 'lien'],
   sort: (a, b) => (a.ordre ?? 99) - (b.ordre ?? 99) || (a.titre || '').localeCompare(b.titre || '', 'fr'),
   group: d => d.categorie || 'autre', glabel: k => Object.fromEntries(DOCCAT)[k] || k, gorder: DOCCAT.map(c => c[0]),
@@ -732,20 +732,55 @@ let cur;
 const loadXLSX = () => window.XLSX ? Promise.resolve() : new Promise((ok, ko) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload = ok; s.onerror = () => ko(new Error('Lecteur Excel indisponible (connexion ?)')); document.head.append(s); });
 async function viewClass() {
   const l = (await getDocs(collection(db, 'classements'))).docs.map(d => ({ ...d.data(), _id: d.id })).sort((a, b) => (a.ordre ?? 99) - (b.ordre ?? 99));
-  $('#main').innerHTML = head('Classements', 'Un tableau par classement (Seniors, Féminines, Jeunes, Vétérans, Clubs…). Saisis-le à la main, colle des cellules copiées depuis Excel, ou importe directement un fichier Excel.') +
+  $('#main').innerHTML = head('Classements', 'Un tableau par classement (Seniors, Féminines, Jeunes, Vétérans, Clubs…). Saisis-le à la main, colle des cellules copiées depuis Excel, ou glisse directement un fichier Excel.') +
     `<div class="bar"><button class="btn b-or" id="nw">${ic('plus')}Nouveau classement</button><button class="btn b-bl" id="xl">${ic('dl')}Importer un fichier Excel</button><input type="file" id="xf" accept=".xlsx,.xls,.csv" hidden></div>` +
+    `<div class="card"><b>${ic('dl')}Catégorie 2027</b><p class="hint2">Onglet « Catégorie 2027 » de la page Classement. Glisse ici le fichier Excel des catégories : le tableau s'affiche comme les autres classements (si l'onglet existe déjà, son tableau est remplacé après ta validation).</p><div class="dz" id="cz" tabindex="0" role="button" aria-label="Zone de dépôt du fichier Excel Catégorie 2027"></div><p id="czn" class="hint2" role="status"></p></div>` +
     (l.length ? l.map(c => `<div class="row"><div class="bd">${esc(c.ordre ?? '')}</div><div class="m"><strong>${esc(c.nom)}</strong><small>${esc(c.majLe || '')}${c.majLe ? ' · ' : ''}${(c.lignes || []).length} lignes · ${(c.colonnes || []).length} colonnes</small></div><div class="act"><button class="btn b-ln" data-e="${c._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${c._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('') : empty('Aucun classement pour le moment. Clique sur « Nouveau classement » ou importe un fichier Excel.'));
   $('#nw').onclick = () => openEd({ ordre: l.length + 1 });
   $('#xl').onclick = () => $('#xf').click();
-  $('#xf').onchange = async e => { const f = e.target.files[0]; if (!f) return;
-    try { await loadXLSX(); const ws = XLSX.read(await f.arrayBuffer()).Sheets; const sh = ws[Object.keys(ws)[0]];
-      const rows = XLSX.utils.sheet_to_json(sh, { header: 1, defval: '', raw: false }).map(r => r.map(x => String(x).trim())).filter(r => r.some(x => x));
-      if (rows.length < 2) return toast('Fichier vide ou illisible.', 1);
-      const w = Math.max(...rows.map(r => r.length)), fix = r => Array.from({ length: w }, (_, i) => r[i] ?? '');
-      openEd({ nom: f.name.replace(/\.\w+$/, ''), ordre: l.length + 1, colonnes: fix(rows[0]), lignes: rows.slice(1).map(r => ({ v: fix(r) })) });
-      toast('Fichier lu — vérifie le tableau puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } };
+  $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; importCl(f, l); };
+  dzBind($('#cz'), f => importCl(f, l, 'Catégorie 2027', $('#czn')));
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, c = l.find(i => i._id === id);
     if (b.dataset.e) openEd(c); else if (await ask('Mettre à la corbeille ?', `« ${c.nom} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash('classements', id, c); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
+}
+/* Lecture d'un fichier Excel de classement. Un tableau normal : la 1re ligne = les colonnes.
+   Une simple liste en une colonne (ex : « Vétéran : né en 1966 et avant ») : chaque ligne est coupée en deux colonnes au « : ». */
+async function readTable(file) {
+  await loadXLSX();
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }), nom = wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[nom], { header: 1, defval: '', raw: false }).map(r => r.map(x => String(x).trim())).filter(r => r.some(Boolean));
+  if (!rows.length) throw new Error('Fichier vide ou illisible.');
+  const w = Math.max(...rows.map(r => r.reduce((m, x, i) => x ? i + 1 : m, 0)));
+  if (w <= 1) {
+    if (rows.every(r => r[0].includes(':'))) return { colonnes: ['Catégorie', 'Année de naissance'], lignes: rows.map(r => { const i = r[0].indexOf(':'); return { v: [r[0].slice(0, i).trim(), r[0].slice(i + 1).trim()] }; }) };
+    return { colonnes: [nom], lignes: rows.map(r => ({ v: [r[0]] })) };
+  }
+  const fix = r => Array.from({ length: w }, (_, i) => r[i] ?? '');
+  if (rows.length < 2) throw new Error('Fichier vide ou illisible.');
+  return { colonnes: fix(rows[0]), lignes: rows.slice(1).map(r => ({ v: fix(r) })) };
+}
+/* Zone « Glisse ton fichier Excel ici » (même système que dans Championnats) */
+function dzBind(z, onFile) {
+  if (!z) return;
+  z.innerHTML = `${ic('dl', 28)}<b>Glisse ton fichier Excel ici</b><small>ou clique pour le choisir (.xlsx, .xls, .csv)</small>`;
+  const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.xlsx,.xls,.csv', hidden: true }); z.after(inp);
+  z.onclick = () => inp.click();
+  z.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inp.click(); } };
+  z.ondragover = e => { e.preventDefault(); z.classList.add('over'); };
+  z.ondragleave = () => z.classList.remove('over');
+  z.ondrop = e => { e.preventDefault(); z.classList.remove('over'); onFile(e.dataTransfer.files[0]); };
+  inp.onchange = () => { onFile(inp.files[0]); inp.value = ''; };
+}
+/* Fichier Excel → classement. Avec un nom imposé (« Catégorie 2027 ») : remplace le tableau du classement de ce nom, ou le crée. */
+async function importCl(f, l, nom, note) {
+  if (!f) return;
+  const say = (m, err) => { if (note) { note.textContent = m; note.className = 'hint2' + (err ? ' err' : ''); } toast(m, err ? 1 : 0); };
+  try { if (note) note.textContent = 'Lecture du fichier…';
+    const t = await readTable(f), nn = x => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(), ex = nom && l.find(c => nn(c.nom) === nn(nom));
+    if (ex) { openEd(ex); cur.colonnes = t.colonnes; cur.lignes = t.lignes; drawEd(); }
+    else openEd({ nom: nom || f.name.replace(/\.\w+$/, ''), ordre: l.length + 1, ...t });
+    say('Fichier lu — vérifie le tableau puis clique sur « Enregistrer le classement ».');
+  } catch (er) { say('Import impossible : ' + er.message, 1); }
 }
 function openEd(c) { cur = { nom: '', majLe: '', ordre: 1, colonnes: ['Rang', 'Nom', 'Club', 'Points'], lignes: [], ...c }; cur.orig = JSON.parse(JSON.stringify({ nom: cur.nom, majLe: cur.majLe, ordre: cur.ordre, colonnes: cur.colonnes, lignes: cur.lignes })); drawEd(); window.scrollTo(0, 0); }
 function sync() { if (!$('#cn')) return; cur.nom = $('#cn').value; cur.majLe = $('#cm').value; cur.ordre = Number($('#co').value) || 1;
@@ -755,12 +790,14 @@ function drawEd() {
   `<div class="card"><div class="grid"><div class="f"><label for="cn">Nom du classement</label><input id="cn" value="${esc(cur.nom)}" placeholder="Ex : Seniors masculins"></div>
    <div class="f"><label for="cm">Mention de mise à jour</label><input id="cm" value="${esc(cur.majLe)}" placeholder="Ex : Mis à jour le 21/04/2026"></div>
    <div class="f"><label for="co">Position dans les onglets (1 = premier)</label><input id="co" type="number" min="1" value="${esc(cur.ordre)}"></div></div></div>
+  <div class="card"><b>${ic('dl')}Fichier Excel</b><p class="hint2">Glisse un fichier Excel pour remplacer le tableau ci-dessous (le nom et la position sont conservés).</p><div class="dz" id="ez" tabindex="0" role="button" aria-label="Zone de dépôt du fichier Excel"></div></div>
   <div class="card"><b>${ic('clip')}Coller depuis Excel</b><p class="hint2">Dans Excel, sélectionne les cellules, copie (Ctrl+C), puis colle ici (Ctrl+V) et choisis une option.</p><textarea id="pa" rows="3" placeholder="Colle ici…" aria-label="Cellules copiées depuis Excel"></textarea>
    <div class="flex" style="margin-top:.7rem"><button class="btn b-bl" id="prep">Remplacer les lignes</button><button class="btn b-ln" id="padd">Ajouter à la suite</button></div></div>
   <div class="card"><div class="tw"><table class="tbl"><thead><tr><th></th>${cur.colonnes.map((c, i) => `<th><input class="th" value="${esc(c)}" aria-label="Nom de la colonne ${i + 1}"><button class="x" data-xc="${i}" title="Supprimer la colonne" aria-label="Supprimer la colonne ${i + 1}">${ic('x', 16)}</button></th>`).join('')}<th></th></tr></thead>
    <tbody id="tb">${cur.lignes.map((r, i) => `<tr><td class="rn">${i + 1}</td>${cur.colonnes.map((_, j) => `<td><input class="td" value="${esc(r.v[j] ?? '')}" aria-label="Ligne ${i + 1}, colonne ${j + 1}"></td>`).join('')}<td><button class="x" data-xr="${i}" title="Supprimer la ligne" aria-label="Supprimer la ligne ${i + 1}">${ic('trash', 16)}</button></td></tr>`).join('')}</tbody></table></div>
    <div class="flex" style="margin-top:.8rem"><button class="btn b-ln" id="ar">${ic('plus', 16)}Ajouter une ligne</button><button class="btn b-ln" id="ac">${ic('plus', 16)}Ajouter une colonne</button></div></div>
   <div class="savebar flex"><button class="btn b-or" id="sv">${ic('save')}Enregistrer le classement</button><button class="btn b-ln" id="cx">Annuler</button></div>`;
+  dzBind($('#ez'), async f => { if (!f) return; try { const t = await readTable(f); sync(); cur.colonnes = t.colonnes; cur.lignes = t.lignes; drawEd(); toast('Fichier lu — vérifie le tableau puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } });
   $('#main').onclick = e => { const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'ar') { sync(); cur.lignes.push({ v: Array(cur.colonnes.length).fill('') }); drawEd(); }
     else if (b.id === 'ac') { sync(); cur.colonnes.push('Colonne ' + (cur.colonnes.length + 1)); cur.lignes.forEach(r => r.v.push('')); drawEd(); }
