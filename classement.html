@@ -34,9 +34,9 @@
 <style>
   /* ── ONGLETS : tous visibles à l'écran, même taille que les pages CDC / Clubs ── */
   .cat-tabs[hidden] { display: none; }
-  .cat-tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
-  .cat-tab { flex: 1 1 auto; white-space: nowrap; min-height: 46px; border: 1.5px solid var(--gris); background: #fff; color: #555; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.2px; padding: 0.4rem 1rem; border-radius: 25px; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-  .cat-tab.active, .cat-tab:hover { background: var(--bleu); color: var(--or); border-color: var(--bleu); }
+  .cat-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0 0 1.25rem; opacity: 1; transform: none; }
+  .cat-tab { white-space: normal; text-align: center; line-height: 1.2; min-height: 48px; border: 1.5px solid #c9ccd1; background: #fff; color: #222; font-size: 0.95rem; font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  .cat-tab.active { background: #f1f1f1; color: #000; border: 2px solid #222; font-weight: 800; }
   .cat-tab.active::before, .fpill[aria-pressed="true"]::before { content: '✓ '; }
   .cat-tab:focus-visible, .fpill:focus-visible, .filter-toggle:focus-visible, .clear-btn:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
 
@@ -97,8 +97,8 @@
 
   /* ≥ 768px : tableau complet */
   @media (min-width: 768px) {
-    .cat-tabs { margin: 0 0 1.5rem; gap: 0.6rem; }
-    .cat-tab { flex: 0 0 auto; padding: 0.4rem 1.4rem; }
+    .cat-tabs { display: flex; flex-wrap: wrap; margin: 0 0 1.5rem; gap: 0.6rem; }
+    .cat-tab { white-space: nowrap; padding: 0.4rem 1.4rem; }
     .search-wrap { max-width: 520px; }
     thead th { font-size: 0.72rem; letter-spacing: 1.5px; padding: 0.9rem 1rem; }
     tbody td { padding: 0.75rem 1rem; }
@@ -106,6 +106,7 @@
     .sub-mobile { display: none; }
   }
   @media (hover: hover) {
+    .cat-tab:not(.active):hover { background: #f6f6f6; border-color: #888; }
     tbody tr:hover { background: #faf8f4; }
   }
 </style>
@@ -142,7 +143,7 @@
 
   <!-- ONGLETS -->
   <button type="button" class="filter-toggle reveal" id="all-toggle" aria-expanded="false" aria-controls="cat-tabs" style="margin:0 0 .8rem" onclick="toggleAll()">Tous les classements ▾</button>
-  <div class="cat-tabs reveal" id="cat-tabs" hidden>
+  <div class="cat-tabs" id="cat-tabs" hidden>
     <button class="cat-tab active" onclick="setTab('senior',this)">Classement général</button>
     <button class="cat-tab" onclick="setTab('fem',this)">Féminin</button>
     <button class="cat-tab" onclick="setTab('vet',this)">Vétérans</button>
