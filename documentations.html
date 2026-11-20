@@ -153,7 +153,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* Les 4 rubriques (mêmes clés que dans l'administration) */
-const CAT = [['ffpjp', 'Documents FFPJP'], ['cd80', 'Documents CD80'], ['comptes-rendus', 'Comptes rendus'], ['utilitaires', 'Utilitaires CD80']];
+const CAT = [['ffpjp', 'Documents FFPJP'], ['cd80', 'Documents CD80'], ['comptes-rendus', 'Comptes rendus CD80'], ['utilitaires', 'Utilitaires CD80']];
 const CATNAME = Object.fromEntries(CAT);
 /* Anciennes catégories : rangées automatiquement dans la bonne rubrique */
 const OLD = { formulaires: 'utilitaires', licences: 'utilitaires' };
