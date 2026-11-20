@@ -246,6 +246,22 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 
 body.ro #main .btn.b-or:not(.keep), body.ro #main .btn.b-ko { display: none; }
 body.ro #main::before { content: 'Mode lecture seule : tu peux consulter, mais pas modifier.'; display: block; margin: 0 0 1rem; padding: .6rem .9rem; background: #eef2f7; border-radius: 8px; color: var(--bleu); font-weight: 600; font-size: .9rem; }
+
+/* Accueil personnalisable */
+.hello-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.pbtn{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;padding:.5rem .9rem;border-radius:10px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer}
+.pbtn:hover{background:rgba(255,255,255,.22)}
+.hb-sh{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:.4rem}
+.pz{margin-bottom:1.2rem}
+.pz .sec{margin:1rem 0 .4rem}
+.pz-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-height:48px;border-bottom:1px solid var(--gris)}
+.pz-mv{display:flex;gap:.4rem;flex:none}
+.pz-mv .btn{min-width:44px;min-height:44px;font-size:1.1rem;padding:0}
+.pz-c{display:flex;align-items:center;gap:.6rem;min-height:44px;font-weight:500;cursor:pointer}
+.pz-c input{width:20px;height:20px;min-height:0;flex:none}
+.pz-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 1rem}
+.pz-sup{margin-top:1.1rem;padding-top:.9rem;border-top:1px dashed var(--gris)}
+body.ro #main .pz .btn.b-or.keep{display:inline-flex}
 </style>
 </head>
 <body>
@@ -519,10 +535,10 @@ async function loadMe(u) {
     d = { email, nom: old.nom || '', role: 'super', actif: true, droits: ALL_R(), import: !!old.import, creeLe: Date.now() };
     try { await setDoc(doc(db, 'admins', u.uid), d); } catch (e) { console.warn('Profil non enregistré :', e.message); }
   }
-  if (hard) return { uid: u.uid, hard: true, ok: true, nom: (d && d.nom) || old.nom || '', role: 'super', droits: ALLR, import: d ? d.import !== false : !!old.import };
+  if (hard) return { uid: u.uid, hard: true, ok: true, nom: (d && d.nom) || old.nom || '', role: 'super', droits: ALLR, import: d ? d.import !== false : !!old.import, accueil: (d && d.accueil) || null };
   if (!d || d.actif !== true) return { ...NOBODY, uid: u.uid };
   const sup = d.role === 'super';
-  return { uid: u.uid, hard: false, ok: true, nom: d.nom || '', role: ROLES[d.role] ? d.role : 'lecture', droits: sup ? ALLR : (Array.isArray(d.droits) ? d.droits : []), import: sup && d.import !== false };
+  return { uid: u.uid, hard: false, ok: true, nom: d.nom || '', role: ROLES[d.role] ? d.role : 'lecture', droits: sup ? ALLR : (Array.isArray(d.droits) ? d.droits : []), import: sup && d.import !== false, accueil: d.accueil || null };
 }
 const ALL_R = () => ALLR.slice();
 
@@ -617,18 +633,84 @@ async function show() {
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
+/* ===== Accueil personnalisable : chaque compte choisit ses blocs, leur ordre et ses raccourcis =====
+   Réglage enregistré dans la fiche admins/{uid} (champ « accueil »), donc valable sur tous les appareils.
+   Si l'écriture est refusée par les règles Firestore, une copie est gardée sur l'appareil (voir ACCUEIL-PERSONNALISE.txt). */
+const HB = [['todo', 'À traiter'], ['raccourcis', 'Raccourcis'], ['tuiles', 'Tuiles'], ['prochaines', 'Calendrier : prochaines compétitions'], ['actus', 'Dernières actualités'], ['sauvegarde', 'Sauvegarde'], ['journal', 'Dernières modifications']];
+const HT = { events: ['cal', 'Compétitions'], clubs: ['pin', 'Clubs'], membres: ['users', 'Membres du comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs / Initiateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], settings: ['sliders', 'Infos du site'] };
+const HS = { 'new:actualites': ['Nouvelle actualité', 'actualites'], 'new:events': ['Nouvel événement', 'events'] };
+const HDEF = { blocs: HB.map(([id]) => ({ id, on: id !== 'actus' })), raccourcis: ['new:actualites', 'new:events'], tuiles: Object.keys(HT) };
+const HPRESET = {
+  simple: { blocs: ['prochaines', 'actus'].concat(HB.map(b => b[0]).filter(id => id !== 'prochaines' && id !== 'actus')).map(id => ({ id, on: id === 'prochaines' || id === 'actus' })), raccourcis: [], tuiles: Object.keys(HT) },
+  complet: HDEF
+};
+const normHome = c => {
+  c = c && typeof c === 'object' ? c : {};
+  const ids = HB.map(b => b[0]), seen = new Set(), blocs = [];
+  (Array.isArray(c.blocs) ? c.blocs : HDEF.blocs).forEach(b => { if (b && ids.includes(b.id) && !seen.has(b.id)) { seen.add(b.id); blocs.push({ id: b.id, on: b.on !== false }); } });
+  ids.forEach(id => { if (!seen.has(id)) blocs.push({ id, on: false }); });
+  const keep = (l, ok, def) => Array.isArray(l) ? l.filter((k, i) => ok(k) && l.indexOf(k) === i) : def.slice();
+  return { blocs, raccourcis: keep(c.raccourcis, k => HS[k] || HT[k], HDEF.raccourcis), tuiles: keep(c.tuiles, k => HT[k], HDEF.tuiles) };
+};
+const hKey = () => 'cd80_accueil_' + (me.uid || '');
+const homeDefault = () => normHome(cache.homeDef || HDEF);
+const getHome = () => {
+  let c = me.accueil;
+  if (!c) { try { c = JSON.parse(localStorage.getItem(hKey()) || 'null'); } catch { c = null; } }
+  return normHome(c || cache.homeDef || HDEF);
+};
+/* cfg = null : on retire le réglage personnel (retour à la disposition par défaut). Renvoie true si c'est enregistré sur le compte. */
+async function saveHome(cfg) {
+  const v = cfg ? normHome(cfg) : null;
+  me.accueil = v;
+  try { await setDoc(doc(db, 'admins', me.uid), { accueil: v }, { merge: true }); try { localStorage.removeItem(hKey()); } catch {} return true; }
+  catch (er) { console.warn('Accueil non enregistré sur le compte :', er.message); try { v ? localStorage.setItem(hKey(), JSON.stringify(v)) : localStorage.removeItem(hKey()); } catch {} return false; }
+}
+
 async function viewHome() {
-  const cols = ['events', 'clubs', 'membres', 'classements', 'annuaire', 'archives', 'documentations'], n = {};
-  (await Promise.all(cols.map(c => getDocs(collection(db, c))))).forEach((sn, i) => n[cols[i]] = sn.docs.map(d => d.data()));
-  const people = k => n.membres.filter(m => catOf(m) === k).length;
+  const cols = ['events', 'clubs', 'membres', 'classements', 'annuaire', 'archives', 'documentations', 'actualites'], n = {};
+  const [snaps, defSn] = await Promise.all([Promise.all(cols.map(c => getDocs(collection(db, c)).catch(() => ({ docs: [] })))), getDoc(doc(db, 'settings', 'accueilAdmin')).catch(() => null)]);
+  snaps.forEach((sn, i) => n[cols[i]] = sn.docs.map(d => d.data()));
+  cache.homeDef = defSn && defSn.exists() && defSn.data().defaut ? defSn.data().defaut : null;
   const S = SCHEMA.events, up = n.events.filter(e => e.date >= today).sort(S.sort);
-  const T = (k, i, num, lab, sub) => `<button class="tile" data-go="${k}"><span class="i">${ic(i, 24)}</span><span class="n">${num}</span><b>${lab}</b><small>${sub}</small></button>`;
-  $('#main').innerHTML = `<div class="hello"><h1>Bienvenue dans l'espace administration${me.nom ? ' ' + esc(me.nom) : ''}</h1><p>Choisis ce que tu veux modifier. Chaque changement apparaît sur le site dès l'enregistrement.</p></div>
-  <div class="tiles">${T('events', 'cal', n.events.length, 'Compétitions', `${up.length} à venir`)}${T('clubs', 'pin', n.clubs.length, 'Clubs', 'Coordonnées, présidents, terrains')}${T('membres', 'users', people('comite'), 'Membres du comité', 'Organigramme et contacts')}${T('arbitres', 'whistle', people('arbitre'), 'Arbitres', 'Liste des arbitres du département')}${T('educateurs', 'edu', people('educateur'), 'Éducateurs / Initiateurs', 'Encadrants diplômés')}${T('annuaire', 'ext', n.annuaire.length, 'Annuaire', 'Sites des comités voisins')}${T('archives', 'clip', n.archives.length, 'Archives', 'PV, résultats, classements passés')}${T('documentations', 'file', n.documentations.length, 'Documentations', 'Règlements, formulaires, liens utiles')}${T('classements', 'chart', n.classements.length, 'Classements', 'Tableaux de points, import Excel')}${T('settings', 'sliders', '—', 'Infos du site', 'Accueil, chiffres, adresse, PDF')}</div>
-  ${up.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir tout le calendrier</button></div>${up.slice(0, 4).map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : ''}
-  ${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty(me.import ? 'Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.' : 'Base vide : demande à Lukas d\'importer le contenu actuel du site.')}</div>`}`;
-  $('#main').querySelectorAll('.tile[data-go]').forEach(t => { if (!canSee(t.dataset.go)) t.remove(); });
-  $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Sauvegarde</h2></div><div class="card"><p id="bkInfo" class="hint2" style="font-weight:700"></p><p class="hint2">Télécharge une copie de tout le contenu du site (compétitions, clubs, membres, classements, documents, actualités, textes…) dans un seul fichier. À faire de temps en temps et à garder sur ton ordinateur. Les messages reçus ne sont pas inclus.</p><button type="button" class="btn b-or" id="bkBtn">Télécharger la sauvegarde</button></div>`);
+  cache.home = { n, up, S, SA: SCHEMA.actualites, people: k => n.membres.filter(m => catOf(m) === k).length, edit: null };
+  drawHome();
+}
+
+function drawHome() {
+  const { n, up, S, SA, people } = cache.home, cfg = getHome(), ro = me.role === 'lecture';
+  const TD = {
+    events: [n.events.length, `${up.length} à venir`], clubs: [n.clubs.length, 'Coordonnées, présidents, terrains'], membres: [people('comite'), 'Organigramme et contacts'],
+    arbitres: [people('arbitre'), 'Liste des arbitres du département'], educateurs: [people('educateur'), 'Encadrants diplômés'], annuaire: [n.annuaire.length, 'Sites des comités voisins'],
+    archives: [n.archives.length, 'PV, résultats, classements passés'], documentations: [n.documentations.length, 'Règlements, formulaires, liens utiles'],
+    classements: [n.classements.length, 'Tableaux de points, import Excel'], settings: ['—', 'Accueil, chiffres, adresse, PDF']
+  };
+  const T = k => `<button class="tile" data-go="${k}"><span class="i">${ic(HT[k][0], 24)}</span><span class="n">${TD[k][0]}</span><b>${HT[k][1]}</b><small>${TD[k][1]}</small></button>`;
+  const actus = n.actualites.filter(a => actuEtat(a) !== 'expire').sort(SA.sort).slice(0, 4);
+  const SEC = {
+    todo: () => `<section id="hbTodo"></section>`,
+    raccourcis: () => {
+      const b = cfg.raccourcis.map(k => HS[k]
+        ? (!ro && canSee(HS[k][1]) ? `<button class="btn b-or" data-new="${HS[k][1]}">${ic('plus', 16)}${HS[k][0]}</button>` : '')
+        : (canSee(k) ? `<button class="btn b-ln" data-go="${k}">${ic(HT[k][0], 16)}${HT[k][1]}</button>` : '')).join('');
+      return b ? `<div class="sech"><h2>Raccourcis</h2></div><div class="hb-sh">${b}</div>` : '';
+    },
+    tuiles: () => `<div class="tiles">${Object.keys(HT).filter(k => cfg.tuiles.includes(k) && canSee(k)).map(T).join('')}</div>${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty(me.import ? 'Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.' : 'Base vide : demande à Lukas d\'importer le contenu actuel du site.')}</div>`}`,
+    prochaines: () => up.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir tout le calendrier</button></div>${up.slice(0, 4).map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : '',
+    actus: () => canSee('actualites') ? `<div class="sech"><h2>Dernières actualités</h2><button class="lnkb" data-go="actualites">Voir toutes les actualités</button></div>${actus.length ? actus.map(a => `<div class="row">${SA.left(a)}<div class="m"><strong>${esc(a.titre)}</strong><small>${SA.sub(a)}</small></div></div>`).join('') : empty('Aucune actualité pour le moment.', 'news')}` : '',
+    sauvegarde: () => `<div class="sech"><h2>Sauvegarde</h2></div><div class="card"><p id="bkInfo" class="hint2" style="font-weight:700"></p><p class="hint2">Télécharge une copie de tout le contenu du site (compétitions, clubs, membres, classements, documents, actualités, textes…) dans un seul fichier. À faire de temps en temps et à garder sur ton ordinateur. Les messages reçus ne sont pas inclus.</p><button type="button" class="btn b-or" id="bkBtn">Télécharger la sauvegarde</button></div>`,
+    journal: () => `<section id="hbJournal"></section>`
+  };
+  const on = cfg.blocs.filter(b => b.on);
+  $('#main').innerHTML = `<div class="hello"><div class="hello-top"><div><h1>Bienvenue dans l'espace administration${me.nom ? ' ' + esc(me.nom) : ''}</h1><p>Choisis ce que tu veux modifier. Chaque changement apparaît sur le site dès l'enregistrement.</p></div><button type="button" class="pbtn" id="hbPersoBtn" aria-expanded="${cache.home.edit ? 'true' : 'false'}">${ic('sliders', 16)}Personnaliser</button></div></div>
+  <div id="hbPerso"></div>${on.map(b => SEC[b.id]()).join('')}`;
+  drawPerso();
+  $('#main').onclick = e => {
+    const nw = e.target.closest('[data-new]'); if (nw) { window._pendingNew = nw.dataset.new; tab = nw.dataset.new; start(); window.scrollTo(0, 0); return; }
+    const b = e.target.closest('[data-go]'); if (b) { tab = b.dataset.go; start(); window.scrollTo(0, 0); }
+  };
+  $('#hbPersoBtn').onclick = () => { cache.home.edit = cache.home.edit ? null : normHome(getHome()); drawPerso(); if (cache.home.edit) $('#hbPerso').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+  if ($('#bkBtn')) {
   const BK = 'cd80_derniere_sauvegarde', bkInfo = () => { let t = 0; try { t = +localStorage.getItem(BK) || 0; } catch {}
     const d = t ? Math.floor((Date.now() - t) / 864e5) : null, el = $('#bkInfo'); if (!el) return;
     el.textContent = d === null ? 'Aucune sauvegarde faite depuis cet appareil.' : 'Dernière sauvegarde depuis cet appareil : ' + (d <= 0 ? 'aujourd\'hui' : d === 1 ? 'hier' : 'il y a ' + d + ' jours') + '.';
@@ -642,10 +724,47 @@ async function viewHome() {
     try { localStorage.setItem(BK, String(Date.now())); } catch {} bkInfo();
     toast('Sauvegarde téléchargée');
   } catch (er) { toast('Échec de la sauvegarde', true); } }); };
-  $('#main').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { tab = b.dataset.go; start(); window.scrollTo(0, 0); } };
-  homeTodo();
-  homeJournal();
+  }
+  if ($('#hbTodo')) homeTodo();
+  if ($('#hbJournal')) homeJournal();
 }
+
+/* Panneau « Personnaliser » : blocs affichés / masqués et ordre, raccourcis, tuiles. Rien n'est appliqué avant « Enregistrer ». */
+function drawPerso() {
+  const box = $('#hbPerso'); if (!box) return;
+  const E = cache.home.edit;
+  if (!E) { box.innerHTML = ''; const bt = $('#hbPersoBtn'); if (bt) bt.setAttribute('aria-expanded', 'false'); return; }
+  const lab = Object.fromEntries(HB), ro = me.role === 'lecture';
+  const chk = (attr, val, on, text) => `<label class="pz-c"><input type="checkbox" ${attr}="${val}" ${on ? 'checked' : ''}><span>${text}</span></label>`;
+  const shortcuts = Object.keys(HS).filter(k => !ro && canSee(HS[k][1])).map(k => chk('data-sh', k, E.raccourcis.includes(k), HS[k][0])).concat(Object.keys(HT).filter(canSee).map(k => chk('data-sh', k, E.raccourcis.includes(k), HT[k][1]))).join('');
+  const tiles = Object.keys(HT).filter(canSee).map(k => chk('data-tl', k, E.tuiles.includes(k), HT[k][1])).join('');
+  box.innerHTML = `<div class="card pz"><b>${ic('sliders', 18)} Personnaliser mon accueil</b>
+    <p class="hint2">Affiche ou masque chaque bloc et change leur ordre avec les flèches. Ce réglage est enregistré sur ton compte : tu le retrouves sur tous tes appareils.</p>
+    <h3 class="sec">Blocs de l'accueil</h3>
+    ${E.blocs.map((b, i) => `<div class="pz-row"><label class="pz-c"><input type="checkbox" data-bl="${b.id}" ${b.on ? 'checked' : ''}><span>${lab[b.id]}</span></label><span class="pz-mv"><button type="button" class="btn b-ln b-ic" data-mv="${i}" data-d="-1" aria-label="Monter « ${lab[b.id]} »" title="Monter" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn b-ln b-ic" data-mv="${i}" data-d="1" aria-label="Descendre « ${lab[b.id]} »" title="Descendre" ${i === E.blocs.length - 1 ? 'disabled' : ''}>↓</button></span></div>`).join('')}
+    <h3 class="sec">Raccourcis <small class="hint2">(boutons en un clic, bloc « Raccourcis »)</small></h3><div class="pz-g">${shortcuts}</div>
+    <h3 class="sec">Tuiles affichées <small class="hint2">(bloc « Tuiles »)</small></h3><div class="pz-g">${tiles}</div>
+    <div class="flex" style="margin-top:1rem"><button type="button" class="btn b-or keep" data-p="save">${ic('save', 16)}Enregistrer</button><button type="button" class="btn b-ln keep" data-p="cancel">Annuler</button><button type="button" class="btn b-ln keep" data-p="reset">Revenir à la disposition par défaut</button></div>
+    ${isSup() ? `<div class="pz-sup"><p class="hint2"><b>Super admin</b> : la disposition ci-dessus peut aussi servir de départ pour les comptes qui n'ont encore rien personnalisé (nouveaux comptes compris).</p><button type="button" class="btn b-bl keep" data-p="def">Définir comme disposition de départ</button></div>` : ''}</div>`;
+}
+document.addEventListener('click', async e => {
+  const box = e.target.closest('#hbPerso'); if (!box || !cache.home || !cache.home.edit) return;
+  const E = cache.home.edit, mv = e.target.closest('[data-mv]'), pb = e.target.closest('[data-p]');
+  if (mv) { const i = +mv.dataset.mv, j = i + +mv.dataset.d; if (j >= 0 && j < E.blocs.length) { [E.blocs[i], E.blocs[j]] = [E.blocs[j], E.blocs[i]]; drawPerso(); const nb = box.querySelector(`[data-mv="${j}"][data-d="${mv.dataset.d}"]`) || box.querySelector(`[data-mv="${j}"]:not([disabled])`); if (nb) nb.focus(); } return; }
+  if (!pb) return;
+  const a = pb.dataset.p;
+  if (a === 'cancel') { cache.home.edit = null; return drawPerso(); }
+  if (a === 'save') { await busy(pb, async () => { const ok = await saveHome(E); cache.home.edit = null; drawHome(); toast(ok ? 'Accueil enregistré sur ton compte' : 'Accueil enregistré sur cet appareil seulement : les règles Firebase doivent autoriser le champ « accueil » (voir ACCUEIL-PERSONNALISE.txt).', !ok); }); return; }
+  if (a === 'reset') { if (await ask('Revenir à la disposition par défaut ?', 'Ton réglage personnel sera effacé : l\'accueil reprendra la disposition de départ du comité.', 'Revenir au défaut')) { const ok = await saveHome(null); cache.home.edit = null; drawHome(); toast(ok ? 'Disposition par défaut rétablie' : 'Rétabli sur cet appareil seulement (voir ACCUEIL-PERSONNALISE.txt)', !ok); } return; }
+  if (a === 'def' && isSup()) { await busy(pb, async () => { try { await setDoc(doc(db, 'settings', 'accueilAdmin'), { defaut: normHome(E), majLe: Date.now(), par: me.nom || '' }); cache.homeDef = normHome(E); await logAct('modif', 'Accueil admin', 'Disposition de départ', 'Définie par un super admin'); toast('Disposition de départ enregistrée'); } catch (er) { toast('Échec : ' + er.message, 1); } }); }
+});
+document.addEventListener('change', e => {
+  const box = e.target.closest('#hbPerso'); if (!box || !cache.home || !cache.home.edit) return;
+  const E = cache.home.edit, t = e.target, tog = (arr, k, on) => { const i = arr.indexOf(k); if (on && i < 0) arr.push(k); if (!on && i >= 0) arr.splice(i, 1); };
+  if (t.dataset.bl) E.blocs.find(b => b.id === t.dataset.bl).on = t.checked;
+  else if (t.dataset.sh) tog(E.raccourcis, t.dataset.sh, t.checked);
+  else if (t.dataset.tl) tog(E.tuiles, t.dataset.tl, t.checked);
+});
 
 /* Formulaires */
 const titleCase = t => String(t || '').toLowerCase().replace(/(^|[\s\-'’])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
@@ -713,6 +832,7 @@ async function viewList(col) {
         edit(col, { titre: f.name.replace(/\.\w+$/, '').replace(/[-_]+/g, ' '), saison: y + '-' + (y + 1), ordre: cache[col].length + 1, feuilles: s });
         toast('Fichier lu — choisis la partie et la rubrique puis enregistre.'); } catch (er) { toast('Import impossible : ' + er.message, 1); } }; }
   $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'cd80', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
+  if (window._pendingNew === col) { window._pendingNew = null; if (me.role !== 'lecture') $('#add').onclick(); }
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d],[data-ra]'); if (!b) return; const id = b.dataset.e || b.dataset.d || b.dataset.ra, x = cache[col].find(i => i._id === id);
     if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré'); toast('Accord retiré — coordonnées masquées sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
     if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
@@ -1014,6 +1134,7 @@ async function viewComptes() {
       <div class="f" style="margin-top:.7rem"><label for="c-uid">Compte déjà existant dans Firebase ? Colle son identifiant (UID) ici — sinon laisse vide</label><input id="c-uid" autocomplete="off" placeholder="Facultatif"></div>` : ''}
       <div class="f" style="margin-top:.7rem"><label for="c-role">Niveau d'accès</label><select id="c-role" ${self ? 'disabled' : ''}>${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${k === role ? 'selected' : ''}>${v}</option>`).join('')}</select>
         <p class="hint2" id="c-help"></p></div>
+      <div class="f" style="margin-top:.7rem"><label for="c-acc">Accueil de cette personne</label><select id="c-acc"><option value="">${isNew ? 'Disposition par défaut du comité' : 'Ne pas modifier'}</option><option value="simple">Accueil simplifié : seulement le calendrier et les actualités</option><option value="complet">Accueil complet (tous les blocs)</option></select><p class="hint2">La personne pourra ensuite l'adapter elle-même avec le bouton « Personnaliser » de son accueil.</p></div>
       <div id="c-rights"></div>
       ${isOwner() ? `<label id="c-imp-w" style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.8rem;font-weight:500"><input type="checkbox" id="c-imp" style="width:20px;height:20px;min-height:0;flex:none" ${!a || a.import !== false ? 'checked' : ''}>Peut utiliser l'onglet Import</label>` : ''}
       ${isNew ? '' : `<label style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.4rem;font-weight:500"><input type="checkbox" id="c-actif" style="width:20px;height:20px;min-height:0;flex:none" ${a.actif === true ? 'checked' : ''} ${self || HARD.includes(a._id) ? 'disabled' : ''}>Compte actif (décoche pour bloquer l'accès sans le supprimer)</label>`}
@@ -1084,6 +1205,7 @@ async function viewComptes() {
               finally { try { await deleteApp(sec); } catch {} }
             }
             const d = { email, nom, role, actif: true, droits, import: imp, creeLe: Date.now(), creePar: me.nom || (auth.currentUser.email || '') };
+            if (HPRESET[$('#c-acc').value]) d.accueil = normHome(HPRESET[$('#c-acc').value]);
             await setDoc(doc(db, 'admins', uid), d); l.push({ ...d, _id: uid }); adding = false; draw(); toast('Compte créé');
             logAct('ajout', 'Compte admin', nom, ROLES[role] + ' — ' + email);
           });
@@ -1092,6 +1214,7 @@ async function viewComptes() {
           if (cur.role === 'super' && (role !== 'super' || !actif) && nSup() <= 1) return toast('Impossible : il doit rester au moins un super admin.', 1);
           await busy(b, async () => {
             const p = { nom, role: self ? 'super' : role, droits, import: imp, actif: self || HARD.includes(cur._id) ? true : actif, majLe: Date.now() };
+            if (HPRESET[$('#c-acc').value]) p.accueil = normHome(HPRESET[$('#c-acc').value]);
             await updateDoc(doc(db, 'admins', cur._id), p); Object.assign(cur, p); if (self) me.nom = nom; editId = null; draw(); toast('Compte enregistré');
             logAct('modif', 'Compte admin', nom, ROLES[p.role] + (p.actif ? '' : ' — désactivé'));
           });
@@ -1164,9 +1287,9 @@ async function homeJournal() {
     const mine = (auth.currentUser?.email || '').toLowerCase();
     const all = (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(40)))).docs.map(d => d.data());
     const others = all.filter(x => (x.email || '').toLowerCase() !== mine).slice(0, 5);
-    if (!all.length || tab !== 'home') return;
+    const el = $('#hbJournal'); if (!all.length || tab !== 'home' || !el) return;
     const l = others.length ? others : all.slice(0, 5), titre = others.length ? 'Dernières modifications des autres administrateurs' : 'Dernières actions';
-    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>${titre}</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }, true).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
+    el.innerHTML = (`<div class="sech"><h2>${titre}</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }, true).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
   } catch {}
 }
 /* Bloc « À traiter » en haut de l'accueil : seulement ce que la personne a le droit d'ouvrir. */
@@ -1177,7 +1300,7 @@ async function homeTodo() {
     if (tab !== 'home') return;
     const todo = buildTodo({ events, clubs, messages, actus, notes }).filter(t => canSee(t.go)), MAX = 6;
     const h = todo.length ? `<div class="db-todo">${todoHtml(todo.slice(0, MAX))}</div>${todo.length > MAX && canSee('dashboard') ? `<button class="lnkb" data-go="dashboard" style="margin:-.6rem 0 1rem">Voir les ${todo.length - MAX} autre${todo.length - MAX > 1 ? 's' : ''} dans le tableau de bord</button>` : ''}` : `<div class="db-ok">✓ Rien à traiter : tout est à jour.</div>`;
-    const el = document.querySelector('#main .hello'); if (el) el.insertAdjacentHTML('afterend', `<div class="sech"><h2>À traiter</h2></div>${h}`);
+    const el = $('#hbTodo'); if (el) el.innerHTML = `<div class="sech"><h2>À traiter</h2></div>${h}`;
   } catch {}
 }
 
