@@ -244,6 +244,8 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .db-tip{position:fixed;z-index:60;background:var(--bleu);color:#fff;border:1px solid var(--or);padding:.4rem .7rem;border-radius:8px;font-size:.82rem;font-weight:700;white-space:nowrap;pointer-events:none;box-shadow:var(--sh2)}
 .db-tip[hidden]{display:none}
 
+body.ro #main .btn.b-or, body.ro #main .btn.b-ko { display: none; }
+body.ro #main::before { content: 'Mode lecture seule : tu peux consulter, mais pas modifier.'; display: block; margin: 0 0 1rem; padding: .6rem .9rem; background: #eef2f7; border-radius: 8px; color: var(--bleu); font-weight: 600; font-size: .9rem; }
 </style>
 </head>
 <body>
@@ -290,7 +292,8 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 
 <script type="module">
 import { db, auth } from './firebase-config.js';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getApp, initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -489,8 +492,35 @@ const USERS = {
   'administrateur@comite80.ffpjp': { nom: 'Bernard', import: false },
   'lukas@comite80.ffpjp': { nom: 'Lukas', import: true }
 };
-let me = { nom: '', import: false };
-const profileOf = u => USERS[(u.email || '').toLowerCase()] || { nom: '', import: false };
+/* Droits des comptes : collection « admins » (un document par compte, identifiant = UID Firebase), gérée dans l'onglet « Comptes ».
+   Les deux UID ci-dessous sont les comptes historiques : ils gardent toujours tous les droits (filet de sécurité, doivent rester identiques aux règles Firestore). */
+const HARD = ['cjMQ0hSuGpfhb85Rzok2X0hGjYW2', 'BCNghAr3FFWImmgNyTH6OzU0Juo1'];
+const RIGHTS = [
+  ['Général', [['dashboard', 'Tableau de bord'], ['messages', 'Messages'], ['notes', 'Bloc-notes']]],
+  ['Contenu du site', [['events', 'Calendrier'], ['actualites', 'Actualités'], ['clubs', 'Clubs'], ['membres', 'Le Comité, arbitres, éducateurs'], ['annuaire', 'Annuaire'], ['archives', 'Archives'], ['championnats', 'Championnats'], ['coupedefrance', 'Coupe de France'], ['regionaux', 'Régionaux / France'], ['championnatsclubs', 'Champ. des clubs'], ['documentations', 'Documentations'], ['classements', 'Classements'], ['settings', 'Infos du site et confidentialité']]],
+  ['Outils', [['journal', 'Journal']]]
+];
+const ALLR = RIGHTS.flatMap(g => g[1].map(x => x[0]));
+const ROLES = { super: 'Super admin', editeur: 'Éditeur', lecture: 'Lecture seule' };
+const NOBODY = { nom: '', import: false, role: 'none', droits: [], ok: false };
+let me = NOBODY;
+const rkey = t => ({ arbitres: 'membres', educateurs: 'membres', confidentialite: 'settings' }[t] || t);
+const isSup = () => me.role === 'super';
+const canSee = t => t === 'home' || (t === 'comptes' ? isSup() : t === 'import' ? !!me.import : t === 'corbeille' ? (isSup() || me.role === 'editeur') : isSup() || me.droits.includes(rkey(t)));
+async function loadMe(u) {
+  const email = (u.email || '').toLowerCase(), hard = HARD.includes(u.uid), old = USERS[email] || {};
+  let d = null;
+  try { const sn = await getDoc(doc(db, 'admins', u.uid)); d = sn.exists() ? sn.data() : null; } catch (e) { console.warn('Profil admin illisible :', e.message); }
+  if (!d && hard) { /* premier passage d'un compte historique : on crée son profil */
+    d = { email, nom: old.nom || '', role: 'super', actif: true, droits: ALL_R(), import: !!old.import, creeLe: Date.now() };
+    try { await setDoc(doc(db, 'admins', u.uid), d); } catch (e) { console.warn('Profil non enregistré :', e.message); }
+  }
+  if (hard) return { uid: u.uid, hard: true, ok: true, nom: (d && d.nom) || old.nom || '', role: 'super', droits: ALLR, import: d ? d.import !== false : !!old.import };
+  if (!d || d.actif !== true) return { ...NOBODY, uid: u.uid };
+  const sup = d.role === 'super';
+  return { uid: u.uid, hard: false, ok: true, nom: d.nom || '', role: ROLES[d.role] ? d.role : 'lecture', droits: sup ? ALLR : (Array.isArray(d.droits) ? d.droits : []), import: sup && d.import !== false };
+}
+const ALL_R = () => ALLR.slice();
 
 /* ===== Journal d'activité : qui a ajouté / modifié / supprimé quoi, et quand =====
    Chaque action est écrite dans la collection « journal » (jamais modifiée ni effacée, voir SECURITE-FIREBASE.txt).
@@ -539,7 +569,14 @@ async function logAct(action, objet, cible, detail = '') {
     await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 1500) });
   } catch (er) { console.warn('Journal non enregistré :', er.message); if (!window._jwarn) { window._jwarn = 1; try { toast('Action faite, mais NON notée dans le journal : vérifie les règles Firebase (collection « journal »).', 1); } catch {} } }
 }
-onAuthStateChanged(auth, u => { $('#login').hidden = !!u; $('#app').hidden = !u; if (u) { me = profileOf(u); start(); } else me = { nom: '', import: false }; });
+onAuthStateChanged(auth, async u => {
+  if (!u) { me = NOBODY; $('#login').hidden = false; $('#app').hidden = true; return; }
+  me = await loadMe(u);
+  if (!me.ok) { await signOut(auth); const er = $('#lerr'); er.textContent = 'Ce compte n\'a pas (ou plus) accès à l\'administration. Demande à un super admin de l\'activer.'; er.hidden = false; return; }
+  $('#login').hidden = true; $('#app').hidden = false;
+  document.body.classList.toggle('ro', me.role === 'lecture');
+  start();
+});
 $('#loginForm').onsubmit = async e => { e.preventDefault(); const er = $('#lerr'); er.hidden = true;
   if (!$('#em').value.trim() || !$('#pw').value) { er.textContent = 'Renseigne ton email et ton mot de passe.'; er.hidden = false; return; }
   await busy($('#lbtn'), async () => { try { await signInWithEmailAndPassword(auth, $('#em').value.trim(), $('#pw').value); } catch { er.textContent = 'Email ou mot de passe incorrect.'; er.hidden = false; } }); };
@@ -548,8 +585,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal', 'comptes']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -561,7 +598,7 @@ scrim.onclick = closeMenu;
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) { closeMenu(); burger.focus(); } });
 $('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab = b.dataset.t; start(); window.scrollTo(0, 0); } };
 function start() {
-  $('#tabs').innerHTML = GROUPS.map(([g, ks]) => [g, ks.filter(k => k !== 'import' || me.import)]).map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
+  $('#tabs').innerHTML = GROUPS.map(([g, ks]) => [g, ks.filter(canSee)]).filter(([g, ks]) => ks.length).map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
   $('#curname').textContent = NAMES[tab][1];
   closeMenu(); show(); badge();
 }
@@ -570,9 +607,9 @@ const empty = (m, i = 'inbox') => `<div class="empty">${ic(i, 32)}${m}</div>`;
 async function show() {
   if (tab === 'stats') tab = 'dashboard';
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
-  if (tab === 'import' && !me.import) tab = 'home';
+  if (!canSee(tab)) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : tab === 'comptes' ? await viewComptes() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -586,6 +623,7 @@ async function viewHome() {
   <div class="tiles">${T('events', 'cal', n.events.length, 'Compétitions', `${up.length} à venir`)}${T('clubs', 'pin', n.clubs.length, 'Clubs', 'Coordonnées, présidents, terrains')}${T('membres', 'users', people('comite'), 'Membres du comité', 'Organigramme et contacts')}${T('arbitres', 'whistle', people('arbitre'), 'Arbitres', 'Liste des arbitres du département')}${T('educateurs', 'edu', people('educateur'), 'Éducateurs / Initiateurs', 'Encadrants diplômés')}${T('annuaire', 'ext', n.annuaire.length, 'Annuaire', 'Sites des comités voisins')}${T('archives', 'clip', n.archives.length, 'Archives', 'PV, résultats, classements passés')}${T('documentations', 'file', n.documentations.length, 'Documentations', 'Règlements, formulaires, liens utiles')}${T('classements', 'chart', n.classements.length, 'Classements', 'Tableaux de points, import Excel')}${T('settings', 'sliders', '—', 'Infos du site', 'Accueil, chiffres, adresse, PDF')}</div>
   ${up.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir tout le calendrier</button></div>${up.slice(0, 4).map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : ''}
   ${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty(me.import ? 'Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.' : 'Base vide : demande à Lukas d\'importer le contenu actuel du site.')}</div>`}`;
+  $('#main').querySelectorAll('.tile[data-go]').forEach(t => { if (!canSee(t.dataset.go)) t.remove(); });
   $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Sauvegarde</h2></div><div class="card"><p class="hint2">Télécharge une copie de tout le contenu du site (compétitions, clubs, membres, classements, documents, actualités, textes…) dans un seul fichier. À faire de temps en temps et à garder sur ton ordinateur. Les messages reçus ne sont pas inclus.</p><button type="button" class="btn b-or" id="bkBtn">Télécharger la sauvegarde</button></div>`);
   $('#bkBtn').onclick = async e => { await busy(e.currentTarget, async () => { try {
     const names = [...new Set(Object.keys(SCHEMA).map(k => SCHEMA[k].col || k).concat(['actualites', 'settings']))], out = { exporteLe: new Date().toISOString(), collections: {} };
@@ -944,6 +982,110 @@ async function viewNotes() {
       else if (a === 'del' && await ask('Supprimer cette note ?', 'Elle disparaîtra pour tous les administrateurs et ne pourra pas être récupérée.', 'Supprimer')) { await deleteDoc(doc(db, 'notes', n._id)); l.splice(l.indexOf(n), 1); draw(); toast('Note supprimée'); }
     } catch (er) { fail(er); }
   };
+}
+
+
+/* ===== Comptes administrateurs (réservé aux super admins) ===== */
+const rolePill = r => `<span class="pill" style="background:${r === 'super' ? 'var(--bleu)' : r === 'editeur' ? 'rgba(201,168,76,.25)' : '#e8ebf0'};color:${r === 'super' ? 'var(--or)' : 'var(--bleu)'}">${ROLES[r] || r}</span>`;
+async function viewComptes() {
+  let l = (await getDocs(collection(db, 'admins'))).docs.map(d => ({ ...d.data(), _id: d.id }));
+  const order = { super: 0, editeur: 1, lecture: 2 };
+  let editId = null, adding = false;
+  const nSup = () => l.filter(a => a.role === 'super' && a.actif === true).length;
+  const rightsHtml = (sel, dis) => RIGHTS.map(([g, items]) => `<div class="hint2" style="margin:.8rem 0 .3rem"><b>${g}</b></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.3rem .8rem">${items.map(([k, lab]) => `<label style="display:flex;align-items:center;gap:.5rem;min-height:36px;font-weight:500"><input type="checkbox" data-r="${k}" style="width:20px;height:20px;min-height:0;flex:none" ${sel.includes(k) ? 'checked' : ''} ${dis ? 'disabled' : ''}>${esc(lab)}</label>`).join('')}</div>`).join('');
+  const form = a => {
+    const isNew = !a, role = a ? a.role : 'editeur', sel = a ? (a.droits || []) : [];
+    const self = a && a._id === me.uid;
+    return `<div class="card" id="cform"><b>${ic(isNew ? 'plus' : 'edit', 18)} ${isNew ? 'Nouveau compte' : 'Modifier ' + esc(a.nom || a.email)}</b>
+      <div class="f" style="margin-top:.8rem"><label for="c-nom">Nom affiché</label><input id="c-nom" value="${esc(a ? a.nom : '')}" placeholder="Ex : Marie"></div>
+      <div class="f" style="margin-top:.7rem"><label for="c-em">Adresse e-mail (identifiant de connexion)</label><input id="c-em" type="email" value="${esc(a ? a.email : '')}" ${isNew ? '' : 'disabled'} placeholder="prenom@exemple.fr" autocomplete="off"></div>
+      ${isNew ? `<div class="f" style="margin-top:.7rem"><label for="c-pw">Mot de passe provisoire (6 caractères minimum)</label><input id="c-pw" type="text" autocomplete="off" placeholder="À communiquer à la personne, qui pourra le changer"></div>
+      <div class="f" style="margin-top:.7rem"><label for="c-uid">Compte déjà existant dans Firebase ? Colle son identifiant (UID) ici — sinon laisse vide</label><input id="c-uid" autocomplete="off" placeholder="Facultatif"></div>` : ''}
+      <div class="f" style="margin-top:.7rem"><label for="c-role">Niveau d'accès</label><select id="c-role" ${self ? 'disabled' : ''}>${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${k === role ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <p class="hint2" id="c-help"></p></div>
+      <div id="c-rights"></div>
+      <label id="c-imp-w" style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.8rem;font-weight:500"><input type="checkbox" id="c-imp" style="width:20px;height:20px;min-height:0;flex:none" ${!a || a.import !== false ? 'checked' : ''}>Peut utiliser l'onglet Import</label>
+      ${isNew ? '' : `<label style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.4rem;font-weight:500"><input type="checkbox" id="c-actif" style="width:20px;height:20px;min-height:0;flex:none" ${a.actif === true ? 'checked' : ''} ${self || HARD.includes(a._id) ? 'disabled' : ''}>Compte actif (décoche pour bloquer l'accès sans le supprimer)</label>`}
+      <div class="flex" style="margin-top:1rem"><button class="btn b-or" data-a="save">${ic('save', 16)}${isNew ? 'Créer le compte' : 'Enregistrer'}</button><button class="btn b-ln" data-a="cancel">Annuler</button>
+      ${isNew || self ? '' : `<button class="btn b-ln" data-a="reset" data-id="${a._id}">${ic('mail', 16)}Envoyer un e-mail de nouveau mot de passe</button>`}
+      ${isNew || self || HARD.includes(a._id) ? '' : `<button class="btn b-ko" data-a="del" data-id="${a._id}">${ic('trash', 16)}Retirer l'accès</button>`}</div></div>`;
+  };
+  const syncForm = () => {
+    const r = $('#c-role'); if (!r) return;
+    const help = { super: 'Accède à tout, y compris à la gestion des comptes.', editeur: 'Peut consulter et modifier les parties cochées ci-dessous.', lecture: 'Peut seulement consulter les parties cochées ci-dessous, sans rien modifier.' };
+    $('#c-help').textContent = help[r.value];
+    const sup = r.value === 'super', prev = [...document.querySelectorAll('#c-rights [data-r]')].filter(x => x.checked).map(x => x.dataset.r);
+    const a = editId ? l.find(x => x._id === editId) : null;
+    $('#c-rights').innerHTML = sup ? '<p class="hint2">Un super admin a accès à tout.</p>' : `<div class="flex" style="margin-top:.8rem"><button type="button" class="btn b-ln" data-a="all">Tout cocher</button><button type="button" class="btn b-ln" data-a="none">Tout décocher</button></div>` + rightsHtml(document.querySelector('#c-rights [data-r]') ? prev : (a ? (a.droits || []) : ['events', 'actualites', 'notes']), false);
+    $('#c-imp-w').hidden = !sup;
+  };
+  const draw = () => {
+    const rows = l.slice().sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || String(a.nom || a.email).localeCompare(String(b.nom || b.email)));
+    $('#clist').innerHTML = rows.length ? rows.map(a => `<div class="row ${a.actif === true ? '' : 'past'}"><div class="m"><strong>${esc(a.nom || a.email)}${a._id === me.uid ? ' <small style="display:inline">(vous)</small>' : ''}</strong>
+      <small>${rolePill(a.role)}${a.actif === true ? '' : '<span class="pill" style="background:#fde8e8;color:#9b1c1c">Désactivé</span>'}${esc(a.email || '')}</small>
+      <small>${a.role === 'super' ? 'Accès à tout' : (a.droits || []).length + ' partie' + ((a.droits || []).length > 1 ? 's' : '') + ' du site'}</small></div>
+      <div class="act"><button class="btn b-ln b-ic" data-a="edit" data-id="${a._id}" aria-label="Modifier" title="Modifier">${ic('edit', 16)}</button></div></div>`).join('') : empty('Aucun compte enregistré.', 'users');
+    $('#cslot').innerHTML = adding ? form(null) : editId ? form(l.find(x => x._id === editId)) : '';
+    $('#cadd').hidden = adding || !!editId;
+    syncForm();
+  };
+  $('#main').innerHTML = head('Comptes', 'Gère qui peut se connecter à l\'administration et ce que chacun peut faire. Un compte désactivé ou retiré ne peut plus rien voir ni modifier.') +
+    `<div class="flex" style="margin-bottom:1rem"><button class="btn b-or" id="cadd">${ic('plus')}Ajouter un compte</button><button class="btn b-ln" id="cme">${ic('lock', 16)}Changer mon mot de passe</button></div><div id="cslot"></div><div id="clist"></div>`;
+  const fail = er => toast('Échec : ' + er.message, 1);
+  $('#cme').onclick = async () => { try { await sendPasswordResetEmail(auth, auth.currentUser.email); toast('E-mail envoyé à ' + auth.currentUser.email); } catch (er) { fail(er); } };
+  $('#cadd').onclick = () => { adding = true; editId = null; draw(); $('#c-nom').focus(); };
+  $('#main').onchange = e => { if (e.target.id === 'c-role') syncForm(); };
+  $('#main').onclick = async e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a, acc = l.find(x => x._id === b.dataset.id);
+    try {
+      if (a === 'cancel') { adding = false; editId = null; return draw(); }
+      if (a === 'edit') { editId = b.dataset.id; adding = false; draw(); $('#cform').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (a === 'all' || a === 'none') { document.querySelectorAll('#c-rights [data-r]').forEach(x => x.checked = a === 'all'); return; }
+      if (a === 'reset' && acc) { await sendPasswordResetEmail(auth, acc.email); return toast('E-mail envoyé à ' + acc.email); }
+      if (a === 'del' && acc) {
+        if (acc.role === 'super' && nSup() <= 1) return toast('Impossible : il doit rester au moins un super admin.', 1);
+        if (await ask('Retirer l\'accès à ' + (acc.nom || acc.email) + ' ?', 'Cette personne ne pourra plus se connecter à l\'administration. Son compte de connexion reste dans Firebase (tu peux le supprimer là-bas si tu veux). Tu pourras lui redonner l\'accès plus tard.', 'Retirer')) {
+          await deleteDoc(doc(db, 'admins', acc._id)); l = l.filter(x => x !== acc); editId = null; draw(); toast('Accès retiré'); logAct('suppr', 'Compte admin', acc.nom || acc.email);
+        }
+        return;
+      }
+      if (a === 'save') {
+        const nom = $('#c-nom').value.trim(), role = $('#c-role').value, sup = role === 'super';
+        const droits = sup ? ALL_R() : [...document.querySelectorAll('#c-rights [data-r]')].filter(x => x.checked).map(x => x.dataset.r);
+        if (!nom) return toast('Écris le nom de la personne.', 1);
+        if (!sup && !droits.length) return toast('Coche au moins une partie du site.', 1);
+        const imp = sup && $('#c-imp').checked;
+        if (adding) {
+          const email = $('#c-em').value.trim().toLowerCase(), pw = $('#c-pw').value, uid0 = $('#c-uid').value.trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('Adresse e-mail invalide.', 1);
+          if (!uid0 && pw.length < 6) return toast('Le mot de passe doit faire au moins 6 caractères.', 1);
+          if (l.some(x => (x.email || '').toLowerCase() === email)) return toast('Cette adresse a déjà un profil.', 1);
+          await busy(b, async () => {
+            let uid = uid0;
+            if (!uid) { /* connexion secondaire : crée le compte sans déconnecter l'administrateur actuel */
+              const sec = initializeApp(getApp().options, 'creation-' + Date.now());
+              try { uid = (await createUserWithEmailAndPassword(getAuth(sec), email, pw)).user.uid; await signOut(getAuth(sec)); }
+              catch (er) { throw new Error(er.code === 'auth/email-already-in-use' ? 'Cette adresse existe déjà dans Firebase : colle son identifiant (UID) dans le champ prévu, ou utilise « nouveau mot de passe » depuis la console.' : er.code === 'auth/weak-password' ? 'Mot de passe trop faible.' : er.message); }
+              finally { try { await deleteApp(sec); } catch {} }
+            }
+            const d = { email, nom, role, actif: true, droits, import: imp, creeLe: Date.now(), creePar: me.nom || (auth.currentUser.email || '') };
+            await setDoc(doc(db, 'admins', uid), d); l.push({ ...d, _id: uid }); adding = false; draw(); toast('Compte créé');
+            logAct('ajout', 'Compte admin', nom, ROLES[role] + ' — ' + email);
+          });
+        } else {
+          const cur = l.find(x => x._id === editId), self = cur._id === me.uid, actifEl = $('#c-actif'), actif = actifEl ? actifEl.checked : true;
+          if (cur.role === 'super' && (role !== 'super' || !actif) && nSup() <= 1) return toast('Impossible : il doit rester au moins un super admin.', 1);
+          await busy(b, async () => {
+            const p = { nom, role: self ? 'super' : role, droits, import: imp, actif: self || HARD.includes(cur._id) ? true : actif, majLe: Date.now() };
+            await updateDoc(doc(db, 'admins', cur._id), p); Object.assign(cur, p); if (self) me.nom = nom; editId = null; draw(); toast('Compte enregistré');
+            logAct('modif', 'Compte admin', nom, ROLES[p.role] + (p.actif ? '' : ' — désactivé'));
+          });
+        }
+      }
+    } catch (er) { fail(er); }
+  };
+  draw();
 }
 
 /* ===== Journal d'activité ===== */
