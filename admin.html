@@ -494,6 +494,10 @@ const USERS = {
 };
 /* Droits des comptes : collection « admins » (un document par compte, identifiant = UID Firebase), gérée dans l'onglet « Comptes ».
    Les deux UID ci-dessous sont les comptes historiques : ils gardent toujours tous les droits (filet de sécurité, doivent rester identiques aux règles Firestore). */
+/* Compte propriétaire : seul lui peut modifier son propre compte et attribuer l'accès à l'onglet Import. */
+const OWNER = 'lukas@comite80.ffpjp';
+const isOwner = () => ((auth.currentUser && auth.currentUser.email) || '').toLowerCase() === OWNER;
+const isProtected = a => !!a && (a.email || '').toLowerCase() === OWNER && !isOwner();
 const HARD = ['cjMQ0hSuGpfhb85Rzok2X0hGjYW2', 'BCNghAr3FFWImmgNyTH6OzU0Juo1'];
 const RIGHTS = [
   ['Général', [['dashboard', 'Tableau de bord'], ['messages', 'Messages'], ['notes', 'Bloc-notes']]],
@@ -1004,7 +1008,7 @@ async function viewComptes() {
       <div class="f" style="margin-top:.7rem"><label for="c-role">Niveau d'accès</label><select id="c-role" ${self ? 'disabled' : ''}>${Object.entries(ROLES).map(([k, v]) => `<option value="${k}" ${k === role ? 'selected' : ''}>${v}</option>`).join('')}</select>
         <p class="hint2" id="c-help"></p></div>
       <div id="c-rights"></div>
-      <label id="c-imp-w" style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.8rem;font-weight:500"><input type="checkbox" id="c-imp" style="width:20px;height:20px;min-height:0;flex:none" ${!a || a.import !== false ? 'checked' : ''}>Peut utiliser l'onglet Import</label>
+      ${isOwner() ? `<label id="c-imp-w" style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.8rem;font-weight:500"><input type="checkbox" id="c-imp" style="width:20px;height:20px;min-height:0;flex:none" ${!a || a.import !== false ? 'checked' : ''}>Peut utiliser l'onglet Import</label>` : ''}
       ${isNew ? '' : `<label style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.4rem;font-weight:500"><input type="checkbox" id="c-actif" style="width:20px;height:20px;min-height:0;flex:none" ${a.actif === true ? 'checked' : ''} ${self || HARD.includes(a._id) ? 'disabled' : ''}>Compte actif (décoche pour bloquer l'accès sans le supprimer)</label>`}
       <div class="flex" style="margin-top:1rem"><button class="btn b-or" data-a="save">${ic('save', 16)}${isNew ? 'Créer le compte' : 'Enregistrer'}</button><button class="btn b-ln" data-a="cancel">Annuler</button>
       ${isNew || self ? '' : `<button class="btn b-ln" data-a="reset" data-id="${a._id}">${ic('mail', 16)}Envoyer un e-mail de nouveau mot de passe</button>`}
@@ -1017,14 +1021,14 @@ async function viewComptes() {
     const sup = r.value === 'super', prev = [...document.querySelectorAll('#c-rights [data-r]')].filter(x => x.checked).map(x => x.dataset.r);
     const a = editId ? l.find(x => x._id === editId) : null;
     $('#c-rights').innerHTML = sup ? '<p class="hint2">Un super admin a accès à tout.</p>' : `<div class="flex" style="margin-top:.8rem"><button type="button" class="btn b-ln" data-a="all">Tout cocher</button><button type="button" class="btn b-ln" data-a="none">Tout décocher</button></div>` + rightsHtml(document.querySelector('#c-rights [data-r]') ? prev : (a ? (a.droits || []) : ['events', 'actualites', 'notes']), false);
-    $('#c-imp-w').hidden = !sup;
+    if ($('#c-imp-w')) $('#c-imp-w').hidden = !sup;
   };
   const draw = () => {
     const rows = l.slice().sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || String(a.nom || a.email).localeCompare(String(b.nom || b.email)));
     $('#clist').innerHTML = rows.length ? rows.map(a => `<div class="row ${a.actif === true ? '' : 'past'}"><div class="m"><strong>${esc(a.nom || a.email)}${a._id === me.uid ? ' <small style="display:inline">(vous)</small>' : ''}</strong>
       <small>${rolePill(a.role)}${a.actif === true ? '' : '<span class="pill" style="background:#fde8e8;color:#9b1c1c">Désactivé</span>'}${esc(a.email || '')}</small>
       <small>${a.role === 'super' ? 'Accès à tout' : (a.droits || []).length + ' partie' + ((a.droits || []).length > 1 ? 's' : '') + ' du site'}</small></div>
-      <div class="act"><button class="btn b-ln b-ic" data-a="edit" data-id="${a._id}" aria-label="Modifier" title="Modifier">${ic('edit', 16)}</button></div></div>`).join('') : empty('Aucun compte enregistré.', 'users');
+      <div class="act">${isProtected(a) ? `<span title="Compte protégé" aria-label="Compte protégé">${ic('lock', 16)}</span>` : `<button class="btn b-ln b-ic" data-a="edit" data-id="${a._id}" aria-label="Modifier" title="Modifier">${ic('edit', 16)}</button>`}</div></div>`).join('') : empty('Aucun compte enregistré.', 'users');
     $('#cslot').innerHTML = adding ? form(null) : editId ? form(l.find(x => x._id === editId)) : '';
     $('#cadd').hidden = adding || !!editId;
     syncForm();
@@ -1038,6 +1042,7 @@ async function viewComptes() {
   $('#main').onclick = async e => {
     const b = e.target.closest('[data-a]'); if (!b) return;
     const a = b.dataset.a, acc = l.find(x => x._id === b.dataset.id);
+    if (isProtected(acc) || (a === 'save' && !adding && isProtected(l.find(x => x._id === editId)))) return toast('Ce compte est protégé : seul son propriétaire peut le modifier.', 1);
     try {
       if (a === 'cancel') { adding = false; editId = null; return draw(); }
       if (a === 'edit') { editId = b.dataset.id; adding = false; draw(); $('#cform').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -1055,7 +1060,9 @@ async function viewComptes() {
         const droits = sup ? ALL_R() : [...document.querySelectorAll('#c-rights [data-r]')].filter(x => x.checked).map(x => x.dataset.r);
         if (!nom) return toast('Écris le nom de la personne.', 1);
         if (!sup && !droits.length) return toast('Coche au moins une partie du site.', 1);
-        const imp = sup && $('#c-imp').checked;
+        /* Sans la case (non-propriétaire) : on conserve la valeur actuelle, et jamais d'import pour un nouveau compte. */
+        const impEl = $('#c-imp'), prevAcc = adding ? null : l.find(x => x._id === editId);
+        const imp = sup && (impEl ? impEl.checked : !!prevAcc && prevAcc.import !== false);
         if (adding) {
           const email = $('#c-em').value.trim().toLowerCase(), pw = $('#c-pw').value, uid0 = $('#c-uid').value.trim();
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast('Adresse e-mail invalide.', 1);
