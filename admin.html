@@ -628,15 +628,22 @@ async function viewHome() {
   ${up.length ? `<div class="sech"><h2>Prochaines compétitions</h2><button class="lnkb" data-go="events">Voir tout le calendrier</button></div>${up.slice(0, 4).map(e => `<div class="row">${S.left(e)}<div class="m"><strong>${esc(e.titre)}</strong><small>${S.sub(e)}</small></div></div>`).join('')}` : ''}
   ${n.events.length + n.clubs.length ? '' : `<div style="margin-top:1rem">${empty(me.import ? 'Base vide : ouvre l\'onglet <b>Import</b> pour reprendre le contenu actuel du site.' : 'Base vide : demande à Lukas d\'importer le contenu actuel du site.')}</div>`}`;
   $('#main').querySelectorAll('.tile[data-go]').forEach(t => { if (!canSee(t.dataset.go)) t.remove(); });
-  $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Sauvegarde</h2></div><div class="card"><p class="hint2">Télécharge une copie de tout le contenu du site (compétitions, clubs, membres, classements, documents, actualités, textes…) dans un seul fichier. À faire de temps en temps et à garder sur ton ordinateur. Les messages reçus ne sont pas inclus.</p><button type="button" class="btn b-or" id="bkBtn">Télécharger la sauvegarde</button></div>`);
+  $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Sauvegarde</h2></div><div class="card"><p id="bkInfo" class="hint2" style="font-weight:700"></p><p class="hint2">Télécharge une copie de tout le contenu du site (compétitions, clubs, membres, classements, documents, actualités, textes…) dans un seul fichier. À faire de temps en temps et à garder sur ton ordinateur. Les messages reçus ne sont pas inclus.</p><button type="button" class="btn b-or" id="bkBtn">Télécharger la sauvegarde</button></div>`);
+  const BK = 'cd80_derniere_sauvegarde', bkInfo = () => { let t = 0; try { t = +localStorage.getItem(BK) || 0; } catch {}
+    const d = t ? Math.floor((Date.now() - t) / 864e5) : null, el = $('#bkInfo'); if (!el) return;
+    el.textContent = d === null ? 'Aucune sauvegarde faite depuis cet appareil.' : 'Dernière sauvegarde depuis cet appareil : ' + (d <= 0 ? 'aujourd\'hui' : d === 1 ? 'hier' : 'il y a ' + d + ' jours') + '.';
+    el.style.color = d === null || d > 30 ? 'var(--ko)' : 'var(--ok)'; };
+  bkInfo();
   $('#bkBtn').onclick = async e => { await busy(e.currentTarget, async () => { try {
     const names = [...new Set(Object.keys(SCHEMA).map(k => SCHEMA[k].col || k).concat(['actualites', 'settings']))], out = { exporteLe: new Date().toISOString(), collections: {} };
     for (const c of names) { try { out.collections[c] = (await getDocs(collection(db, c))).docs.map(d => ({ _id: d.id, ...d.data() })); } catch (er) { out.collections[c] = 'inaccessible'; } }
     const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })), a = document.createElement('a');
     a.href = url; a.download = 'sauvegarde-cd80-' + new Date().toISOString().slice(0, 10) + '.json'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    try { localStorage.setItem(BK, String(Date.now())); } catch {} bkInfo();
     toast('Sauvegarde téléchargée');
   } catch (er) { toast('Échec de la sauvegarde', true); } }); };
   $('#main').onclick = e => { const b = e.target.closest('[data-go]'); if (b) { tab = b.dataset.go; start(); window.scrollTo(0, 0); } };
+  homeTodo();
   homeJournal();
 }
 
@@ -1154,9 +1161,23 @@ async function viewJournal() {
 /* Les 5 dernières actions, affichées sur l'accueil (sans bloquer l'accueil si le journal est inaccessible) */
 async function homeJournal() {
   try {
-    const l = (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(5)))).docs.map(d => d.data());
-    if (!l.length || tab !== 'home') return;
-    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>Dernières actions</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }, true).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
+    const mine = (auth.currentUser?.email || '').toLowerCase();
+    const all = (await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(40)))).docs.map(d => d.data());
+    const others = all.filter(x => (x.email || '').toLowerCase() !== mine).slice(0, 5);
+    if (!all.length || tab !== 'home') return;
+    const l = others.length ? others : all.slice(0, 5), titre = others.length ? 'Dernières modifications des autres administrateurs' : 'Dernières actions';
+    $('#main').insertAdjacentHTML('beforeend', `<div class="sech"><h2>${titre}</h2><button class="lnkb" data-go="journal">Voir tout le journal</button></div>${l.map(x => jrow({ ...x, email: '' }, true).replace('class="bd jn-h">', 'class="bd jn-h" title="' + esc(fdate(x.date)) + '">')).join('')}`);
+  } catch {}
+}
+/* Bloc « À traiter » en haut de l'accueil : seulement ce que la personne a le droit d'ouvrir. */
+async function homeTodo() {
+  try {
+    const col = async c => { try { return (await getDocs(collection(db, c))).docs.map(d => ({ ...d.data(), _id: d.id })); } catch { return null; } };
+    const [events, clubs, messages, actus, notes] = await Promise.all([col('events'), col('clubs'), col('messages'), col('actualites'), col('notes')]);
+    if (tab !== 'home') return;
+    const todo = buildTodo({ events, clubs, messages, actus, notes }).filter(t => canSee(t.go)), MAX = 6;
+    const h = todo.length ? `<div class="db-todo">${todoHtml(todo.slice(0, MAX))}</div>${todo.length > MAX && canSee('dashboard') ? `<button class="lnkb" data-go="dashboard" style="margin:-.6rem 0 1rem">Voir les ${todo.length - MAX} autre${todo.length - MAX > 1 ? 's' : ''} dans le tableau de bord</button>` : ''}` : `<div class="db-ok">✓ Rien à traiter : tout est à jour.</div>`;
+    const el = document.querySelector('#main .hello'); if (el) el.insertAdjacentHTML('afterend', `<div class="sech"><h2>À traiter</h2></div>${h}`);
   } catch {}
 }
 
@@ -1200,6 +1221,34 @@ async function viewTrash() {
       badge(true); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
+/* Liste « À traiter » partagée par l'accueil et le tableau de bord. Une donnée absente (null = collection inaccessible) est simplement ignorée. */
+function buildTodo({ events, clubs, messages, actus, notes }) {
+  const DAY = 864e5, todo = [], add = (lvl, k, txt, go) => k > 0 && todo.push({ lvl, k, txt, go });
+  const plus = n => new Date(Date.now() + n * DAY).toISOString().slice(0, 10);
+  if (messages) {
+    add('hi', messages.filter(m => !m.lu).length, 'message(s) non lu(s) dans la boîte de contact', 'messages');
+    add('mid', messages.filter(m => m.lu && !m.traite).length, 'message(s) lu(s) mais pas encore marqué(s) « traité »', 'messages');
+  }
+  if (clubs) {
+    add('mid', clubs.filter(c => (c.adresse || c.tel || c.email) && !c.consentement).length, 'club(s) dont l\'adresse, le téléphone ou l\'email est renseigné mais masqué sur le site (accord du dirigeant non enregistré)', 'clubs');
+    add('lo', clubs.filter(c => !c.tel && !c.email).length, 'club(s) sans téléphone ni email', 'clubs');
+  }
+  if (events) {
+    const nx = events.filter(e => e.date >= today && e.date <= plus(30));
+    add('mid', nx.filter(e => !e.lieu || !e.heure).length, 'compétition(s) des 30 prochains jours sans lieu ou sans heure', 'events');
+    if (!events.some(e => e.date >= today && e.date <= plus(60))) todo.push({ lvl: 'hi', k: 0, txt: 'Aucune compétition au calendrier dans les 60 prochains jours', go: 'events' });
+  }
+  if (actus) {
+    add('lo', actus.filter(a => actuEtat(a) === 'brouillon').length, 'actualité(s) en brouillon, non visible(s)', 'actualites');
+    add('lo', actus.filter(a => actuEtat(a) === 'programme').length, 'actualité(s) programmée(s) pour plus tard', 'actualites');
+    if (!actus.some(a => actuEtat(a) === 'publie')) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune actualité publiée en ce moment sur la page d\'accueil', go: 'actualites' });
+  }
+  if (notes) add('lo', notes.filter(n => !n.fait).length, 'note(s) du bloc-notes à faire', 'notes');
+  todo.sort((a, b) => ({ hi: 0, mid: 1, lo: 2 })[a.lvl] - ({ hi: 0, mid: 1, lo: 2 })[b.lvl]);
+  return todo;
+}
+const todoHtml = todo => todo.map(t => `<button class="db-it ${t.lvl}" data-go="${t.go}"><b>${t.k || '!'}</b><span>${t.k ? t.txt.replace(/\(s\)/g, t.k > 1 ? 's' : '') : t.txt}</span><em>Ouvrir ›</em></button>`).join('');
+
 const PAGES = { accueil: 'Accueil', comite: 'Le Comité', clubs: 'Les clubs', calendrier: 'Calendrier', annuaire: 'Annuaire', classement: 'Classements', archives: 'Archives', documentations: 'Documentations', cdc: 'Champ. des clubs', championnats: 'Championnats', 'coupe-de-france': 'Coupe de France', regionaux: 'Régionaux / France' };
 /* ───────── Tableau de bord ─────────
    Vue d'ensemble : ce qui demande une action, l'audience, les abonnés aux notifications, l'activité des administrateurs.
@@ -1224,25 +1273,7 @@ async function viewDashboard() {
   const long = d => new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), best = cur.reduce((m, x) => x.t > m.t ? x : m, cur[0]);
 
   /* À traiter */
-  const todo = [], add = (lvl, k, txt, go) => k > 0 && todo.push({ lvl, k, txt, go });
-  if (messages) {
-    add('hi', messages.filter(m => !m.lu).length, 'message(s) non lu(s) dans la boîte de contact', 'messages');
-    add('mid', messages.filter(m => m.lu && !m.traite).length, 'message(s) lu(s) mais pas encore marqué(s) « traité »', 'messages');
-  }
-  if (clubs) {
-    add('mid', clubs.filter(c => (c.adresse || c.tel || c.email) && !c.consentement).length, 'club(s) dont l\'adresse, le téléphone ou l\'email est renseigné mais masqué sur le site (accord du dirigeant non enregistré)', 'clubs');
-    add('lo', clubs.filter(c => !c.tel && !c.email).length, 'club(s) sans téléphone ni email', 'clubs');
-  }
-  if (events) {
-    const nx = events.filter(e => e.date >= today && e.date <= plus(30));
-    add('mid', nx.filter(e => !e.lieu || !e.heure).length, 'compétition(s) des 30 prochains jours sans lieu ou sans heure', 'events');
-    if (!events.some(e => e.date >= today && e.date <= plus(60))) todo.push({ lvl: 'hi', k: 0, txt: 'Aucune compétition au calendrier dans les 60 prochains jours', go: 'events' });
-  }
-  if (actus) {
-    add('lo', actus.filter(a => actuEtat(a) === 'brouillon').length, 'actualité(s) en brouillon, non visible(s)', 'actualites');
-    add('lo', actus.filter(a => actuEtat(a) === 'programme').length, 'actualité(s) programmée(s) pour plus tard', 'actualites');
-    if (!actus.some(a => actuEtat(a) === 'publie')) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune actualité publiée en ce moment sur la page d\'accueil', go: 'actualites' });
-  }
+  const todo = buildTodo({ events, clubs, messages, actus });
   if (vues && Object.keys(byDay).length && rng(3, 0).every(x => !x.t)) todo.push({ lvl: 'mid', k: 0, txt: 'Aucune visite enregistrée depuis 3 jours : vérifier que le comptage fonctionne', go: 'dashboard' });
   const rank = { hi: 0, mid: 1, lo: 2 }; todo.sort((a, b) => rank[a.lvl] - rank[b.lvl]);
   const allKO = [events, clubs, messages, push, actus, vues, journal].every(x => x === null);
