@@ -22,7 +22,7 @@ self.addEventListener('notificationclick', event => {
   }));
 });
 
-const VERSION = 'v8'; /* v4 : menu sans Régionaux ; v3 : notifications push + données hors ligne */
+const VERSION = 'v9'; /* v4 : menu sans Régionaux ; v3 : notifications push + données hors ligne */
 const SHELL = 'cd80-shell-' + VERSION;
 const RUNTIME = 'cd80-runtime-' + VERSION;
 

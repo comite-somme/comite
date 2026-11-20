@@ -118,7 +118,7 @@ function applyClassements(list) {
   const num = s => parseFloat(String(s ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
   const badge = v => { const n = norm(v); return n === 'elite' ? 'badge-Elite' : n === 'honneur' ? 'badge-Honneur' : n === 'promotion' ? 'badge-Promotion' : 'badge-Non-Class'; };
 
-  const css = `<style>.cms-rk{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font:700 .85rem 'DM Sans',sans-serif}.cms-rk.r1{background:#c9a84c;color:#0a2342}.cms-rk.r2{background:#c9ced6;color:#333}.cms-rk.r3{background:#c8855a;color:#fff}.cms-ct{width:100%;min-height:46px;margin:0 0 .6rem;border:1.5px solid var(--bleu);background:var(--bleu);color:var(--or);font:700 .95rem 'DM Sans',sans-serif;padding:.4rem 1.2rem;border-radius:25px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:.6rem}.cms-ct::after{content:'▾';transition:transform .2s}.cms-ct[aria-expanded=true]::after{transform:rotate(180deg)}.cat-tabs[hidden]{display:none}.cat-tabs.cms-list{margin:0 0 1rem}</style>`;
+  const css = `<style>.cms-rk{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font:700 .85rem 'DM Sans',sans-serif}.cms-ct{width:100%;min-height:46px;margin:0 0 .6rem;border:1.5px solid var(--bleu);background:var(--bleu);color:var(--or);font:700 .95rem 'DM Sans',sans-serif;padding:.4rem 1.2rem;border-radius:25px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:.6rem}.cms-ct::after{content:'▾';transition:transform .2s}.cms-ct[aria-expanded=true]::after{transform:rotate(180deg)}.cat-tabs[hidden]{display:none}.cat-tabs.cms-list{margin:0 0 1rem}</style>`;
   const majD = c => { const m = String(c.majLe || '').match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/); return m ? new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[2] - 1, +m[1]).getTime() : 0; };
   const last = list.filter(c => c.majLe).sort((a, b) => majD(b) - majD(a))[0];
   const maj = last ? esc(String(last.majLe).replace(/^mis à jour( le)?\s*/i, '')) : '';
@@ -178,24 +178,26 @@ function applyClassements(list) {
     if (!rows.length) { $('#cms-tb', host).innerHTML = '<div class="no-result">Aucun résultat pour cette recherche.</div>'; return; }
 
     const maxPts = Math.max(...(c.lignes || []).map(r => num(r.v[ix.pts])), 1);
-    const th = show.map(i => `<th class="${i === main || i === ix.pts ? '' : 'hide-sm'} ${i === ix.pts ? 'right' : ''}">${esc(i === main && merged ? 'Joueur' : cols[i])}</th>`).join('');
+    const hsm = ix.nom < 0 ? '' : 'hide-sm'; /* tableau sans joueurs (ex. catégories) : toutes les colonnes restent visibles sur téléphone */
+    const extra = ix.nom >= 0 ? show.filter(i => ![main, ix.pts, ix.club, ix.classif, ix.sexe, ix.prenom].includes(i)) : [];
+    const th = show.map(i => `<th class="${i === main || i === ix.pts ? '' : hsm} ${i === ix.pts ? 'right' : ''}">${esc(i === main && merged ? 'Joueur' : cols[i])}</th>`).join('');
     const body = rows.map(r => {
       const n = parseInt(r.rank, 10);
-      const rk = n >= 1 && n <= 3 ? `<span class="cms-rk r${n}">${n}</span>` : `<span class="rank-cell">${esc(r.rank)}</span>`;
+      const rk = `<span class="rank-cell">${esc(r.rank)}</span>`;
       const tds = show.map(i => {
         const v = esc(r.v[i] ?? '');
         if (i === main) {
           const name = merged ? `${v} <span style="font-weight:400;color:#555">${esc(r.v[ix.prenom] ?? '')}</span>` : v;
           const sx = ix.sexe >= 0 ? ({ m: 'Homme', f: 'Femme' }[norm(r.v[ix.sexe])] || esc(r.v[ix.sexe] ?? '')) : '';
-          const bits = ix.nom >= 0 ? [ix.club >= 0 ? esc(r.v[ix.club] ?? '') : '', sx].filter(Boolean).join(' · ') : '';
+          const bits = ix.nom >= 0 ? [ix.club >= 0 ? esc(r.v[ix.club] ?? '') : '', sx, ...extra.filter(k => r.v[k] !== '' && r.v[k] != null).map(k => esc(cols[k]) + ' : ' + esc(r.v[k]))].filter(Boolean).join(' · ') : '';
           const bd = ix.nom >= 0 && ix.classif >= 0 && r.v[ix.classif] ? `<span class="badge ${badge(r.v[ix.classif])}" style="margin-left:4px">${esc(r.v[ix.classif])}</span>` : '';
           const bar = ix.nom < 0 && ix.pts >= 0 ? `<div class="club-rank-bar" style="margin-top:4px"><div class="bar-fill" style="width:${Math.round(num(r.v[ix.pts]) / maxPts * 100)}%"></div></div>` : '';
           return `<td><div style="font-weight:600">${name}</div>${bits || bd ? `<div class="sub-mobile">${bits}${bd}</div>` : ''}${bar}</td>`;
         }
         if (i === ix.pts) return `<td class="right">${v}${r.v[i] !== '' && !isNaN(num(r.v[i])) ? ' pts' : ''}</td>`;
-        if (i === ix.classif) return `<td class="hide-sm">${r.v[i] ? `<span class="badge ${badge(r.v[i])}">${v}</span>` : ''}</td>`;
-        if (i === ix.club) return `<td class="hide-sm" style="color:#666;font-size:.85rem">${v}</td>`;
-        return `<td class="hide-sm" style="color:#555">${v}</td>`;
+        if (i === ix.classif) return `<td class="${hsm}">${r.v[i] ? `<span class="badge ${badge(r.v[i])}">${v}</span>` : ''}</td>`;
+        if (i === ix.club) return `<td class="${hsm}" style="color:#666;font-size:.85rem">${v}</td>`;
+        return `<td class="${hsm}" style="color:#555">${v}</td>`;
       }).join('');
       return `<tr><td style="text-align:center">${rk}</td>${tds}</tr>`;
     }).join('');
