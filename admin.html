@@ -244,7 +244,7 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .db-tip{position:fixed;z-index:60;background:var(--bleu);color:#fff;border:1px solid var(--or);padding:.4rem .7rem;border-radius:8px;font-size:.82rem;font-weight:700;white-space:nowrap;pointer-events:none;box-shadow:var(--sh2)}
 .db-tip[hidden]{display:none}
 
-body.ro #main .btn.b-or, body.ro #main .btn.b-ko { display: none; }
+body.ro #main .btn.b-or:not(.keep), body.ro #main .btn.b-ko { display: none; }
 body.ro #main::before { content: 'Mode lecture seule : tu peux consulter, mais pas modifier.'; display: block; margin: 0 0 1rem; padding: .6rem .9rem; background: #eef2f7; border-radius: 8px; color: var(--bleu); font-weight: 600; font-size: .9rem; }
 </style>
 </head>
@@ -293,7 +293,7 @@ body.ro #main::before { content: 'Mode lecture seule : tu peux consulter, mais p
 <script type="module">
 import { db, auth } from './firebase-config.js';
 import { getApp, initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, updatePassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
@@ -506,7 +506,7 @@ const NOBODY = { nom: '', import: false, role: 'none', droits: [], ok: false };
 let me = NOBODY;
 const rkey = t => ({ arbitres: 'membres', educateurs: 'membres', confidentialite: 'settings' }[t] || t);
 const isSup = () => me.role === 'super';
-const canSee = t => t === 'home' || (t === 'comptes' ? isSup() : t === 'import' ? !!me.import : t === 'corbeille' ? (isSup() || me.role === 'editeur') : isSup() || me.droits.includes(rkey(t)));
+const canSee = t => t === 'home' || t === 'moncompte' || (t === 'comptes' ? isSup() : t === 'import' ? !!me.import : t === 'corbeille' ? (isSup() || me.role === 'editeur') : isSup() || me.droits.includes(rkey(t)));
 async function loadMe(u) {
   const email = (u.email || '').toLowerCase(), hard = HARD.includes(u.uid), old = USERS[email] || {};
   let d = null;
@@ -585,8 +585,8 @@ $('#out').onclick = () => signOut(auth);
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal', 'comptes']]];
+const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'], moncompte: ['lock', 'Mon mot de passe'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal', 'comptes', 'moncompte']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -609,7 +609,7 @@ async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (!canSee(tab)) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : tab === 'comptes' ? await viewComptes() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : tab === 'comptes' ? await viewComptes() : tab === 'moncompte' ? viewMonCompte() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -1032,7 +1032,7 @@ async function viewComptes() {
   $('#main').innerHTML = head('Comptes', 'Gère qui peut se connecter à l\'administration et ce que chacun peut faire. Un compte désactivé ou retiré ne peut plus rien voir ni modifier.') +
     `<div class="flex" style="margin-bottom:1rem"><button class="btn b-or" id="cadd">${ic('plus')}Ajouter un compte</button><button class="btn b-ln" id="cme">${ic('lock', 16)}Changer mon mot de passe</button></div><div id="cslot"></div><div id="clist"></div>`;
   const fail = er => toast('Échec : ' + er.message, 1);
-  $('#cme').onclick = async () => { try { await sendPasswordResetEmail(auth, auth.currentUser.email); toast('E-mail envoyé à ' + auth.currentUser.email); } catch (er) { fail(er); } };
+  $('#cme').onclick = () => { tab = 'moncompte'; start(); window.scrollTo(0, 0); };
   $('#cadd').onclick = () => { adding = true; editId = null; draw(); $('#c-nom').focus(); };
   $('#main').onchange = e => { if (e.target.id === 'c-role') syncForm(); };
   $('#main').onclick = async e => {
@@ -1086,6 +1086,40 @@ async function viewComptes() {
     } catch (er) { fail(er); }
   };
   draw();
+}
+
+
+/* ===== Mon mot de passe (tous les comptes) : changement direct, sans e-mail ===== */
+function viewMonCompte() {
+  const email = auth.currentUser.email || '';
+  $('#main').innerHTML = head('Mon mot de passe', 'Change ton mot de passe de connexion. Aucun e-mail n\'est envoyé : il est modifié tout de suite.') +
+    `<div class="card"><p class="hint2" style="margin-top:0">Compte : <b>${esc(email)}</b></p>
+    <div class="f"><label for="mp-old">Mot de passe actuel</label><input id="mp-old" type="password" autocomplete="current-password"></div>
+    <div class="f" style="margin-top:.7rem"><label for="mp-new">Nouveau mot de passe (6 caractères minimum)</label><input id="mp-new" type="password" autocomplete="new-password"></div>
+    <div class="f" style="margin-top:.7rem"><label for="mp-new2">Nouveau mot de passe (encore une fois)</label><input id="mp-new2" type="password" autocomplete="new-password"></div>
+    <label style="display:flex;align-items:center;gap:.5rem;min-height:36px;margin-top:.6rem;font-weight:500"><input type="checkbox" id="mp-show" style="width:20px;height:20px;min-height:0;flex:none">Afficher les mots de passe</label>
+    <div class="flex" style="margin-top:1rem"><button class="btn b-or keep" id="mp-ok">${ic('save', 16)}Changer mon mot de passe</button></div></div>`;
+  $('#mp-show').onchange = e => ['mp-old', 'mp-new', 'mp-new2'].forEach(i => $('#' + i).type = e.target.checked ? 'text' : 'password');
+  $('#mp-ok').onclick = async e => {
+    const o = $('#mp-old').value, n = $('#mp-new').value, n2 = $('#mp-new2').value;
+    if (!o) return toast('Écris ton mot de passe actuel.', 1);
+    if (n.length < 6) return toast('Le nouveau mot de passe doit faire au moins 6 caractères.', 1);
+    if (n !== n2) return toast('Les deux nouveaux mots de passe sont différents.', 1);
+    if (n === o) return toast('Le nouveau mot de passe doit être différent de l\'ancien.', 1);
+    await busy(e.currentTarget, async () => {
+      try {
+        const u = auth.currentUser;
+        await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, o));
+        await updatePassword(u, n);
+        ['mp-old', 'mp-new', 'mp-new2'].forEach(i => $('#' + i).value = '');
+        toast('Mot de passe modifié');
+        logAct('modif', 'Compte admin', me.nom || u.email, 'Mot de passe modifié');
+      } catch (er) {
+        const c = er.code || '';
+        toast(c === 'auth/wrong-password' || c === 'auth/invalid-credential' ? 'Mot de passe actuel incorrect.' : c === 'auth/weak-password' ? 'Nouveau mot de passe trop faible.' : c === 'auth/too-many-requests' ? 'Trop d\'essais : réessaie dans quelques minutes.' : 'Échec : ' + er.message, 1);
+      }
+    });
+  };
 }
 
 /* ===== Journal d'activité ===== */
