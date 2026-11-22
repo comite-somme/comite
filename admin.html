@@ -187,6 +187,8 @@ dialog h2{font-family:'Bebas Neue';font-weight:400;letter-spacing:2px;font-size:
 .flex{display:flex;gap:.5rem;flex-wrap:wrap}
 
 .card.unread{border-left:5px solid var(--or)}
+.row.flash{animation:flash 2.2s ease-out}@keyframes flash{0%,50%{background:#fbf3d9;border-color:var(--or);box-shadow:0 0 0 3px rgba(201,168,76,.35)}}
+@media(prefers-reduced-motion:reduce){.row.flash{animation:none;background:#fbf3d9}}
 .msg{padding:1.1rem 1.2rem}
 .msg-top{display:flex;align-items:center;gap:.8rem}
 .msg-av{flex:none;width:44px;height:44px;border-radius:50%;background:var(--bleu);color:var(--or);display:grid;place-items:center;font-family:'Bebas Neue';letter-spacing:1px;font-size:1.25rem;line-height:1}
@@ -643,10 +645,13 @@ $('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab
 function start() {
   $('#tabs').innerHTML = GROUPS.map(([g, ks]) => [g, ks.filter(canSee)]).filter(([g, ks]) => ks.length).map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
   $('#curname').textContent = NAMES[tab][1];
-  closeMenu(); show(); badge();
+  vstate = null; closeMenu(); show(); badge();
 }
 const head = (t, d) => `<div class="ph"><h1>${t}</h1><p>${d}</p></div>`;
 const empty = (m, i = 'inbox') => `<div class="empty">${ic(i, 32)}${m}</div>`;
+/* Conserve la place de l'utilisateur dans une liste (recherche, mois, catégorie, défilement) quand on la recharge après un enregistrement */
+let vstate = null;
+const refresh = focusId => { vstate = { tab, y: window.scrollY, q: $('#q')?.value || '', mo: $('#mo')?.value || '', ty: $('#ty')?.value || '', focusId: focusId || '' }; return show(); };
 async function show() {
   if (tab === 'stats') tab = 'dashboard';
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
@@ -845,7 +850,17 @@ async function viewList(col) {
     const keys = S.gorder ? S.gorder.filter(k => g[k]).concat(Object.keys(g).filter(k => !S.gorder.includes(k))) : Object.keys(g);
     $('#list').innerHTML = keys.map(k => `<div class="gh">${esc(S.glabel(k))} <span>(${g[k].length})</span></div>` + g[k].map(x => `<div class="row ${x.date && x.date < today ? 'past' : ''}">${S.left(x)}<div class="m"><strong>${esc(S.title(x))}</strong><small>${S.sub(x)}</small></div><div class="act">${S.f.some(z => z[0] === 'consentement') && x.consentement ? `<button class="btn b-ko" data-ra="${x._id}" title="Retirer la date d'accord : téléphone, email et adresse ne seront plus affichés sur le site">Retirer l'accord</button>` : ''}<button class="btn b-ln" data-e="${x._id}">${ic('edit', 16)}Modifier</button><button class="btn b-ko b-ic" data-d="${x._id}" aria-label="Supprimer" title="Supprimer">${ic('trash', 16)}</button></div></div>`).join('')).join(''); };
   pdfBind();
+  const vs = vstate && vstate.tab === col ? vstate : null; vstate = null;
+  if (vs) {
+    if (vs.q) $('#q').value = vs.q;
+    ['mo', 'ty'].forEach(k => { const el = $('#' + k); if (el && vs[k] && [...el.options].some(o => o.value === vs[k])) el.value = vs[k]; });
+    /* La fiche enregistrée doit rester visible : si les filtres la masquent (ex. date changée de mois), on les efface */
+    const fx = vs.focusId && cache[col].find(i => i._id === vs.focusId);
+    if (fx) { const q = $('#q').value.toLowerCase(), mo = $('#mo')?.value, ty = $('#ty')?.value;
+      if (!((!q || JSON.stringify(fx).toLowerCase().includes(q)) && (!mo || S.group(fx) === mo) && (!ty || fx.type === ty))) { $('#q').value = ''; if ($('#mo')) $('#mo').value = ''; if ($('#ty')) $('#ty').value = ''; } }
+  }
   draw(); ['#q', '#mo', '#ty'].forEach(s => $(s) && ($(s).oninput = draw));
+  if (vs) requestAnimationFrame(() => { const r = vs.focusId && $(`#list [data-e="${vs.focusId}"]`)?.closest('.row'); if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('flash'); } else window.scrollTo(0, vs.y); });
   if (XL) { $('#xl').onclick = () => $('#xf').click();
     $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
       try { await loadXLSX(); const s = toSheets(XLSX.read(await f.arrayBuffer(), { type: 'array' }));
@@ -857,8 +872,8 @@ async function viewList(col) {
   $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'cd80', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
   if (window._pendingNew === col) { window._pendingNew = null; if (me.role !== 'lecture') $('#add').onclick(); }
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d],[data-ra]'); if (!b) return; const id = b.dataset.e || b.dataset.d || b.dataset.ra, x = cache[col].find(i => i._id === id);
-    if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré'); toast('Accord retiré — coordonnées masquées sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
-    if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
+    if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré'); toast('Accord retiré — coordonnées masquées sur le site'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
+    if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
 /* Dépôt d'un fichier Excel : chaque feuille devient un tableau (comme les classements) */
 let feuilles = [];
@@ -916,7 +931,7 @@ function edit(col, x) {
   f.onsubmit = async e => { e.preventDefault(); const d = { ...read(S.f, f), ...(S.fixed || {}) }; const miss = S.req.find(k => !d[k]); if (miss) return toast('Complète le champ « ' + S.f.find(z => z[0] === miss)[1] + ' ».', 1);
     if ('typeAutre' in d) { if (d.type !== 'autre') d.typeAutre = ''; else if (!d.typeAutre) return toast('Précise ce que c\'est dans la zone de texte (catégorie « Autre »).', 1); }
     if (S.f.some(z => z[2] === 'xlsx')) { if (JSON.stringify(feuilles).length > LIM) return dzNote('Fichier trop volumineux : sépare-le en plusieurs documents.', 1); d.feuilles = feuilles; }
-    await busy($('#yes'), async () => { try { const neuf = !x._id; neuf ? await addDoc(collection(db, C), d) : await setDoc(doc(db, C, x._id), d); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
+    await busy($('#yes'), async () => { try { const neuf = !x._id; const nid = neuf ? (await addDoc(collection(db, C), d)).id : (await setDoc(doc(db, C, x._id), d), x._id); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); refresh(nid); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
 /* Classements : un tableau par classement (colonnes et lignes libres) */
