@@ -62,11 +62,16 @@
   .club-info-label { display: block; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; color: var(--bleu); font-weight: 700; margin-bottom: 0.1rem; }
   .club-email { word-break: break-all; color: var(--bleu); }
 
-  /* ── ITINÉRAIRE : boutons Google Maps / Plans ── */
-  .club-itin { margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px dashed var(--gris); }
-  .club-itin-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .btn-itin { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 44px; padding: 0.45rem 0.9rem; border: 1.5px solid var(--bleu); border-radius: 25px; background: #fff; color: var(--bleu); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 700; text-decoration: none; transition: background 0.2s, color 0.2s, border-color 0.2s; }
-  .btn-itin:hover, .btn-itin:focus-visible { background: var(--bleu); color: var(--or); }
+  /* ── ITINÉRAIRE : un seul bouton, ouvre l'application de cartes du téléphone ── */
+  .club-itin { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--gris); }
+  .btn-itin { display: flex; align-items: center; justify-content: center; gap: 0.55rem; width: 100%; min-height: 48px; padding: 0.6rem 1.2rem; border: 2px solid var(--bleu); border-radius: 25px; background: var(--bleu); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.3px; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s; }
+  .btn-itin svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--or); transition: color 0.2s, transform 0.2s; }
+  .btn-itin:active { transform: scale(0.98); }
+  .btn-itin:focus-visible { outline: 3px solid var(--or); outline-offset: 2px; }
+  @media (hover: hover) {
+    .btn-itin:hover { background: var(--or); border-color: var(--or); color: var(--bleu); }
+    .btn-itin:hover svg { color: var(--bleu); transform: translate(2px, -2px); }
+  }
 
   @media (min-width: 600px) {
     .clubs-search-bar { padding: 0.7rem 1.2rem; margin-bottom: 1.5rem; }
@@ -202,15 +207,23 @@ function destination(c) {
   const base = terrain && ville && !fold(terrain).includes(fold(ville)) ? terrain + ', ' + ville : (terrain || ville);
   return base + ', France';
 }
+/* Une seule adresse de départ « intelligente » selon l'appareil :
+   iPhone / iPad → Plans (app par défaut) · Android → lien geo: (l'app de cartes choisie par le téléphone) · ordinateur → Google Maps dans un nouvel onglet */
+const NAV = typeof navigator !== 'undefined' ? navigator : {};
+const UA = NAV.userAgent || '';
+const IOS = /iPad|iPhone|iPod/.test(UA) || (NAV.platform === 'MacIntel' && NAV.maxTouchPoints > 1);
+const ANDROID = /Android/i.test(UA);
+const ICONE_ITIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>';
 function itineraire(c) {
   const d = destination(c);
   if (!d) return '';
   const q = encodeURIComponent(d);
+  const href = IOS ? `https://maps.apple.com/?daddr=${q}&dirflg=d`
+    : ANDROID ? `geo:0,0?q=${q}`
+    : `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`;
+  const ext = IOS || ANDROID ? '' : ' target="_blank" rel="noopener"';
   const nom = esc(c.ville || c.assoc || 'ce club');
-  return `<div class="club-itin"><span class="club-info-label">Itinéraire</span><div class="club-itin-btns">`
-    + `<a class="btn-itin" href="https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving" target="_blank" rel="noopener" aria-label="Itinéraire vers ${nom} avec Google Maps">🗺️ Google Maps</a>`
-    + `<a class="btn-itin" href="https://maps.apple.com/?daddr=${q}&dirflg=d" target="_blank" rel="noopener" aria-label="Itinéraire vers ${nom} avec Plans">🧭 Plans</a>`
-    + `</div></div>`;
+  return `<div class="club-itin"><a class="btn-itin" href="${href}"${ext} aria-label="Itinéraire vers ${nom}">${ICONE_ITIN}Itinéraire</a></div>`;
 }
 const row = (i, l, v) => `<div class="club-info-row"><span class="club-info-icon">${i}</span><div><span class="club-info-label">${l}</span>${v}</div></div>`;
 
