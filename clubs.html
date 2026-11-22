@@ -62,6 +62,12 @@
   .club-info-label { display: block; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; color: var(--bleu); font-weight: 700; margin-bottom: 0.1rem; }
   .club-email { word-break: break-all; color: var(--bleu); }
 
+  /* ── ITINÉRAIRE : boutons Google Maps / Plans ── */
+  .club-itin { margin-top: 0.9rem; padding-top: 0.8rem; border-top: 1px dashed var(--gris); }
+  .club-itin-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .btn-itin { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 44px; padding: 0.45rem 0.9rem; border: 1.5px solid var(--bleu); border-radius: 25px; background: #fff; color: var(--bleu); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 700; text-decoration: none; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+  .btn-itin:hover, .btn-itin:focus-visible { background: var(--bleu); color: var(--or); }
+
   @media (min-width: 600px) {
     .clubs-search-bar { padding: 0.7rem 1.2rem; margin-bottom: 1.5rem; }
     .secteur-block { margin-bottom: 3rem; }
@@ -188,6 +194,24 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const fold = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const digits = s => String(s || '').replace(/[^\d+]/g, '');
 const SECT = [['centre', '🏙️ Secteur Centre'], ['maritime', '⚓ Secteur Maritime'], ['santerre', '🌾 Secteur Santerre']];
+/* Itinéraire : destination = terrain de jeu + ville (donnée publique, indépendante de l'accord RGPD) ; à défaut, la ville seule.
+   L'adresse du responsable n'est volontairement jamais utilisée. */
+function destination(c) {
+  const ville = String(c.ville || '').trim(), terrain = String(c.terrain || '').trim();
+  if (!ville && !terrain) return '';
+  const base = terrain && ville && !fold(terrain).includes(fold(ville)) ? terrain + ', ' + ville : (terrain || ville);
+  return base + ', France';
+}
+function itineraire(c) {
+  const d = destination(c);
+  if (!d) return '';
+  const q = encodeURIComponent(d);
+  const nom = esc(c.ville || c.assoc || 'ce club');
+  return `<div class="club-itin"><span class="club-info-label">Itinéraire</span><div class="club-itin-btns">`
+    + `<a class="btn-itin" href="https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving" target="_blank" rel="noopener" aria-label="Itinéraire vers ${nom} avec Google Maps">🗺️ Google Maps</a>`
+    + `<a class="btn-itin" href="https://maps.apple.com/?daddr=${q}&dirflg=d" target="_blank" rel="noopener" aria-label="Itinéraire vers ${nom} avec Plans">🧭 Plans</a>`
+    + `</div></div>`;
+}
 const row = (i, l, v) => `<div class="club-info-row"><span class="club-info-icon">${i}</span><div><span class="club-info-label">${l}</span>${v}</div></div>`;
 
 function carte(c) {
@@ -198,7 +222,7 @@ function carte(c) {
   if (ok && c.email) r.push(row('✉️', 'Email', `<span class="club-email"><a href="mailto:${esc(c.email)}" style="color:inherit">${esc(c.email)}</a></span>`));
   if (c.terrain) r.push(row('🎯', 'Terrain', esc(c.terrain)));
   const search = fold([c.num, c.ville, c.assoc, c.president].join(' '));
-  return `<div class="club-card" data-secteur="${esc(c.secteur)}" data-search="${esc(search)}"><div class="club-card-header"><span class="club-num">${esc(c.num)}</span><div><h3>${esc(c.ville)}<span class="club-nom-assoc">${esc(c.assoc)}</span></h3></div></div><div class="club-card-body">${r.join('')}</div></div>`;
+  return `<div class="club-card" data-secteur="${esc(c.secteur)}" data-search="${esc(search)}"><div class="club-card-header"><span class="club-num">${esc(c.num)}</span><div><h3>${esc(c.ville)}<span class="club-nom-assoc">${esc(c.assoc)}</span></h3></div></div><div class="club-card-body">${r.join('')}${itineraire(c)}</div></div>`;
 }
 function blocs(list) {
   const sorted = [...list].sort((a, b) => String(a.ville || '').localeCompare(String(b.ville || ''), 'fr'));
