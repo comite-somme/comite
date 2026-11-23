@@ -627,13 +627,15 @@ onAuthStateChanged(auth, async u => {
   if (!me.ok) { await signOut(auth); const er = $('#lerr'); er.textContent = 'Ce compte n\'a pas (ou plus) accès à l\'administration. Demande à un super admin de l\'activer.'; er.hidden = false; return; }
   $('#login').hidden = true; $('#app').hidden = false;
   document.body.classList.toggle('ro', me.role === 'lecture');
+  /* Rafraîchir la page : on revient sur la rubrique ouverte (mémorisée dans l'adresse, ex : admin.html#actualites) */
+  if (!window._tabInit) { window._tabInit = true; let h = ''; try { h = decodeURIComponent(location.hash.slice(1)); } catch {} if (h && h !== 'stats' && Object.prototype.hasOwnProperty.call(NAMES, h)) tab = h; }
   start();
 });
 $('#loginForm').onsubmit = async e => { e.preventDefault(); const er = $('#lerr'); er.hidden = true;
   if (!$('#em').value.trim() || !$('#pw').value) { er.textContent = 'Renseigne ton email et ton mot de passe.'; er.hidden = false; return; }
   await busy($('#lbtn'), async () => { try { await signInWithEmailAndPassword(auth, $('#em').value.trim(), $('#pw').value); } catch { er.textContent = 'Email ou mot de passe incorrect.'; er.hidden = false; } }); };
 $('#forgot').onclick = async e => { e.preventDefault(); if (!$('#em').value.trim()) return toast('Écris ton email ci-dessus, puis clique à nouveau.', 1); try { await sendPasswordResetEmail(auth, $('#em').value.trim()); toast('Email de réinitialisation envoyé.'); } catch { toast('Envoi impossible.', 1); } };
-$('#out').onclick = () => signOut(auth);
+$('#out').onclick = () => { try { history.replaceState(null, '', location.pathname + location.search); } catch {} signOut(auth); };
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
@@ -652,6 +654,7 @@ $('#tabs').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tab
 function start() {
   $('#tabs').innerHTML = GROUPS.map(([g, ks]) => [g, ks.filter(canSee)]).filter(([g, ks]) => ks.length).map(([g, ks]) => `<div class="dg">${g}</div>` + ks.map(k => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" ${k === tab ? 'aria-current="page"' : ''}>${ic(NAMES[k][0], 20)}<span>${NAMES[k][1]}</span></button>`).join('')).join('');
   $('#curname').textContent = NAMES[tab][1];
+  try { history.replaceState(null, '', '#' + tab); } catch {}
   vstate = null; closeMenu(); show(); badge();
 }
 const head = (t, d) => `<div class="ph"><h1>${t}</h1><p>${d}</p></div>`;
