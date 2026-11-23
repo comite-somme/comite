@@ -227,7 +227,16 @@ function terrainPropre(t) {
 }
 /* Coordonnées GPS saisies dans l'admin (ex : 49.8941, 2.2958) : la façon la plus exacte de désigner le terrain */
 function coordonnees(v) {
-  let x = String(v || ''); if (x.includes(';')) x = x.replace(/,/g, '.');   /* « 49,8941 ; 2,2958 » (virgule décimale française) */
+  const brut = String(v || '').trim();
+  /* Format copié depuis Google Maps : 50°03'47.4"N 1°38'35.2"E (degrés, minutes, secondes) */
+  const dms = /^\s*(\d{1,3})\s*[°º]\s*(?:(\d{1,2})\s*['’′]\s*(?:(\d{1,2}(?:[.,]\d+)?)\s*(?:["”″]|''|’’)?\s*)?)?([NSns])\s*[,;]?\s*(\d{1,3})\s*[°º]\s*(?:(\d{1,2})\s*['’′]\s*(?:(\d{1,2}(?:[.,]\d+)?)\s*(?:["”″]|''|’’)?\s*)?)?([EWOewo])\s*$/.exec(brut);
+  if (dms) {
+    const n = s => parseFloat(String(s || '0').replace(',', '.'));
+    let lat = n(dms[1]) + n(dms[2]) / 60 + n(dms[3]) / 3600, lng = n(dms[5]) + n(dms[6]) / 60 + n(dms[7]) / 3600;
+    if (/s/i.test(dms[4])) lat = -lat; if (/[wo]/i.test(dms[8])) lng = -lng;
+    return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? lat.toFixed(6) + ',' + lng.toFixed(6) : null;
+  }
+  let x = brut; if (x.includes(';')) x = x.replace(/,/g, '.');   /* « 49,8941 ; 2,2958 » (virgule décimale française) */
   const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(x);
   if (!m) return null;
   const lat = +m[1], lng = +m[2];
