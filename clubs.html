@@ -233,16 +233,26 @@ function coordonnees(v) {
   const lat = +m[1], lng = +m[2];
   return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? lat + ',' + lng : null;
 }
+/* Retrouve la commune même si la ville est saisie « ST OUEN », « Saint Ouen », « FRIVILLE » ou « Friville-Escarbotin » */
+function communeConnue(ville) {
+  const cle = s => fold(s).replace(/[’'`_.]/g, '-').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').replace(/^st-/, 'saint-').replace(/^ste-/, 'sainte-');
+  const k = cle(ville); if (!k) return null;
+  if (COMMUNES[k]) return COMMUNES[k];
+  const hit = Object.keys(COMMUNES).find(x => k.startsWith(x + '-') || x.startsWith(k + '-') || cle(COMMUNES[x][0]) === k);
+  return hit ? COMMUNES[hit] : null;
+}
 function destination(c) {
   const t = v => String(v || '').trim();
   const precis = t(c.itineraire), ville = t(c.ville), terrain = t(c.terrain);
   const gps = coordonnees(precis);
   if (gps) return gps;
   const fr = x => /france\s*$/i.test(x) ? x : x + ', France';
-  if (precis) return fr(precis);
+  const connue = communeConnue(ville);
+  /* Adresse saisie à la main : on y ajoute commune + code postal si elle n'en contient pas (sinon les cartes tombent dans une autre commune) */
+  if (precis) return fr(/\b\d{5}\b/.test(precis) || !connue ? precis : precis + ', ' + connue[1] + ' ' + connue[0]);
   if (!ville && !terrain) return '';
   if (terrain && /\b\d{5}\b/.test(terrain)) return fr(terrain);
-  const tp = terrainPropre(terrain), connue = COMMUNES[fold(ville)];
+  const tp = terrainPropre(terrain);
   if (connue) {
     const [nom, cp] = connue;
     return [tp, tp && fold(tp).includes(fold(nom)) ? cp : cp + ' ' + nom, 'France'].filter(Boolean).join(', ');
