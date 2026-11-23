@@ -134,12 +134,12 @@
   .actu p { color: #555; line-height: 1.7; font-size: 0.95rem; white-space: pre-line; overflow-wrap: anywhere; }
   .actu a { display: inline-block; margin-top: 0.8rem; color: var(--bleu); font-weight: 700; font-size: 0.9rem; text-underline-offset: 3px; }
   .actu a:hover { color: var(--or); }
-  .actu-ph { display: grid; gap: 4px; margin: 0.9rem 0 0; border-radius: 8px; overflow: hidden; }
-  .actu-ph.n2 { grid-template-columns: 1fr 1fr; } .actu-ph.n3, .actu-ph.n4 { grid-template-columns: repeat(2, 1fr); }
-  .actu-ph.n3 button:first-child { grid-column: 1 / -1; }
-  .actu-ph button { padding: 0; border: 0; background: #e4e7ec; cursor: zoom-in; display: block; }
-  .actu-ph img { display: block; width: 100%; height: 150px; object-fit: cover; }
-  .actu-ph.n1 img, .actu-ph.n3 button:first-child img { height: 220px; }
+  .actu-ph { display: grid; grid-template-columns: 1fr; gap: 6px; margin: 0.9rem 0 0; }
+  .actu-ph.n3 { grid-template-columns: 1fr 1fr; } .actu-ph.n4 { grid-template-columns: repeat(3, 1fr); }
+  .actu-ph.n3 button:first-child, .actu-ph.n4 button:first-child { grid-column: 1 / -1; }
+  .actu-ph button { padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: #eef0f3; cursor: zoom-in; display: block; }
+  .actu-ph img { display: block; width: 100%; height: auto; max-height: 560px; object-fit: contain; }
+  .actu-ph.n3 button:not(:first-child) img, .actu-ph.n4 button:not(:first-child) img { aspect-ratio: 4 / 3; object-fit: cover; max-height: none; }
   .actu-ph button:focus-visible { outline: 3px solid var(--or); outline-offset: -3px; }
   #lbx { position: fixed; inset: 0; z-index: 9999; background: rgba(5,15,30,.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
   #lbx[hidden] { display: none; }
