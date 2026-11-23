@@ -215,6 +215,12 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .f:has(.dz){grid-column:1/-1}
 .dz{display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;padding:1.3rem 1rem;border:2px dashed #c4cad3;border-radius:10px;background:#fcfbf7;color:var(--bleu);cursor:pointer;transition:border-color .15s,background .15s}
 .dz:hover,.dz.over{border-color:var(--or);background:#fbf7e9}
+.phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.6rem;margin-bottom:.7rem}
+.ph{position:relative;border:1px solid #d5d9e0;border-radius:10px;overflow:hidden;background:#f3f4f6}
+.ph img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.ph.miss{min-height:70px;display:flex;align-items:center;justify-content:center;color:#b42318;font-weight:700;font-size:.8rem;text-align:center}
+.ph.miss img{display:none}
+.ph.miss::after{content:'Fichier introuvable'}
 .dz b{display:inline-flex;align-items:center;gap:.4rem}
 .dz small{color:var(--mut);overflow-wrap:anywhere}
 .dzb{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.4rem}
@@ -422,8 +428,8 @@ const SCHEMA = {
     add: 'Ajouter une actualité', req: ['titre', 'texte'], sort: (a, b) => (b.publieLe || '').localeCompare(a.publieLe || ''),
     group: a => actuEtat(a), glabel: k => ({ publie: 'Publiées sur le site', programme: 'Programmées (pas encore visibles)', expire: 'Terminées (date de fin dépassée)', brouillon: 'Brouillons' })[k] || k, gorder: ['programme', 'publie', 'expire', 'brouillon'],
     left: a => `<div class="dt"><b>${esc((a.publieLe || '').slice(8))}</b><span>${esc((MOIS[+(a.publieLe || '').slice(5, 7) - 1] || '').slice(0, 3).toUpperCase())}</span></div>`,
-    title: a => a.titre, sub: a => (actuEtat(a) === 'programme' ? `<span class="pill concours">🕒 Visible le ${esc((a.publieLe || '').split('-').reverse().join('/'))}${a.publieHeure ? ' à ' + esc(a.publieHeure.replace(':', 'h')) : ''}</span>` : '') + esc((a.texte || '').slice(0, 110)) + ((a.texte || '').length > 110 ? '…' : ''),
-    f: [['h', 'L\'actualité'], ['statut', 'Statut', 'select', [['publie', 'Publiée (à partir de la date indiquée)'], ['brouillon', 'Brouillon (non visible)']]], ['publieLe', 'Date de publication (dans le futur = programmée)', 'date'], ['publieHeure', 'Heure de publication', 'select', heuresOpt()], ['finLe', 'Retirer du site après le (facultatif)', 'date'], ['titre', 'Titre'], ['texte', 'Texte', 'textarea'], ['h', 'Lien (facultatif)'], ['lienTexte', 'Texte du bouton (ex : Lire le règlement)'], ['lien', 'Adresse du lien (https://…)', 'url']] },
+    title: a => a.titre, sub: a => (actuEtat(a) === 'programme' ? `<span class="pill concours">🕒 Visible le ${esc((a.publieLe || '').split('-').reverse().join('/'))}${a.publieHeure ? ' à ' + esc(a.publieHeure.replace(':', 'h')) : ''}</span>` : '') + ((a.photos || []).length ? `<span class="pill concours">📷 ${a.photos.length} photo${a.photos.length > 1 ? 's' : ''}</span>` : '') + esc((a.texte || '').slice(0, 110)) + ((a.texte || '').length > 110 ? '…' : ''),
+    f: [['h', 'L\'actualité'], ['statut', 'Statut', 'select', [['publie', 'Publiée (à partir de la date indiquée)'], ['brouillon', 'Brouillon (non visible)']]], ['publieLe', 'Date de publication (dans le futur = programmée)', 'date'], ['publieHeure', 'Heure de publication', 'select', heuresOpt()], ['finLe', 'Retirer du site après le (facultatif)', 'date'], ['titre', 'Titre'], ['texte', 'Texte', 'textarea'], ['h', 'Photos (facultatif)'], ['photos', 'Photos (jusqu\'à 4, affichées sous le texte) : un nom de fichier par ligne. Les photos se déposent d\'abord dans le dossier « photos » du dépôt GitHub, ex : concours-roye.jpg', 'photos'], ['h', 'Lien (facultatif)'], ['lienTexte', 'Texte du bouton (ex : Lire le règlement)'], ['lien', 'Adresse du lien (https://…)', 'url']] },
   clubs: { tab: 'Clubs', desc: 'Les clubs affiliés, classés par secteur.', add: 'Ajouter un club', req: ['ville'],
     sort: (a, b) => (a.ville || '').localeCompare(b.ville || '', 'fr'), group: c => c.secteur, glabel: k => SECT[k] || k,
     left: c => `<div class="bd">${esc(c.num)}</div>`, title: c => `${c.ville}${c.assoc ? ' — ' + c.assoc : ''}`, sub: c => [c.president, c.tel].filter(Boolean).map(esc).join(' · '),
@@ -470,7 +476,7 @@ SCHEMA.documentations = {
   title: d => d.titre,
   sub: d => `<span class="pill ${esc(DOCPILL[d.categorie] || 'veterans')}">${esc(Object.fromEntries(DOCCAT)[d.categorie] || 'Autres documents')}</span>${esc((d.description || '').slice(0, 90) || d.lien || '')}`,
   f: [['h','Le document'], ['categorie','Rubrique','select',DOCCAT], ['titre','Titre (ex : Statuts)'], ['description','Description (facultatif)','textarea'], ['ordre','Position (1 = en premier)','number'],
-      ['h','Lien'], ['lien','Adresse du fichier ou de la page (https://…)','url'], ['lienTexte','Texte du bouton (facultatif, ex : Télécharger le règlement)']]
+      ['h','Lien'], ['lien','Adresse du fichier ou de la page (https://…) ou nom du fichier déposé dans le dépôt (ex : statuts.pdf)','url'], ['lienTexte','Texte du bouton (facultatif, ex : Télécharger le Word)'], ['h','2e bouton (facultatif, ex : la version PDF)'], ['lien2','Adresse du 2e fichier (https://… ou nom du fichier)','url'], ['lien2Texte','Texte du 2e bouton (ex : Télécharger le PDF)']]
 };
 /* Tirages, Championnats, Championnat des clubs, Résultats : même fonctionnement que les Archives */
 const EPREUVES = [['tete','Tête à tête'],['doublette','Doublette'],['triplette','Triplette'],['mixte','Mixte'],['feminin','Féminin'],['jeunes','Jeunes'],['veterans','Vétérans'],['provencal','Jeu provençal'],['autre','Autre']];
@@ -589,6 +595,7 @@ function chg(nom, a, b) {
 }
 const nbF = a => (a || []).length;
 const diff = (S, a, b) => S.f.filter(f => f[0] !== 'h').map(f => {
+  if (f[2] === 'photos') { const x = (a.photos || []).length, y = (b.photos || []).length; return JSON.stringify(a.photos || []) === JSON.stringify(b.photos || []) ? '' : 'Photos : ' + (x ? x + ' → ' : '') + y; }
   if (f[2] === 'xlsx') { const x = a.feuilles || [], y = b.feuilles || []; return JSON.stringify(x) === JSON.stringify(y) ? '' : 'Tableau Excel : ' + (!y.length ? 'fichier retiré' : !x.length ? `fichier ajouté (${y.length} feuille${y.length > 1 ? 's' : ''})` : `fichier remplacé (${x.length} → ${y.length} feuille${y.length > 1 ? 's' : ''})`); }
   return chg(shortLab(f[1]), a[f[0]], b[f[0]]);
 }).filter(Boolean).join('\n');
@@ -806,10 +813,11 @@ const field = (f, v, req = []) => { const [k, l, t = 'text', o] = f, val = v ?? 
   const lab = `<label for="x_${k}">${l}${req.includes(k) ? '<span class="rq" aria-hidden="true">*</span>' : ''}</label>`;
   return `<div class="f">${lab}` + (t === 'textarea' ? `<textarea id="x_${k}" name="${k}" rows="3">${esc(val)}</textarea>`
     : t === 'clubselect' ? clubSelect(k, val)
+    : t === 'photos' ? '<div id="phs" role="group" aria-label="Photos de l\'actualité"></div>'
     : t === 'xlsx' ? '<div class="dz" id="dz" tabindex="0" role="button" aria-label="Zone de dépôt du fichier Excel"></div><p id="dzn" class="hint2" role="status"></p>'
     : t === 'select' ? `<select id="x_${k}" name="${k}">${o.map(([a, b]) => `<option value="${esc(a)}" ${a === val ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select>`
     : `<input id="x_${k}" name="${k}" type="${t === 'url' ? 'text' : t}" ${t === 'url' ? 'inputmode="url" placeholder="https://…"' : ''} ${t === 'number' ? 'min="0"' : ''} value="${esc(val)}">`) + '</div>'; };
-const read = (fs, root) => Object.fromEntries(fs.filter(f => f[0] !== 'h' && f[2] !== 'xlsx').map(f => { const el = root.querySelector(`[name=${f[0]}]`); let v = el.value.trim();
+const read = (fs, root) => Object.fromEntries(fs.filter(f => f[0] !== 'h' && f[2] !== 'xlsx' && f[2] !== 'photos').map(f => { const el = root.querySelector(`[name=${f[0]}]`); let v = el.value.trim();
   if (f[2] === 'clubselect' && v === '__autre') v = ''; if (f[2] === 'number') v = Number(v) || 0; if (f[2] === 'url' && v && !/^(https?:|mailto:)/i.test(v)) v = (/^[\w\-./]+\.(pdf|xlsx?|docx?|csv|png|jpe?g)$/i.test(v) && !/^www\./i.test(v)) ? v.replace(/^\//, '') : 'https://' + v; return [f[0], v]; }));
 
 async function viewSettings() {
@@ -918,11 +926,29 @@ function initDz(x) {
 window.addEventListener('dragover', e => e.preventDefault());   // évite que le navigateur ouvre un fichier lâché à côté de la zone
 window.addEventListener('drop', e => e.preventDefault());
 
+/* Photos des actualités : fichiers déposés dans le dossier « photos » du dépôt GitHub ; l'admin ne garde que leur nom */
+const PH_MAX = 4;
+let photos = [];
+const photoUrl = v => { v = String(v || '').trim(); if (!v) return ''; if (/^https:\/\//i.test(v)) return v; v = v.replace(/^\.?\/+/, ''); if (/\.\./.test(v) || !/^[\w\-./%]+\.(jpe?g|png|webp|gif)$/i.test(v)) return ''; return /^photos\//i.test(v) ? v : 'photos/' + v; };
+function initPhotos(x) {
+  const box = $('#phs'), cur = (x.photos || []).filter(u => !/^data:/.test(u));
+  box.innerHTML = `<textarea id="phtxt" rows="4" placeholder="concours-roye.jpg&#10;remise-recompenses.jpg" aria-label="Noms des fichiers photo, un par ligne">${esc(cur.map(u => u.replace(/^photos\//, '')).join('\n'))}</textarea><p class="hint2" id="phn" role="status"></p><div class="phgrid" id="phv"></div>`;
+  const t = $('#phtxt'), draw = () => {
+    const raw = t.value.split('\n').map(z => z.trim()).filter(Boolean), ok = raw.map(photoUrl);
+    photos = ok.filter(Boolean).slice(0, PH_MAX);
+    const bad = raw.length - ok.filter(Boolean).length, extra = Math.max(0, ok.filter(Boolean).length - PH_MAX);
+    $('#phn').style.cssText = bad || extra ? 'color:#b42318;font-weight:700' : '';
+    $('#phn').textContent = bad ? bad + ' nom(s) invalide(s) ignoré(s) : utilise un fichier .jpg, .png ou .webp sans espace ni accent.' : extra ? 'Seules les ' + PH_MAX + ' premières photos sont gardées.' : photos.length ? photos.length + ' photo' + (photos.length > 1 ? 's' : '') + ' (aperçu ci-dessous ; si l\'image ne s\'affiche pas, le fichier n\'est pas encore dans le dépôt).' : 'Aucune photo.';
+    $('#phv').innerHTML = photos.map((u, i) => `<div class="ph"><img src="${esc(u)}" alt="Aperçu photo ${i + 1}" onerror="this.parentNode.classList.add('miss')"></div>`).join('');
+  };
+  t.oninput = draw; draw();
+}
 function edit(col, x) {
   const S = SCHEMA[col], C = S.col || col, f = $('#dform');
   f.innerHTML = `<h2 id="dlg-t">${x._id ? 'Modifier' : S.add}</h2><div class="grid">${S.f.map(fl => field(fl, x[fl[0]], S.req)).join('')}</div><div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
   $('#dlg').showModal(); $('#no').onclick = () => $('#dlg').close();
   if (f.querySelector('#dz')) initDz(x);
+  if (f.querySelector('#phs')) initPhotos(x);
   /* Catégorie « Autre » : la zone de texte « Précisez » n'apparaît que dans ce cas */
   const ts = f.querySelector('[name=type]'), ta = f.querySelector('[name=typeAutre]');
   if (ts && ta) { const box = ta.closest('.f'), sync = () => { box.hidden = ts.value !== 'autre'; }; ts.onchange = () => { sync(); if (ts.value === 'autre') ta.focus(); }; sync(); }
@@ -930,6 +956,7 @@ function edit(col, x) {
   if (cs && cs.tagName === 'SELECT') cs.onchange = () => { const l = cs.selectedOptions[0]?.dataset.lieu; if (l) f.querySelector('[name=lieu]').value = l; if (cs.value === '__autre') f.querySelector('[name=lieu]').focus(); };
   f.onsubmit = async e => { e.preventDefault(); const d = { ...read(S.f, f), ...(S.fixed || {}) }; const miss = S.req.find(k => !d[k]); if (miss) return toast('Complète le champ « ' + S.f.find(z => z[0] === miss)[1] + ' ».', 1);
     if ('typeAutre' in d) { if (d.type !== 'autre') d.typeAutre = ''; else if (!d.typeAutre) return toast('Précise ce que c\'est dans la zone de texte (catégorie « Autre »).', 1); }
+    if (S.f.some(z => z[2] === 'photos')) { d.photos = photos.slice(); if (JSON.stringify(d).length > LIM) return toast('Photos trop lourdes : retire-en une.', 1); }
     if (S.f.some(z => z[2] === 'xlsx')) { if (JSON.stringify(feuilles).length > LIM) return dzNote('Fichier trop volumineux : sépare-le en plusieurs documents.', 1); d.feuilles = feuilles; }
     await busy($('#yes'), async () => { try { const neuf = !x._id; const nid = neuf ? (await addDoc(collection(db, C), d)).id : (await setDoc(doc(db, C, x._id), d), x._id); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); refresh(nid); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }

@@ -1,0 +1,4 @@
+Photos des actualités.
+1. Déposer ici (GitHub > dossier "photos" > Add file > Upload files) les photos à afficher.
+   Conseil : JPG, 1200 px de large maximum, moins de 500 Ko, nom sans espace ni accent (ex : concours-roye-2027.jpg).
+2. Dans l'admin > Actualités > « Photos », écrire le nom du fichier (un par ligne, 4 maximum).

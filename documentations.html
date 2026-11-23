@@ -72,6 +72,10 @@
 .doc-card p { color: #667085; font-size: 0.88rem; line-height: 1.5; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
 .doc-btn { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; gap: 0.45rem; background: var(--or); color: var(--bleu); font-weight: 700; font-size: 0.88rem; text-decoration: none; padding: 0.6rem 1.1rem; border-radius: 8px; min-height: 42px; transition: background .15s, transform .1s; }
 .doc-btn:hover { background: var(--or-light); }
+.doc-btns { margin-top: auto; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.doc-btns .doc-btn { margin-top: 0; }
+.doc-btn.alt { background: #fff; color: var(--bleu); border: 2px solid var(--or); padding: calc(0.6rem - 2px) calc(1.1rem - 2px); }
+.doc-btn.alt:hover { background: #fff8e0; }
 .doc-btn:active { transform: translateY(1px); }
 .doc-btn:focus-visible { outline: 3px solid var(--bleu); outline-offset: 2px; }
 .doc-btn svg { stroke: var(--bleu); flex-shrink: 0; }
@@ -189,8 +193,9 @@ const DEFAULTS = [
   { categorie: 'utilitaires', titre: 'Curriculum vitæ pour une demande de médaille', description: 'À remplir pour chaque demande de médaille.', lien: F + 'formulaire-cv-medaille.pdf' },
   { categorie: 'utilitaires', titre: 'Demande de championnat départemental, CDC et CDF 2028', description: 'Formulaire de candidature des clubs pour l\'organisation d\'un championnat en 2028.', lien: F + 'demande-championnat-cdc-cdf-2028.pdf' },
   { categorie: 'utilitaires', titre: 'Demande de concours départemental protégé 2028', description: 'Formulaire de demande de concours départemental protégé pour 2028.', lien: F + 'demande-concours-departemental-protege-2028.pdf' },
-  { categorie: 'utilitaires', titre: 'Formulaire de mutation 2026-2027', description: 'Intention de mutation d\'un joueur vers un autre club.', lien: F + 'formulaire-mutation-2026-2027.pdf' },
+  { categorie: 'utilitaires', titre: 'Formulaire de mutation 2026-2027', description: 'Intention de mutation d\'un joueur vers un autre club.', lien: F + 'formulaire-mutation-2026-2027.docx', lienTexte: 'Télécharger le Word', lien2: F + 'formulaire-mutation-2026-2027.pdf', lien2Texte: 'Télécharger le PDF' },
   { categorie: 'utilitaires', titre: 'Bordereau de demande de licences 2027', description: 'Bordereau de demande ou renouvellement de licences et informations assurancs 2027.', lien: F + 'informations-assurance-2027.pdf' },
+  { categorie: 'utilitaires', titre: 'Bordereau licence CLUB au COMITE', description: 'Bordereau Excel à remplir par le club pour transmettre au Comité ses demandes de licences 2027.', lien: F + 'bordereau-licence-club-comite-2027.xlsx', lienTexte: 'Télécharger l\'Excel', lien2: F + 'bordereau-licence-club-comite-2027.pdf', lien2Texte: 'Télécharger le PDF' },
   { categorie: 'utilitaires', titre: 'Attestation d\'assurance responsabilité civile 2027', description: 'Attestation RC de la FFPJP du 01/01/2027 au 31/12/2027.', lien: F + 'attestation-rc-2027.pdf' },
   { categorie: 'utilitaires', titre: 'Formulaire de publication', description: 'Formulaire de publication des données personnelles', lien: F + 'formulairergpd.pdf' },
 
@@ -201,7 +206,9 @@ function merge(fire) {
   DEFAULTS.forEach((d, i) => {
     const x = l.find(x => x.categorie === d.categorie && norm(x.titre) === norm(d.titre));
     if (!x) l.push({ ...d, ordre: 1000 + i });
+    else if (/formulaire-mutation-2026-2027\.pdf$/i.test(x.lien || '') && !x.lien2) { x.lien = d.lien; x.lienTexte = d.lienTexte; x.lien2 = d.lien2; x.lien2Texte = d.lien2Texte; }
     else if (!x.lien && d.lien) { x.lien = d.lien; if (!x.description) x.description = d.description; }
+    if (x && d.lien2 && !x.lien2 && x.lien === d.lien) { x.lien2 = d.lien2; x.lien2Texte = d.lien2Texte; if (!x.lienTexte) x.lienTexte = d.lienTexte; }
   });
   return l;
 }
@@ -217,13 +224,14 @@ const fileType = u => { const m = String(u).split(/[?#]/)[0].match(/\.(pdf|docx?
 let docs = [], cat = '';
 
 function card(d) {
-  const url = safeUrl(d.lien), type = fileType(url), isFile = !!type;
+  const url = safeUrl(d.lien), url2 = safeUrl(d.lien2), type = fileType(url), type2 = fileType(url2);
+  const btn = (u, t, txt, alt) => `<a class="doc-btn${alt ? ' alt' : ''}" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${t ? ICON_DL : ICON_EXT}${esc(txt || (t ? 'Télécharger' : 'Consulter'))}</a>`;
   return `<article class="doc-card">
     <div class="doc-top"><div class="doc-ic">${ICON_FILE}</div>
-      <div><h3>${esc(d.titre)}</h3>${type ? `<span class="doc-tag">${esc(type)}</span>` : ''}</div></div>
+      <div><h3>${esc(d.titre)}</h3>${type ? `<span class="doc-tag">${esc(type)}</span>` : ''}${url2 && type2 ? ` <span class="doc-tag">${esc(type2)}</span>` : ''}</div></div>
     ${d.description ? `<p>${esc(d.description)}</p>` : ''}
     ${!url ? '<span class="doc-tag">Bientôt disponible</span>' : ''}
-    ${url ? `<a class="doc-btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${isFile ? ICON_DL : ICON_EXT}${esc(d.lienTexte || (isFile ? 'Télécharger' : 'Consulter'))}</a>` : ''}
+    ${url ? `<div class="doc-btns">${btn(url, type, d.lienTexte)}${url2 ? btn(url2, type2, d.lien2Texte, true) : ''}</div>` : ''}
   </article>`;
 }
 
