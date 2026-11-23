@@ -63,7 +63,7 @@
   .club-email { word-break: break-all; color: var(--bleu); }
 
   /* ── ITINÉRAIRE : un seul bouton, ouvre l'application de cartes du téléphone ── */
-  .club-itin { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--gris); }
+  .club-itin { margin-top: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--gris); display: flex; flex-direction: column; gap: 0.6rem; }
   .btn-itin { display: flex; align-items: center; justify-content: center; gap: 0.55rem; width: 100%; min-height: 48px; padding: 0.6rem 1.2rem; border: 2px solid var(--bleu); border-radius: 25px; background: var(--bleu); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 700; letter-spacing: 0.3px; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.1s; }
   .btn-itin svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--or); transition: color 0.2s, transform 0.2s; }
   .btn-itin:active { transform: scale(0.98); }
@@ -250,9 +250,9 @@ function communeConnue(ville) {
   const hit = Object.keys(COMMUNES).find(x => k.startsWith(x + '-') || x.startsWith(k + '-') || cle(COMMUNES[x][0]) === k);
   return hit ? COMMUNES[hit] : null;
 }
-function destination(c) {
+function destination(c, precis0, terrain0) {
   const t = v => String(v || '').trim();
-  const precis = t(c.itineraire), ville = t(c.ville), terrain = t(c.terrain);
+  const precis = t(precis0 !== undefined ? precis0 : c.itineraire), ville = t(c.ville), terrain = t(terrain0 !== undefined ? terrain0 : c.terrain);
   const gps = coordonnees(precis);
   if (gps) return gps;
   const fr = x => /france\s*$/i.test(x) ? x : x + ', France';
@@ -275,16 +275,33 @@ const UA = NAV.userAgent || '';
 const IOS = /iPad|iPhone|iPod/.test(UA) || (NAV.platform === 'MacIntel' && NAV.maxTouchPoints > 1);
 const ANDROID = /Android/i.test(UA);
 const ICONE_ITIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>';
-function itineraire(c) {
-  const d = destination(c);
+/* Un club peut avoir plusieurs terrains. Dans l'admin : une ligne par terrain, « Nom | coordonnées ».
+   Sans position saisie, un champ « Terrain » du type « Stade A / Stade B » donne aussi un bouton par terrain. */
+function terrains(c) {
+  const lignes = String(c.itineraire || '').split(/\n+/).map(l => l.trim()).filter(Boolean);
+  if (lignes.length) return lignes.map(l => {
+    const m = /^([^|]+?)\s*\|\s*(.+)$/.exec(l) || /^([^\d°][^:=]*?)\s*[:=]\s*(.+)$/.exec(l);
+    return m ? { nom: m[1].trim(), precis: m[2].trim() } : { nom: '', precis: l };
+  });
+  const parts = String(c.terrain || '').split(/\s+\/\s+|\n+|\s*;\s*/).map(x => x.trim()).filter(Boolean);
+  return parts.length > 1 ? parts.map(p => ({ nom: p.replace(/\([^)]*\)/g, '').trim(), terrain: p })) : [{ nom: '' }];
+}
+function lienItin(c, tr, multi, i) {
+  const d = destination(c, tr.precis, tr.terrain);
   if (!d) return '';
-  const q = encodeURIComponent(d), gps = !!coordonnees(c.itineraire);
+  const q = encodeURIComponent(d), gps = !!coordonnees(tr.precis);
   const href = IOS ? `https://maps.apple.com/?daddr=${q}&dirflg=d`
-    : ANDROID ? (gps ? `geo:${d}?q=${d}(${encodeURIComponent(c.assoc || c.ville || 'Terrain')})` : `geo:0,0?q=${q}`)
+    : ANDROID ? (gps ? `geo:${d}?q=${d}(${encodeURIComponent(tr.nom || c.assoc || c.ville || 'Terrain')})` : `geo:0,0?q=${q}`)
     : `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving`;
   const ext = IOS || ANDROID ? '' : ' target="_blank" rel="noopener"';
   const nom = esc(c.ville || c.assoc || 'ce club');
-  return `<div class="club-itin"><a class="btn-itin" href="${href}"${ext} aria-label="Itinéraire vers ${nom}">${ICONE_ITIN}Itinéraire</a></div>`;
+  const lib = multi ? 'Itinéraire — ' + esc(tr.nom || 'Terrain ' + (i + 1)) : 'Itinéraire';
+  return `<a class="btn-itin" href="${href}"${ext} aria-label="${lib.replace(/<[^>]*>/g, '')} (${nom})">${ICONE_ITIN}${lib}</a>`;
+}
+function itineraire(c) {
+  const tr = terrains(c), multi = tr.length > 1;
+  const l = tr.map((x, i) => lienItin(c, x, multi, i)).filter(Boolean);
+  return l.length ? `<div class="club-itin">${l.join('')}</div>` : '';
 }
 const row = (i, l, v) => `<div class="club-info-row"><span class="club-info-icon">${i}</span><div><span class="club-info-label">${l}</span>${v}</div></div>`;
 
