@@ -122,15 +122,44 @@
 }
 @media (hover: hover) { .tb-wrap .pal tbody tr:hover td { background: #faf8f4; } }
 
-/* Bilan : titres par joueur */
-.bil th, .bil td { text-align: center; }
-.bil th:nth-child(2), .bil td:nth-child(2) { text-align: left; position: sticky; left: 0; background: #fff; border-right: 1px solid #eef0f4; font-weight: 600; white-space: nowrap; }
-.bil th:nth-child(2) { z-index: 3; background: #faf6e8; }
-.bil tbody tr:nth-child(even) td:nth-child(2) { background: #fafbfc; }
-.bil td:first-child { color: #667085; }
-.bil .z { color: #c3c9d4; }
-.bil th.tot, .bil td.tot { background: #fbf3d9 !important; color: var(--bleu); font-weight: 700; }
-.bil th[title] { cursor: help; }
+/* Bilan : même style que le classement (rang · joueur · total, épreuves en pastilles sur mobile) */
+.pb .an { width: 3rem; }
+.pb th.tot, .pb td.tot { text-align: right; white-space: nowrap; }
+.pb td.tot { font-weight: 700; color: var(--bleu); font-size: 1.05rem; }
+.pb th.ep, .pb td.ep { text-align: center; }
+.pb .z { color: #c3c9d4; }
+.pb .nm { font-weight: 600; }
+.chip { display: inline-block; margin: 0.3rem 0.3rem 0 0; font-size: 0.72rem; font-weight: 600; background: #faf6e8; color: #5b4a14; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
+.chip b { color: var(--bleu); }
+.hov { display: none; }
+@media (hover: hover) { .hov { display: inline; } }
+
+/* Tableau simple : sur mobile, une fiche par ligne */
+@media (max-width: 639px) {
+  .tb-wrap table.gen, .gen tbody, .gen tr, .gen td { display: block; width: 100%; }
+  .gen thead { display: none; }
+  .gen tr { padding: 0.7rem 0.2rem; border-bottom: 1px solid #dfe3e8; }
+  .gen tbody tr:last-child { border-bottom: 0; }
+  .tb-wrap .gen td { border: 0; padding: 0.15rem 0.6rem; }
+  .gen td:empty { display: none; }
+  .gen td::before { content: attr(data-l); display: block; font-size: 0.66rem; letter-spacing: 1px; text-transform: uppercase; color: #98a2b3; font-weight: 700; }
+  .gen td:first-child { font-weight: 700; color: var(--bleu); font-size: 1.05rem; }
+  .gen td:first-child::before { display: none; }
+}
+
+/* Mobile : la fenêtre prend tout l'écran et défile d'un seul bloc */
+@media (max-width: 639px) {
+  #tbDlg { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; border-top-width: 4px; overflow: hidden; }
+  .tb-in { height: 100%; max-height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .tb-head { position: sticky; top: 0; z-index: 5; padding: 0.4rem 0.4rem 0.4rem 1rem; }
+  .tb-head h2 { font-size: 1.3rem; }
+  .tb-bar { padding: 0.7rem 0.8rem; gap: 0.5rem; }
+  .tb-bar select, .tb-bar input { flex: 1 1 100%; width: 100%; min-width: 0; font-size: 1rem; }
+  .tb-bar .arc-btn { flex: 1 1 100%; justify-content: center; background: transparent; color: var(--bleu); border: 1.5px solid var(--bleu); }
+  .tb-leg { margin: 0 0.8rem; }
+  .tb-wrap { overflow: visible; flex: none; padding: 0 0.8rem 1.5rem; }
+  .tb-note { margin-top: 0.7rem; }
+}
 
 @media (min-width: 640px) {
   .arc-tools { flex-direction: row; }
@@ -318,7 +347,7 @@ function legende() {
 function sheet() {
   const s = cur.feuilles[+$('#tbS').value] || cur.feuilles[0], q = $('#tbQ').value.toLowerCase().trim();
   const d = clean(s), k = norm(s.nom), leg = $('#tbLeg');
-  leg.hidden = !(NOMS[k] || d.bilan); leg.open = d.bilan;
+  leg.hidden = !(NOMS[k] || d.bilan); leg.open = d.bilan && window.innerWidth >= 640;
   let h = k === 'corpo' ? `<p class="tb-note">${esc(NOTE_CORPO)}</p>` : '';
 
   if (d.palmares) {                       /* Palmarès : Année · Champions · Club */
@@ -328,14 +357,16 @@ function sheet() {
       l.map(g => `<tr class="${g.noms.length ? '' : 'vide'}"><td class="an">${esc(g.an)}</td><td>${g.noms.length ? g.noms.map(n => `<div>${esc(n)}</div>`).join('') : '<em>Pas de titre enregistré</em>'}${club && g.club ? `<span class="sub-mobile">${esc(g.club)}</span>` : ''}</td>${club ? `<td class="hide-sm">${esc(g.club)}</td>` : ''}</tr>`).join('') +
       `</tbody></table><p class="tb-n">${count(l.length, 'année')}${q ? ' trouvée' + (l.length > 1 ? 's' : '') : ''}</p>`;
   } else if (d.bilan) {                   /* Bilan : nombre de titres par joueur et par épreuve */
-    const last = d.cols.length - 1, l = d.rows.filter(r => !q || r.join(' ').toLowerCase().includes(q));
-    h += `<table class="bil"><thead><tr>${d.cols.map((c, i) => `<th${i > 1 && NOMS[norm(c)] ? ` title="${esc(NOMS[norm(c)])}"` : ''}${i === last ? ' class="tot"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
-      l.map(r => `<tr>${r.map((c, i) => i < 2 ? `<td>${esc(c)}</td>` : `<td${i === last ? ' class="tot"' : ''}>${c === '0' || c === '' ? '<span class="z">·</span>' : esc(c)}</td>`).join('')}</tr>`).join('') +
-      `</tbody></table><p class="tb-n">${count(l.length, 'joueur')}${q ? ' trouvé' + (l.length > 1 ? 's' : '') : ''} · survole le nom d'une colonne pour voir l'épreuve</p>`;
+    const last = d.cols.length - 1, ep = d.cols.slice(2, last), l = d.rows.filter(r => !q || r.join(' ').toLowerCase().includes(q));
+    const z = c => c === '0' || c === '' ? '<span class="z">·</span>' : esc(c);
+    h += `<table class="pal pb"><thead><tr><th style="text-align:center">#</th><th>Joueur</th>${ep.map(c => `<th class="hide-sm ep"${NOMS[norm(c)] ? ` title="${esc(NOMS[norm(c)])}"` : ''}>${esc(c)}</th>`).join('')}<th class="tot">Total</th></tr></thead><tbody>` +
+      l.map(r => { const chips = ep.map((c, j) => r[j + 2] && r[j + 2] !== '0' ? `<span class="chip">${esc(c)} <b>${esc(r[j + 2])}</b></span>` : '').join('');
+        return `<tr><td class="an">${esc(r[0])}</td><td><div class="nm">${esc(r[1])}</div>${chips ? `<span class="sub-mobile">${chips}</span>` : ''}</td>${r.slice(2, last).map(c => `<td class="hide-sm ep">${z(c)}</td>`).join('')}<td class="tot">${esc(r[last])}</td></tr>`; }).join('') +
+      `</tbody></table><p class="tb-n">${count(l.length, 'joueur')}${q ? ' trouvé' + (l.length > 1 ? 's' : '') : ''}<span class="hov"> · survole le nom d'une colonne pour voir l'épreuve</span></p>`;
   } else {                                /* Tableau quelconque */
     const l = d.rows.filter(r => !q || r.join(' ').toLowerCase().includes(q));
-    h += `<table><thead><tr>${d.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
-      l.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') + `</tbody></table>` +
+    h += `<table class="pal gen"><thead><tr>${d.cols.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>` +
+      l.map(r => `<tr>${r.map((c, i) => `<td data-l="${esc(d.cols[i])}">${esc(c)}</td>`).join('')}</tr>`).join('') + `</tbody></table>` +
       `<p class="tb-n">${count(l.length, 'ligne')}${q ? ' trouvée' + (l.length > 1 ? 's' : '') : ''}</p>`;
   }
   $('#tbW').innerHTML = h;
