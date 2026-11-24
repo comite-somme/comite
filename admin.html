@@ -141,7 +141,7 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .jn-who{color:var(--bleu);text-decoration:underline;text-decoration-color:var(--or);text-underline-offset:3px}
 .jn{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 9px;border-radius:10px;letter-spacing:.2px;color:#fff;background:var(--bleu2);vertical-align:1px}
 .jd{margin:.35rem 0 0;padding:0;list-style:none;font-size:.85rem;color:var(--txt,#1a1a2e);display:grid;gap:.2rem}.jd li{padding:.2rem .55rem;background:#f6f4ee;border-left:3px solid var(--or);border-radius:4px;overflow-wrap:anywhere}.jd li.more{background:none;border:0;color:var(--mut);font-style:italic;padding-left:0}
-.jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
+.jn-und{display:inline-block;margin-top:.35rem;font-size:.78rem;font-weight:700;color:#8a6d1d;background:#fbf3d9;border-radius:999px;padding:.1rem .65rem}#cfm-m{white-space:pre-line;text-align:left}.jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
 .champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.coupe{background:#fde8e8;color:#9b1c1c}.propagande{background:#fff0e0;color:#8a4a00}.autre{background:#e9ecef;color:#344054}
@@ -216,11 +216,11 @@ code{background:#f1efe8;padding:0 .3em;border-radius:4px;font-size:.85em}
 .dz{display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;padding:1.3rem 1rem;border:2px dashed #c4cad3;border-radius:10px;background:#fcfbf7;color:var(--bleu);cursor:pointer;transition:border-color .15s,background .15s}
 .dz:hover,.dz.over{border-color:var(--or);background:#fbf7e9}
 .phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.6rem;margin-bottom:.7rem}
-.ph{position:relative;border:1px solid #d5d9e0;border-radius:10px;overflow:hidden;background:#f3f4f6}
-.ph img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
-.ph.miss{min-height:70px;display:flex;align-items:center;justify-content:center;color:#b42318;font-weight:700;font-size:.8rem;text-align:center}
-.ph.miss img{display:none}
-.ph.miss::after{content:'Fichier introuvable'}
+.phgrid .ph{position:relative;border:1px solid #d5d9e0;border-radius:10px;overflow:hidden;background:#f3f4f6}
+.phgrid .ph img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover}
+.phgrid .ph.miss{min-height:70px;display:flex;align-items:center;justify-content:center;color:#b42318;font-weight:700;font-size:.8rem;text-align:center}
+.phgrid .ph.miss img{display:none}
+.phgrid .ph.miss::after{content:'Fichier introuvable'}
 .dz b{display:inline-flex;align-items:center;gap:.4rem}
 .dz small{color:var(--mut);overflow-wrap:anywhere}
 .dzb{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.4rem}
@@ -339,7 +339,7 @@ body.ro #main .pz .btn.b-or.keep{display:inline-flex}
 import { db, auth } from './firebase-config.js';
 import { getApp, initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, updatePassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, query, orderBy, limit, deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -615,11 +615,109 @@ function diffCl(a, b) {
   if (n > shown) L.push(`… et ${n - shown} autre${n - shown > 1 ? 's' : ''} cellule${n - shown > 1 ? 's' : ''} modifiée${n - shown > 1 ? 's' : ''}`);
   return L.filter(Boolean).join('\n');
 }
-async function logAct(action, objet, cible, detail = '') {
+async function logAct(action, objet, cible, detail = '', extra = {}) {
   try {
     const email = (auth.currentUser?.email || '').toLowerCase();
-    await addDoc(collection(db, 'journal'), { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 1500) });
+    const base = { date: Date.now(), qui: me.nom || email || 'Inconnu', email, action, objet: String(objet || '').slice(0, 80), cible: String(cible || '').slice(0, 200), detail: String(detail || '').slice(0, 1500) };
+    /* snap = copie de la fiche avant / après (pour pouvoir annuler) ; ref = entrée du journal qu'on vient d'annuler */
+    const full = { ...base, ...(extra.snap ? { snap: extra.snap } : {}), ...(extra.ref ? { ref: String(extra.ref) } : {}) };
+    try { await addDoc(collection(db, 'journal'), full); }
+    catch (e) {
+      if (full === base || (!extra.snap && !extra.ref)) throw e;
+      await addDoc(collection(db, 'journal'), base);   /* règles Firebase qui refusent les nouveaux champs : on garde au moins la trace écrite */
+      if (!window._swarn) { window._swarn = 1; try { toast('Action notée, mais sans possibilité de l\'annuler : vérifie les règles Firebase de la collection « journal » (champs snap et ref).', 1); } catch {} }
+    }
   } catch (er) { console.warn('Journal non enregistré :', er.message); if (!window._jwarn) { window._jwarn = 1; try { toast('Action faite, mais NON notée dans le journal : vérifie les règles Firebase (collection « journal »).', 1); } catch {} } }
+}
+
+/* ===== Annulation depuis le journal =====
+   Chaque modification / ajout / suppression garde dans le journal une copie JSON de la fiche (champ « snap »).
+   Le bouton « Annuler » du journal s'appuie dessus. Les copies sont utilisables pendant SNAP_DAYS jours. */
+const SNAP_MAX = 200000, SNAP_DAYS = 90, HEAVY = ['feuilles', 'photos'];
+const noId = o => { if (!o) return null; const { _id, ...r } = o; return r; };
+const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const pick = (o, ks) => Object.fromEntries(ks.filter(k => o && k in o).map(k => [k, o[k]]));
+const tabOfCol = c => Object.keys(SCHEMA).find(k => (SCHEMA[k].col || k) === c) || c;
+const rightOf = c => rkey(tabOfCol(c));
+const FLAB = {};
+function fieldLabel(c, k) {
+  if (!FLAB[c]) { const m = FLAB[c] = {}; const add = f => { if (f[0] !== 'h' && !m[f[0]]) m[f[0]] = shortLab(f[1]); };
+    Object.entries(SCHEMA).forEach(([key, S]) => { if ((S.col || key) === c) S.f.forEach(add); }); if (c === 'settings') SETTINGS.forEach(add); }
+  return FLAB[c][k] || k;
+}
+/* k : 'mod' (modification) | 'add' (création) | 'del' (mise à la corbeille). m = 1 : document mis à jour champ par champ (merge). */
+function snapOf(k, c, i, a, b, m, extra = {}) {
+  try {
+    a = noId(a); b = noId(b);
+    if (k === 'mod' && (!a || !b)) return null;
+    const p = [], x = [];
+    if (k !== 'del') {
+      HEAVY.forEach(h => { if (((a && h in a) || (b && h in b)) && same(a?.[h], b?.[h])) { a && delete a[h]; b && delete b[h]; p.push(h); } });   // inchangé : inutile de le stocker
+      if (JSON.stringify(a || {}).length > SNAP_MAX || JSON.stringify(b || {}).length > SNAP_MAX)
+        HEAVY.forEach(h => { if ((a && h in a) || (b && h in b)) { a && delete a[h]; b && delete b[h]; p.push(h); x.push(h); } });   // trop lourd : non restaurable
+      if (JSON.stringify(a || {}).length > SNAP_MAX || JSON.stringify(b || {}).length > SNAP_MAX) return null;
+    }
+    return JSON.stringify({ v: 1, k, c, i, a, b, m: m ? 1 : 0, p, x, ...extra });
+  } catch { return null; }
+}
+const parseSnap = x => { try { const s = x.snap ? JSON.parse(x.snap) : null; return s && s.v === 1 && s.c && s.i ? s : null; } catch { return null; } };
+const undoLabel = (x, s) => s.k === 'del' ? 'Restaurer' : s.k === 'add' ? (x.action === 'restaure' ? 'Remettre à la corbeille' : 'Annuler l\'ajout') : (x.action === 'restaure' ? 'Rétablir' : 'Annuler cette modification');
+function canUndo(x) {
+  const s = parseSnap(x);
+  return !!s && me.role !== 'lecture' && canSee(rightOf(s.c)) && Date.now() - x.date < SNAP_DAYS * 864e5 && !(UNDONE && UNDONE.has(x._id));
+}
+let UNDONE = new Set();
+function diffLine(c, k, from, to) {
+  if (same(from, to)) return '';
+  const lab = fieldLabel(c, k);
+  if (HEAVY.includes(k)) return lab + ' : modifié';
+  if (Array.isArray(from) || Array.isArray(to)) { const x = (from || []).length, y = (to || []).length; return lab + ' : ' + (x !== y ? `${x} → ${y} éléments` : 'modifié'); }
+  if ((from && typeof from === 'object') || (to && typeof to === 'object')) return lab + ' : modifié';
+  return chg(lab, from, to);
+}
+/* Retourne true si quelque chose a été fait */
+async function undoJournal(x) {
+  const s = parseSnap(x); if (!s) { toast('Cette entrée ne peut pas être annulée.', 1); return false; }
+  if (!canUndo({ ...x, _id: null })) { toast('Tu ne peux pas annuler cette action (droits ou ancienneté).', 1); return false; }
+  const ref = doc(db, s.c, s.i), lab = x.cible || 'cet élément', objet = x.objet || objetDe(s.c, s.b || s.a || {});
+  const cs = await getDoc(ref), now = cs.exists() ? noId(cs.data()) : null;
+
+  if (s.k === 'del') {
+    const cr = await getDoc(doc(db, 'corbeille', s.cid));
+    if (!cr.exists()) { toast('Cet élément n\'est plus dans la corbeille (déjà restauré ou effacé).', 1); return false; }
+    if (!await ask('Restaurer cet élément ?', `« ${lab} » reviendra sur le site.` + (now ? '\n\n⚠ Une fiche existe déjà au même endroit : elle sera remplacée.' : ''), 'Restaurer')) return false;
+    const data = cr.data().data, w = writeBatch(db);
+    w.set(ref, data); w.delete(doc(db, 'corbeille', s.cid)); await w.commit();
+    await logAct('restaure', objet, lab, 'Suppression du ' + fdate(x.date) + ' annulée', { ref: x._id, snap: snapOf('add', s.c, s.i, null, data) });
+    toast('Restauré'); return true;
+  }
+
+  if (s.k === 'add') {
+    if (!now) { toast('Cet élément n\'existe plus (déjà supprimé).', 1); return false; }
+    if (!KIND[s.c]) { toast('Ce type d\'élément ne peut pas être remis à la corbeille.', 1); return false; }
+    const drift = s.b && !same(pick(now, Object.keys(s.b)), s.b);
+    if (!await ask('Annuler cet ajout ?', `« ${lab} » sera mis à la corbeille (restaurable 30 jours).` + (drift ? '\n\n⚠ Cette fiche a été modifiée depuis son ajout : ces modifications seront mises à la corbeille avec elle.' : ''), 'Mettre à la corbeille')) return false;
+    await trash(s.c, s.i, { ...now, _id: s.i }, { ref: x._id });
+    toast('Ajout annulé — placé dans la corbeille'); return true;
+  }
+
+  /* modification */
+  if (!now) { toast('Cette fiche n\'existe plus : cherche-la dans la corbeille.', 1); return false; }
+  const a = s.a || {}, b = s.b || {}, skip = new Set([...(s.p || []), ...(s.x || [])]);
+  const keys = [...new Set(s.m ? [...Object.keys(a), ...Object.keys(b)] : [...Object.keys(now), ...Object.keys(a)])].filter(k => !skip.has(k) && !k.includes('.'));
+  const lines = keys.map(k => diffLine(s.c, k, now[k], a[k])).filter(Boolean);
+  if (!lines.length) { toast('Rien à annuler : la fiche est déjà dans l\'état d\'avant.', 1); return false; }
+  const drift = keys.some(k => !same(now[k], b[k]));
+  const shown = lines.slice(0, 8).map(l => '• ' + l).join('\n') + (lines.length > 8 ? `\n… et ${lines.length - 8} autre${lines.length - 8 > 1 ? 's' : ''}` : '');
+  const msg = `« ${lab} » retrouvera son état d\'avant la modification de ${x.qui} (${fdate(x.date)}).\n\nCe qui va changer :\n${shown}`
+    + (drift ? '\n\n⚠ Cette fiche a été modifiée depuis. Ces changements plus récents seront aussi annulés.' : '')
+    + ((s.x || []).length ? `\n\n⚠ ${(s.x || []).map(k => fieldLabel(s.c, k)).join(', ')} : trop volumineux, ne sera pas restauré.` : '');
+  if (!await ask(s.k === 'mod' && x.action === 'restaure' ? 'Rétablir cette version ?' : 'Annuler cette modification ?', msg, 'Annuler la modification')) return false;
+  const payload = {}; keys.forEach(k => { payload[k] = k in a ? a[k] : deleteField(); });
+  await updateDoc(ref, payload);
+  const nw = noId((await getDoc(ref)).data());
+  await logAct('restaure', objet, lab, 'Modification du ' + fdate(x.date) + ' annulée\n' + lines.join('\n'), { ref: x._id, snap: snapOf('mod', s.c, s.i, pick(now, keys), pick(nw, keys), true, { p: [...skip] }) });
+  toast('Modification annulée'); return true;
 }
 onAuthStateChanged(auth, async u => {
   if (!u) { me = NOBODY; $('#login').hidden = false; $('#app').hidden = true; return; }
@@ -828,7 +926,7 @@ async function viewSettings() {
   $('#main').innerHTML = head('Infos du site', 'Textes et coordonnées affichés sur la page d\'accueil et en bas de chaque page.') + `<form id="sf" class="card" novalidate><div class="grid">${SETTINGS.map(f => field(f, d[f[0]])).join('')}</div><div class="savebar"><button class="btn b-or" id="ssv">${ic('save')}Enregistrer les modifications</button></div></form>`;
   let nPush = '—'; try { nPush = (await getDocs(collection(db, 'push_tokens'))).size; } catch (e) {}
   $('#main').insertAdjacentHTML('beforeend', `<div class="card"><b>${ic('mail')}Notifications push</b><p class="hint2">Appareils abonnés : <strong>${nPush}</strong>. Pour envoyer une notification : ouvre la <a href="https://console.firebase.google.com/project/comite-f1488/messaging" target="_blank" rel="noopener">console Firebase › Messaging</a>, « Nouvelle campagne » › « Notifications », cible l'application Web, saisis le titre et le texte, puis envoie (gratuit). Pour suspendre le service sur le site : passe l'option sur « Désactivées » ci-dessus et enregistre.</p></div>`);
-  $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { const nv = read(SETTINGS, e.target); await setDoc(doc(db, 'settings', 'general'), nv, { merge: true }); await logAct('modif', 'Infos du site', 'Textes et coordonnées', diff({ f: SETTINGS }, d, nv)); Object.assign(d, nv); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
+  $('#sf').onsubmit = async e => { e.preventDefault(); await busy($('#ssv'), async () => { try { const nv = read(SETTINGS, e.target); await setDoc(doc(db, 'settings', 'general'), nv, { merge: true }); await logAct('modif', 'Infos du site', 'Textes et coordonnées', diff({ f: SETTINGS }, d, nv), { snap: snapOf('mod', 'settings', 'general', pick(d, Object.keys(nv)), nv, true) }); Object.assign(d, nv); toast('Enregistré — visible sur le site'); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
 async function viewList(col) {
@@ -883,7 +981,7 @@ async function viewList(col) {
   $('#add').onclick = () => edit(col, col === 'events' ? { type: 'concours', date: today } : col === 'actualites' ? { statut: 'brouillon', publieLe: today } : col === 'clubs' ? { secteur: 'centre', prLabel: 'Président' } : col === 'membres' ? { groupe: 'membre', ordre: cache[col].length + 1 } : col === 'documentations' ? { categorie: 'cd80', ordre: cache[col].length + 1 } : { ordre: cache[col].length + 1 });
   if (window._pendingNew === col) { window._pendingNew = null; if (me.role !== 'lecture') $('#add').onclick(); }
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d],[data-ra]'); if (!b) return; const id = b.dataset.e || b.dataset.d || b.dataset.ra, x = cache[col].find(i => i._id === id);
-    if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré'); toast('Accord retiré — coordonnées masquées sur le site'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
+    if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré', { snap: snapOf('mod', C, id, { consentement: x.consentement }, { consentement: '' }, true) }); toast('Accord retiré — coordonnées masquées sur le site'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
     if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
 /* Dépôt d'un fichier Excel : chaque feuille devient un tableau (comme les classements) */
@@ -961,7 +1059,7 @@ function edit(col, x) {
     if ('typeAutre' in d) { if (d.type !== 'autre') d.typeAutre = ''; else if (!d.typeAutre) return toast('Précise ce que c\'est dans la zone de texte (catégorie « Autre »).', 1); }
     if (S.f.some(z => z[2] === 'photos')) { d.photos = photos.slice(); if (JSON.stringify(d).length > LIM) return toast('Photos trop lourdes : retire-en une.', 1); }
     if (S.f.some(z => z[2] === 'xlsx')) { if (JSON.stringify(feuilles).length > LIM) return dzNote('Fichier trop volumineux : sépare-le en plusieurs documents.', 1); d.feuilles = feuilles; }
-    await busy($('#yes'), async () => { try { const neuf = !x._id; const nid = neuf ? (await addDoc(collection(db, C), d)).id : (await setDoc(doc(db, C, x._id), d), x._id); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d)); $('#dlg').close(); toast('Enregistré — visible sur le site'); refresh(nid); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
+    await busy($('#yes'), async () => { try { const neuf = !x._id; const nid = neuf ? (await addDoc(collection(db, C), d)).id : (await setDoc(doc(db, C, x._id), d), x._id); await logAct(neuf ? 'ajout' : 'modif', objetDe(C, d), labelDe(C, d), neuf ? '' : diff(S, x, d), { snap: snapOf(neuf ? 'add' : 'mod', C, nid, neuf ? null : x, d) }); $('#dlg').close(); toast('Enregistré — visible sur le site'); refresh(nid); } catch (er) { toast('Échec : ' + er.message, 1); } }); };
 }
 
 /* Classements : un tableau par classement (colonnes et lignes libres) */
@@ -1054,7 +1152,7 @@ function paste(replace) {
 async function saveCl() {
   sync(); if (!cur.nom.trim()) return toast('Donne un nom au classement.', 1);
   const d = { nom: cur.nom.trim(), majLe: cur.majLe.trim(), ordre: cur.ordre, colonnes: cur.colonnes.map(c => c.trim()), lignes: cur.lignes.filter(r => r.v.some(x => x.trim())).map(r => ({ v: r.v.map(x => x.trim()) })) };
-  try { const neuf = !cur._id; neuf ? await addDoc(collection(db, 'classements'), d) : await setDoc(doc(db, 'classements', cur._id), d); await logAct(neuf ? 'ajout' : 'modif', 'Classement', d.nom, neuf ? `${d.lignes.length} lignes · ${d.colonnes.length} colonnes` : diffCl(cur.orig || d, d)); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
+  try { const neuf = !cur._id; const nid = neuf ? (await addDoc(collection(db, 'classements'), d)).id : (await setDoc(doc(db, 'classements', cur._id), d), cur._id); await logAct(neuf ? 'ajout' : 'modif', 'Classement', d.nom, neuf ? `${d.lignes.length} lignes · ${d.colonnes.length} colonnes` : diffCl(cur.orig || d, d), { snap: snapOf(neuf ? 'add' : 'mod', 'classements', nid, neuf ? null : cur.orig, d) }); toast('Enregistré — visible sur le site'); show(); } catch (e) { toast('Échec : ' + e.message, 1); }
 }
 
 
@@ -1102,7 +1200,7 @@ function drawPrivacy() {
   $('#main').onclick = async e => { const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'psv') return busy(b, async () => { syncP(); const sec = P.sections.map(s => ({ titre: s.titre.trim(), texte: s.texte.trim() })).filter(s => s.titre || s.texte);
       if (!sec.length) return toast('Ajoute au moins une section.', 1);
-      try { await setDoc(doc(db, 'settings', 'confidentialite'), { majLe: P.majLe, sections: sec }); await logAct('modif', 'Page Confidentialité', 'Textes de la page', diffPriv(P.orig, { majLe: P.majLe, sections: sec })); P.orig = JSON.parse(JSON.stringify({ majLe: P.majLe, sections: sec })); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
+      try { const apres = { majLe: P.majLe, sections: sec }; await setDoc(doc(db, 'settings', 'confidentialite'), apres); await logAct('modif', 'Page Confidentialité', 'Textes de la page', diffPriv(P.orig, apres), { snap: snapOf('mod', 'settings', 'confidentialite', P.orig, apres) }); P.orig = JSON.parse(JSON.stringify({ majLe: P.majLe, sections: sec })); P.saved = true; toast('Enregistré — la page Confidentialité est à jour'); drawPrivacy(); } catch (er) { toast('Échec : ' + er.message, 1); } });
     const a = b.dataset.pa; if (!a) return; syncP(); const i = +b.dataset.i;
     if (a === 'add') P.sections.push({ titre: (P.sections.length + 1) + '. Nouveau titre', texte: '' });
     else if (a === 'up' && i > 0) [P.sections[i - 1], P.sections[i]] = [P.sections[i], P.sections[i - 1]];
@@ -1116,11 +1214,11 @@ function drawPrivacy() {
 const KIND = { events: ['Compétition', d => d.titre], clubs: ['Club', d => d.ville], membres: ['Membre', d => d.nom], classements: ['Classement', d => d.nom], actualites: ['Actualité', d => d.titre], annuaire: ['Site', d => d.nom], archives: ['Archive', d => d.titre], documentations: ['Documentation', d => d.titre], championnats: ['Championnat', d => d.titre], coupedefrance: ['Coupe de France', d => d.titre], regionaux: ['Régionaux / France', d => d.titre], championnatsclubs: ['Champ. des clubs', d => d.titre], messages: ['Message', d => `${d.nom} — ${d.sujet || 'Sans sujet'}`] };
 const fdate = t => t ? new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 
-async function trash(col, id, x) {
-  const { _id, ...data } = x, b = writeBatch(db);
-  b.set(doc(collection(db, 'corbeille')), { col, origId: id, data, label: KIND[col][1](data) || 'Sans titre', supprimeLe: Date.now() });
+async function trash(col, id, x, opts = {}) {
+  const { _id, ...data } = x, b = writeBatch(db), cr = doc(collection(db, 'corbeille'));
+  b.set(cr, { col, origId: id, data, label: KIND[col][1](data) || 'Sans titre', supprimeLe: Date.now() });
   b.delete(doc(db, col, id)); await b.commit();
-  await logAct('suppr', objetDe(col, data), labelDe(col, data), 'Mis à la corbeille (restaurable 30 jours)');
+  await logAct('suppr', objetDe(col, data), labelDe(col, data), 'Mis à la corbeille (restaurable 30 jours)', { ref: opts.ref, snap: JSON.stringify({ v: 1, k: 'del', c: col, i: id, cid: cr.id }) });
 }
 let badgeAt = 0, badgeN = 0;
 async function badge(force) {
@@ -1332,12 +1430,13 @@ const ACT = { ajout: 'a ajouté', modif: 'a modifié', suppr: 'a supprimé', res
 const ACTL = { ajout: 'Ajouts', modif: 'Modifications', suppr: 'Suppressions', restaure: 'Restaurations', purge: 'Suppressions définitives', import: 'Imports' };
 const jrow = (x, compact) => { const L = String(x.detail || '').split('\n').filter(Boolean), multi = L.length > 1 || (x.action === 'modif' && /^.+ : .+→.+$|remplacé par|ajout de|retrait de/.test(L[0] || ''));
   const det = !L.length ? (x.action === 'modif' ? '<small>aucun champ modifié</small>' : '') : multi ? `<ul class="jd">${(compact ? L.slice(0, 2) : L).map(l => `<li>${esc(l)}</li>`).join('')}${compact && L.length > 2 ? `<li class="more">+ ${L.length - 2} autre${L.length - 2 > 1 ? 's' : ''} changement${L.length - 2 > 1 ? 's' : ''}</li>` : ''}</ul>` : '';
-  return `<div class="row"><div class="bd jn-h">${esc(new Date(x.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</div><div class="m"><strong><span class="jn-who">${esc(x.qui)}</span> <span class="jn jn-${esc(x.action)}">${esc(ACT[x.action] || x.action)}</span> ${esc(x.cible)}</strong><small>${esc(x.objet)}${L.length && !multi ? ' · ' + esc(L[0]) : ''}${x.email ? ' · ' + esc(x.email) : ''}</small>${det}</div></div>`; };
+  return `<div class="row"><div class="bd jn-h">${esc(new Date(x.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))}</div><div class="m"><strong><span class="jn-who">${esc(x.qui)}</span> <span class="jn jn-${esc(x.action)}">${esc(ACT[x.action] || x.action)}</span> ${esc(x.cible)}</strong><small>${esc(x.objet)}${L.length && !multi ? ' · ' + esc(L[0]) : ''}${x.email ? ' · ' + esc(x.email) : ''}</small>${det}${!compact && UNDONE.has(x._id) ? '<span class="jn-und">↩ annulée depuis</span>' : ''}</div>${!compact && x._id && canUndo(x) ? `<div class="act"><button class="btn b-ln" data-un="${esc(x._id)}">${ic('undo', 16)}${esc(undoLabel(x, parseSnap(x)))}</button></div>` : ''}</div>`; };
 async function viewJournal() {
   const snap = await getDocs(query(collection(db, 'journal'), orderBy('date', 'desc'), limit(500)));
   const l = snap.docs.map(d => ({ ...d.data(), _id: d.id }));
   const who = [...new Set(l.map(x => x.qui))].sort((a, b) => a.localeCompare(b, 'fr'));
-  $('#main').innerHTML = head('Journal', 'Qui a ajouté, modifié ou supprimé quelque chose dans l\'administration, et quand. Les 500 dernières actions sont affichées.') +
+  UNDONE = new Set(l.filter(x => x.ref).map(x => x.ref));
+  $('#main').innerHTML = head('Journal', `Qui a ajouté, modifié ou supprimé quelque chose dans l\'administration, et quand. Les 500 dernières actions sont affichées. Le bouton « Annuler » remet une fiche dans son état d\'avant (possible pendant ${SNAP_DAYS} jours).`) +
     `<div class="bar"><div class="srch">${ic('search')}<input id="jq" type="search" placeholder="Rechercher (nom, élément, détail…)" aria-label="Rechercher"></div>
     <select id="jw" aria-label="Personne"><option value="">Toutes les personnes</option>${who.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('')}</select>
     <select id="ja" aria-label="Type d'action"><option value="">Toutes les actions</option>${Object.entries(ACTL).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div><div id="list"></div>`;
@@ -1348,6 +1447,9 @@ async function viewJournal() {
     const g = {}; v.forEach(x => (g[day(x.date)] ||= []).push(x));
     $('#list').innerHTML = Object.entries(g).map(([k, a]) => `<div class="gh">${esc(k)} <span>(${a.length})</span></div>` + a.map(x => jrow(x)).join('')).join(''); };
   draw(); ['#jq', '#jw', '#ja'].forEach(s => $(s).oninput = draw);
+  $('#list').onclick = async e => { const b = e.target.closest('[data-un]'); if (!b) return; const x = l.find(i => i._id === b.dataset.un); if (!x) return;
+    let ok = false; await busy(b, async () => { try { ok = await undoJournal(x); } catch (er) { toast('Échec : ' + er.message, 1); } });
+    if (ok) { badge(true); viewJournal(); } };
 }
 /* Les 5 dernières actions, affichées sur l'accueil (sans bloquer l'accueil si le journal est inaccessible) */
 async function homeJournal() {
