@@ -141,7 +141,7 @@ main{max-width:960px;margin:0 auto;padding:1.6rem 1rem 4rem}
 .jn-who{color:var(--bleu);text-decoration:underline;text-decoration-color:var(--or);text-underline-offset:3px}
 .jn{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 9px;border-radius:10px;letter-spacing:.2px;color:#fff;background:var(--bleu2);vertical-align:1px}
 .jd{margin:.35rem 0 0;padding:0;list-style:none;font-size:.85rem;color:var(--txt,#1a1a2e);display:grid;gap:.2rem}.jd li{padding:.2rem .55rem;background:#f6f4ee;border-left:3px solid var(--or);border-radius:4px;overflow-wrap:anywhere}.jd li.more{background:none;border:0;color:var(--mut);font-style:italic;padding-left:0}
-.dtabs{margin-bottom:1rem}.dtabs .btn[aria-pressed=true]{background:var(--bleu);border-color:var(--bleu);color:#fff}.dpills{margin-top:.35rem;display:flex;gap:.3rem;flex-wrap:wrap}.dpills .pill{margin:0}.row small.dwarn,.dwarn{color:#b42318;font-weight:600;font-size:.82rem;margin:.25rem 0 0}.dline{display:grid;grid-template-columns:1fr minmax(120px,auto) minmax(110px,auto) auto;gap:.5rem;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--gris)}.dline small{color:var(--mut);display:block;overflow-wrap:anywhere}@media(max-width:560px){.dline{grid-template-columns:1fr 1fr}.dl-n{grid-column:1/-1}}.dtb{width:100%;border-collapse:collapse;font-size:.9rem}.dtb th,.dtb td{padding:.5rem .6rem;border-bottom:1px solid var(--gris);text-align:left}.dtb th{color:var(--bleu);font-size:.78rem;letter-spacing:.2px}.dtb .n{text-align:center}.dpre{background:#f6f4ee;border-radius:8px;padding:.8rem;overflow:auto;font-size:.82rem}.jn-und{display:inline-block;margin-top:.35rem;font-size:.78rem;font-weight:700;color:#8a6d1d;background:#fbf3d9;border-radius:999px;padding:.1rem .65rem}#cfm-m{white-space:pre-line;text-align:left}.jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
+.dtabs{margin-bottom:1rem}.dpills .dq{border:0;cursor:pointer;font-family:inherit}.dneed{display:block;color:var(--mut);font-size:.82rem;margin:.3rem 0 0}.dneed.ok{color:#067647}.dhint{display:block;color:var(--bleu);font-weight:600;font-size:.82rem;margin:.25rem 0 0}.dtabs .btn[aria-pressed=true]{background:var(--bleu);border-color:var(--bleu);color:#fff}.dpills{margin-top:.35rem;display:flex;gap:.3rem;flex-wrap:wrap}.dpills .pill{margin:0}.row small.dwarn,.dwarn{color:#b42318;font-weight:600;font-size:.82rem;margin:.25rem 0 0}.dline{display:grid;grid-template-columns:1fr minmax(120px,auto) minmax(110px,auto) auto;gap:.5rem;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--gris)}.dline small{color:var(--mut);display:block;overflow-wrap:anywhere}@media(max-width:560px){.dline{grid-template-columns:1fr 1fr}.dl-n{grid-column:1/-1}}.dtb{width:100%;border-collapse:collapse;font-size:.9rem}.dtb th,.dtb td{padding:.5rem .6rem;border-bottom:1px solid var(--gris);text-align:left}.dtb th{color:var(--bleu);font-size:.78rem;letter-spacing:.2px}.dtb .n{text-align:center}.dpre{background:#f6f4ee;border-radius:8px;padding:.8rem;overflow:auto;font-size:.82rem}.jn-und{display:inline-block;margin-top:.35rem;font-size:.78rem;font-weight:700;color:#8a6d1d;background:#fbf3d9;border-radius:999px;padding:.1rem .65rem}#cfm-m{white-space:pre-line;text-align:left}.jn-ajout{background:var(--ok)}.jn-modif{background:var(--bleu2)}.jn-suppr,.jn-purge{background:var(--ko)}.jn-restaure{background:#8a6d1d}.jn-import{background:var(--mut)}
 .bd{background:var(--or);color:var(--bleu);border-radius:6px;font-family:'Bebas Neue';letter-spacing:1px;padding:.3rem .6rem;flex-shrink:0;min-width:54px;text-align:center}
 .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 9px;border-radius:10px;margin-right:.4rem;letter-spacing:.2px}
 .champ{background:#e8f0fe;color:#1a3a8a}.concours{background:#e8f9ee;color:#1a6a35}.gp{background:#fff8e0;color:#7a5500}.cdc{background:#ffe0f0;color:#8a0050}.jeunes{background:#e0f8ff;color:#005a8a}.veterans{background:#f0ede8;color:#5a3a1a}.regional{background:#f3e8ff;color:#5a1a8a}.coupe{background:#fde8e8;color:#9b1c1c}.propagande{background:#fff0e0;color:#8a4a00}.autre{background:#e9ecef;color:#344054}
@@ -402,7 +402,8 @@ const CAT = { champ: 'Championnat', concours: 'Concours officiel', gp: 'Grand Pr
 const CATOPT = Object.entries(CAT);
 const SECT = { centre: 'Secteur Centre', maritime: 'Secteur Maritime', santerre: 'Secteur Santerre' };
 const GRP = { president: 'Président', vice: 'Vice-présidents', admin: 'Secrétaires et trésoriers', membre: 'Membres du comité directeur' };
-const today = new Date().toISOString().slice(0, 10);
+const isoLocal = t => new Date(t - new Date(t).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const today = isoLocal(Date.now());
 
 /* Arbitres, éducateurs et membres du comité partagent la collection « membres » :
    le champ « categorie » (comite / arbitre / educateur) les distingue.
@@ -421,8 +422,8 @@ const SCHEMA = {
     add: 'Ajouter une compétition', req: ['date', 'titre'], sort: (a, b) => (a.date || '').localeCompare(b.date || '') || (a.heure || '').localeCompare(b.heure || ''),
     group: e => (e.date || '').slice(0, 7), glabel: k => k ? `${MOIS[+k.slice(5) - 1]} ${k.slice(0, 4)}` : 'Sans date',
     left: e => `<div class="dt"><b>${esc((e.date || '').slice(8))}</b><span>${esc((MOIS[+(e.date || '').slice(5, 7) - 1] || '').slice(0, 3).toUpperCase())}</span></div>`,
-    title: e => e.titre, sub: e => `<span class="pill ${esc(e.type)}">${esc(e.type === 'autre' && e.typeAutre ? e.typeAutre : (CAT[e.type] || e.type || ''))}</span>${[e.lieu, e.heure, e.formation, (e.lien || e.lien2) && 'avec lien'].filter(Boolean).map(esc).join(' · ')}`,
-    f: [['h', 'La compétition'], ['date', 'Date', 'date'], ['type', 'Catégorie', 'select', CATOPT], ['typeAutre', 'Précisez ce que c\'est (ex : Assemblée générale, Stage, Remise de récompenses)'], ['titre', 'Titre (ex : Concours Roye)'], ['formation', 'Formation (ex : Doublette)'], ['club', 'Club organisateur (le lieu se remplit tout seul)', 'clubselect'], ['lieu', 'Lieu (modifiable)'], ['heure', 'Heure (ex : 14h00)'], ['obs', 'Remarques (ex : Limité à 48 éq.)', 'textarea'],
+    title: e => e.titre, sub: e => `<span class="pill ${esc(e.type)}">${esc(e.type === 'autre' && e.typeAutre ? e.typeAutre : (CAT[e.type] || e.type || ''))}</span>${[e.lieu, e.heure, e.formation, e.equipes ? e.equipes + ' éq.' : '', (e.lien || e.lien2) && 'avec lien'].filter(Boolean).map(esc).join(' · ')}`,
+    f: [['h', 'La compétition'], ['date', 'Date', 'date'], ['type', 'Catégorie', 'select', CATOPT], ['typeAutre', 'Précisez ce que c\'est (ex : Assemblée générale, Stage, Remise de récompenses)'], ['titre', 'Titre (ex : Concours Roye)'], ['formation', 'Formation (ex : Doublette)'], ['equipes', 'Nombre d\'équipes (sert à calculer le nombre d\'arbitres)', 'number'], ['club', 'Club organisateur (le lieu se remplit tout seul)', 'clubselect'], ['lieu', 'Lieu (modifiable)'], ['heure', 'Heure (ex : 14h00)'], ['obs', 'Remarques (ex : Limité à 48 éq.)', 'textarea'],
       ['h', 'Liens (facultatif)'], ['lienTexte', 'Texte du 1er bouton (ex : Règlement)'], ['lien', 'Adresse du 1er lien (https://…)', 'url'], ['lien2Texte', 'Texte du 2e bouton (ex : Inscription)'], ['lien2', 'Adresse du 2e lien (https://…)', 'url']] },
   actualites: { tab: 'Actualités', desc: 'Les informations affichées sur la page d\'accueil. Un brouillon n\'est pas visible. Pour programmer une publication : choisis « Publiée » avec une date (et une heure) à venir, elle apparaîtra toute seule ; une date de fin permet de la retirer automatiquement.',
     add: 'Ajouter une actualité', req: ['titre', 'texte'], sort: (a, b) => (b.publieLe || '').localeCompare(a.publieLe || ''),
@@ -1547,6 +1548,24 @@ const dStat = k => (DSTAT.find(r => r[0] === k) || DSTAT[0])[1];
 const frDate = d => d ? String(d).split('-').reverse().join('/') : '';
 const longDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
 const seasonOf = d => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 9 ? y + '-' + (y + 1) : (y - 1) + '-' + y; };
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+/* Arbitre du club organisateur : le club de l'arbitre contient la ville ou le nom de l'association du club organisateur (ou l'inverse) */
+const memeClub = (m, ev) => { const a = norm(m.club); if (!a || !ev.club) return false; return String(ev.club).split('—').map(norm).filter(p => p.length >= 3).some(p => a.includes(p) || p.includes(a)); };
+/* Nombre d'arbitres : 1 jusqu'à 32 équipes, puis +1 par tranche de 32 équipes (à ajuster ici). Les compétitions « Autre » (AG, stage…) n'en demandent pas. */
+const EQ_PAR_ARBITRE = 32;
+const eqOf = ev => Number(ev.equipes) || 0;
+const actifs = d => ((d && d.arbitres) || []).filter(a => a.statut !== 'refuse');
+const requisOf = (ev, d) => (d && Number.isInteger(d.requis)) ? d.requis : (ev.type === 'autre' ? 0 : Math.max(1, Math.ceil(eqOf(ev) / EQ_PAR_ARBITRE)));
+const urgentLimit = () => isoLocal(Date.now() + 14 * 864e5);
+const modif = (ev, d) => !!d && actifs(d).length > 0 && (d.date !== ev.date || (d.lieu || '') !== (ev.lieu || '') || (d.heure || '') !== (ev.heure || ''));
+const chargeOf = (id, ev) => Object.entries(DS.des).reduce((n, [eid, d]) => { const o = evById(eid); return n + (o && seasonOf(o.date) === seasonOf(ev.date) && (d.arbitres || []).some(a => a.id === id && a.statut !== 'refuse') ? 1 : 0); }, 0);
+/* Arbitres libres ce jour-là : ceux du club organisateur d'abord, puis les moins sollicités de la saison */
+const candidats = (ev, taken) => DS.arbs.filter(m => !taken.has(m._id) && !indispoOf(m._id, ev.date) && !dejaPris(m._id, ev))
+  .map(m => ({ m, club: memeClub(m, ev), n: chargeOf(m._id, ev) })).sort((a, b) => (b.club - a.club) || (a.n - b.n) || (a.m.nom || '').localeCompare(b.m.nom || '', 'fr'));
+function hintsFor(ev, list) {
+  const c = candidats(ev, new Set((list || []).map(a => a.id))).filter(x => x.club);
+  return c.length ? ['Arbitre(s) du club organisateur disponible(s), à désigner en priorité : ' + c.map(x => x.m.nom).join(', ')] : [];
+}
 let DS = { view: 'liste', per: 'avenir', st: '', q: '', ip: 'avenir', saison: '', events: [], arbs: [], des: {}, ind: [] };
 const evById = id => DS.events.find(e => e._id === id);
 const indispoOf = (arbId, date) => DS.ind.find(i => i.arbitreId === arbId && i.du <= date && (i.au || i.du) >= date);
@@ -1565,6 +1584,8 @@ function warnsFor(ev, list) {
     const ind = indispoOf(a.id, ev.date); if (ind) w.push(`${nom} est indisponible${ind.motif ? ' (' + ind.motif + ')' : ''}`);
     const o = dejaPris(a.id, ev); if (o) w.push(`${nom} est déjà désigné le même jour : ${o.titre || 'autre compétition'}`);
   });
+  const act = (list || []).filter(a => a.statut !== 'refuse'), np = act.filter(a => a.role === 'principal').length;
+  if (act.length && !np) w.push('Aucun arbitre principal désigné'); if (np > 1) w.push('Plusieurs arbitres principaux désignés');
   return w;
 }
 function desDiff(a, b) {
@@ -1573,6 +1594,7 @@ function desDiff(a, b) {
     if (!o) L.push(`Ajout : ${x.nom} (${dRole(x.role)}, ${dStat(x.statut).toLowerCase()})`);
     else { if (o.role !== x.role) L.push(`${x.nom} : rôle ${dRole(o.role)} → ${dRole(x.role)}`); if (o.statut !== x.statut) L.push(`${x.nom} : ${dStat(o.statut).toLowerCase()} → ${dStat(x.statut).toLowerCase()}`); } });
   A.forEach(y => { if (!B.some(x => x.id === y.id)) L.push(`Retrait : ${y.nom}`); });
+  const ra = (a && Number.isInteger(a.requis)) ? a.requis : null, rb = Number.isInteger(b.requis) ? b.requis : null; if (ra !== rb) L.push('Arbitres nécessaires : ' + (ra ?? 'auto') + ' → ' + (rb ?? 'auto'));
   const n = chg('Note', (a && a.note) || '', b.note || ''); if (n) L.push(n);
   return L.join('\n');
 }
@@ -1596,13 +1618,14 @@ async function viewDesignations() {
   drawDes();
 }
 function drawDes() {
-  const tabs = [['liste', 'Désignations'], ['indispos', 'Indisponibilités'], ['recap', 'Récapitulatif']];
+  const tabs = [['liste', 'Désignations'], ['indispos', 'Indisponibilités'], ['plan', 'Par arbitre'], ['recap', 'Récapitulatif']];
   $('#main').innerHTML = head('Désignations des arbitres', 'Qui arbitre quel concours. Ces informations sont privées : elles ne sont pas affichées sur le site.') +
     `<div class="flex dtabs" role="group" aria-label="Rubriques">${tabs.map(([k, n]) => `<button class="btn b-ln" data-dv="${k}" aria-pressed="${DS.view === k}">${n}</button>`).join('')}</div><div id="dbody"></div>`;
-  DS.view === 'indispos' ? drawDesInd() : DS.view === 'recap' ? drawDesRecap() : drawDesList();
-  $('#main').onclick = e => { const b = e.target.closest('[data-dv],[data-des],[data-ie],[data-idl],#iadd,#rexp'); if (!b) return;
+  DS.view === 'indispos' ? drawDesInd() : DS.view === 'plan' ? drawDesPlan() : DS.view === 'recap' ? drawDesRecap() : drawDesList();
+  $('#main').onclick = e => { const b = e.target.closest('[data-dv],[data-des],[data-qc],[data-ie],[data-idl],#iadd,#rexp'); if (!b) return;
     if (b.dataset.dv) { DS.view = b.dataset.dv; return drawDes(); }
     if (b.dataset.des) return openDes(b.dataset.des);
+    if (b.dataset.qc) return cycleStat(b.dataset.qc);
     if (b.id === 'iadd') return openInd({});
     if (b.dataset.ie) return openInd(DS.ind.find(i => i._id === b.dataset.ie) || {});
     if (b.dataset.idl) return delInd(b.dataset.idl);
@@ -1612,24 +1635,24 @@ const libres = e => !(((DS.des[e._id] || {}).arbitres) || []).some(a => a.statut
 function drawDesList() {
   const up = DS.events.filter(e => e.date >= today), sans = up.filter(libres).length, conf = up.filter(e => (((DS.des[e._id] || {}).arbitres) || []).some(a => a.statut === 'propose')).length;
   $('#dbody').innerHTML = (DS.arbs.length ? '' : `<div class="card"><b>${ic('alert')}Aucun arbitre enregistré</b><p class="hint2">Ajoute d'abord tes arbitres dans l'onglet « Arbitres » : ils apparaîtront ici.</p></div>`) +
-    `<p class="hint2"><strong>${up.length}</strong> compétition${up.length > 1 ? 's' : ''} à venir · <strong>${sans}</strong> sans arbitre · <strong>${conf}</strong> avec une désignation à confirmer</p>
+    `<p class="hint2"><strong>${up.length}</strong> compétition${up.length > 1 ? 's' : ''} à venir · <strong>${sans}</strong> sans arbitre · <strong>${conf}</strong> avec une désignation à confirmer · <strong>${up.filter(e => actifs(DS.des[e._id]).length < requisOf(e, DS.des[e._id])).length}</strong> incomplète(s)</p>
     <div class="bar"><div class="srch">${ic('search')}<input id="dq" type="search" placeholder="Rechercher (concours, lieu, arbitre…)" aria-label="Rechercher" value="${esc(DS.q)}"></div>
     <select id="dp" aria-label="Période">${[['avenir', 'Compétitions à venir'], ['passe', 'Compétitions passées'], ['tout', 'Toutes']].map(([k, n]) => `<option value="${k}" ${DS.per === k ? 'selected' : ''}>${n}</option>`).join('')}</select>
-    <select id="ds" aria-label="Filtre">${[['', 'Toutes les compétitions'], ['sans', 'Sans arbitre'], ['confirmer', 'À confirmer'], ['conflit', 'Avec un avertissement']].map(([k, n]) => `<option value="${k}" ${DS.st === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div><div id="dlist"></div>`;
+    <select id="ds" aria-label="Filtre">${[['', 'Toutes les compétitions'], ['sans', 'Sans arbitre'], ['confirmer', 'À confirmer'], ['incomplet', 'Incomplètes (arbitres manquants)'], ['urgent', 'Urgentes (moins de 14 jours)'], ['conflit', 'Avec un avertissement']].map(([k, n]) => `<option value="${k}" ${DS.st === k ? 'selected' : ''}>${n}</option>`).join('')}</select></div><div id="dlist"></div>`;
   const draw = () => {
     const q = DS.q.toLowerCase();
     let l = DS.events.filter(e => DS.per === 'tout' || (DS.per === 'avenir' ? e.date >= today : e.date < today));
     if (q) l = l.filter(e => [e.titre, e.lieu, e.club, e.formation, ((DS.des[e._id] || {}).arbitres || []).map(a => a.nom).join(' ')].join(' ').toLowerCase().includes(q));
     if (DS.st) l = l.filter(e => { const a = (DS.des[e._id] || {}).arbitres || [];
-      return DS.st === 'sans' ? libres(e) : DS.st === 'confirmer' ? a.some(x => x.statut === 'propose') : warnsFor(e, a).length > 0; });
+      return DS.st === 'sans' ? libres(e) : DS.st === 'confirmer' ? a.some(x => x.statut === 'propose') : DS.st === 'incomplet' ? actifs(DS.des[e._id]).length < requisOf(e, DS.des[e._id]) : DS.st === 'urgent' ? (e.date >= today && e.date <= urgentLimit() && a.filter(x => x.statut === 'accepte').length < requisOf(e, DS.des[e._id])) : warnsFor(e, a).length > 0; });
     if (DS.per === 'passe') l = l.slice().reverse();
     if (!l.length) return $('#dlist').innerHTML = empty(DS.events.length ? 'Aucune compétition ne correspond.' : 'Aucune compétition dans le calendrier.', 'cal');
     const g = {}; l.forEach(e => (g[e.date.slice(0, 7)] ||= []).push(e));
     $('#dlist').innerHTML = Object.entries(g).map(([k, a]) => `<div class="gh">${esc(MOIS[+k.slice(5) - 1] + ' ' + k.slice(0, 4))} <span>(${a.length})</span></div>` + a.map(e => {
-      const d = DS.des[e._id] || {}, ar = d.arbitres || [], w = warnsFor(e, ar), past = e.date < today;
+      const d = DS.des[e._id] || {}, ar = d.arbitres || [], w = warnsFor(e, ar), past = e.date < today, need = requisOf(e, d), ok = actifs(d).length, hs = past ? [] : hintsFor(e, ar), urg = !past && need > 0 && e.date <= urgentLimit() && ar.filter(x => x.statut === 'accepte').length < need, mod = !past && modif(e, d);
       return `<div class="row ${past ? 'past' : ''}"><div class="dt"><b>${esc(e.date.slice(8))}</b><span>${esc(MOIS[+e.date.slice(5, 7) - 1].slice(0, 3).toUpperCase())}</span></div><div class="m"><strong>${esc(e.titre)}</strong><small>${[e.lieu, e.heure].filter(Boolean).map(esc).join(' · ')}</small>
-        <div class="dpills">${ar.length ? ar.map(x => `<span class="pill ${DPILL[x.statut] || 'gp'}" title="${esc(dRole(x.role) + ' — ' + dStat(x.statut))}">${esc(x.nom)}${x.role === 'principal' ? ' ★' : ''}</span>`).join('') : `<span class="pill ${past ? 'autre' : 'coupe'}">Aucun arbitre</span>`}</div>
-        ${w.map(t => `<small class="dwarn">⚠ ${esc(t)}</small>`).join('')}</div><div class="act"><button class="btn b-ln" data-des="${esc(e._id)}">${ic('whistle', 16)}${ar.length ? 'Modifier' : 'Désigner'}</button></div></div>`; }).join('')).join('');
+        <div class="dpills">${ar.length ? ar.map((x, i) => `<button type="button" class="pill ${DPILL[x.statut] || 'gp'} dq" data-qc="${esc(e._id)}:${i}" title="${esc(dRole(x.role) + ' — ' + dStat(x.statut) + ' (clic : changer le statut)')}">${esc(x.nom)}${x.role === 'principal' ? ' ★' : ''} · ${esc(dStat(x.statut))}</button>`).join('') : `<span class="pill ${past ? 'autre' : 'coupe'}">Aucun arbitre</span>`}</div>
+        ${need > 0 ? `<small class="dneed ${ok >= need ? 'ok' : ''}">${eqOf(e) ? eqOf(e) + ' équipes' : 'Équipes non renseignées'} · ${ok}/${need} arbitre${need > 1 ? 's' : ''}${urg ? ' · 🔥 urgent' : ''}</small>` : ''}${mod ? '<small class="dwarn">⚠ Compétition modifiée depuis la désignation : prévenir les arbitres</small>' : ''}${w.map(t => `<small class="dwarn">⚠ ${esc(t)}</small>`).join('')}${hs.map(t => `<small class="dhint">★ ${esc(t)}</small>`).join('')}</div><div class="act"><button class="btn b-ln" data-des="${esc(e._id)}">${ic('whistle', 16)}${ar.length ? 'Modifier' : 'Désigner'}</button></div></div>`; }).join('')).join('');
   };
   draw();
   $('#dq').oninput = e => { DS.q = e.target.value; draw(); };
@@ -1644,11 +1667,16 @@ function openDes(id) {
   const before = DS.des[id] || null, f = $('#dform');
   const cur = { arbitres: ((before && before.arbitres) || []).map(a => ({ ...a })) };
   f.innerHTML = `<h2 id="dlg-t">Désigner les arbitres</h2><p class="hint2"><strong>${esc(ev.titre)}</strong><br>${esc(longDate(ev.date))}${ev.lieu ? ' · ' + esc(ev.lieu) : ''}${ev.heure ? ' · ' + esc(ev.heure) : ''}</p>
-    <div id="dl"></div><div id="dw"></div>
-    <div class="f"><label for="dadd">Ajouter un arbitre</label><select id="dadd"></select></div>
+    <div class="f"><label for="dteams">Nombre d'équipes inscrites</label><input id="dteams" type="number" min="0" value="${eqOf(ev) || ''}"></div>
+    <div class="f"><label for="dreqin">Arbitres nécessaires (vide = calculé d'après les équipes : 1 par tranche de ${EQ_PAR_ARBITRE})</label><input id="dreqin" type="number" min="0" value="${before && Number.isInteger(before.requis) ? before.requis : ''}"></div>
+    <p class="hint2" id="dreq"></p><div id="dl"></div><div id="dw"></div>
+    <div class="f"><label for="dadd">Ajouter un arbitre</label><select id="dadd"></select><button type="button" class="btn b-ln" id="dsug" style="margin-top:.4rem">${ic('whistle', 16)}Suggérer (club organisateur d'abord)</button></div>
     <div class="f"><label for="dnote">Note privée (facultatif)</label><textarea id="dnote" rows="2">${esc((before && before.note) || '')}</textarea></div>
-    <div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button type="button" class="btn b-ln" id="dmail">${ic('mail', 16)}Écrire aux arbitres</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
-  const warn = () => { $('#dw').innerHTML = warnsFor(ev, cur.arbitres).map(t => `<p class="dwarn">⚠ ${esc(t)}</p>`).join(''); };
+    <div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button type="button" class="btn b-ln" id="dcopy">Copier le message</button><button type="button" class="btn b-ln" id="dmail">${ic('mail', 16)}Écrire aux arbitres</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
+  const reqNow = () => { const r = $('#dreqin').value; return r !== '' ? Math.max(0, +r) : (ev.type === 'autre' ? 0 : Math.max(1, Math.ceil((+$('#dteams').value || 0) / EQ_PAR_ARBITRE))); };
+  const warn = () => { const n = cur.arbitres.filter(a => a.statut !== 'refuse').length, q = reqNow(), eq = +$('#dteams').value || 0;
+    $('#dreq').innerHTML = `<strong>${n}/${q}</strong> arbitre${q > 1 ? 's' : ''} désigné${n > 1 ? 's' : ''}${eq ? ' pour ' + eq + ' équipes' : ' · nombre d\'équipes inconnu'}`;
+    $('#dw').innerHTML = (modif(ev, before) ? '<p class="dwarn">⚠ Compétition modifiée depuis la désignation : pense à prévenir les arbitres</p>' : '') + warnsFor(ev, cur.arbitres).map(t => `<p class="dwarn">⚠ ${esc(t)}</p>`).join('') + hintsFor(ev, cur.arbitres).map(t => `<p class="dhint">★ ${esc(t)}</p>`).join(''); };
   const drawL = () => {
     $('#dl').innerHTML = cur.arbitres.length ? cur.arbitres.map((a, i) => { const m = DS.arbs.find(x => x._id === a.id) || {};
       return `<div class="dline"><div class="dl-n"><strong>${esc(a.nom)}</strong><small>${[m.role, m.tel, m.email].filter(Boolean).map(esc).join(' · ')}</small></div>
@@ -1656,8 +1684,8 @@ function openDes(id) {
         <select data-di="${i}" data-dk="statut" aria-label="Statut de ${esc(a.nom)}">${DSTAT.map(([k, n]) => `<option value="${k}" ${k === a.statut ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <button type="button" class="btn b-ko b-ic" data-drm="${i}" aria-label="Retirer ${esc(a.nom)}" title="Retirer">${ic('x', 16)}</button></div>`; }).join('') : '<p class="hint2">Aucun arbitre désigné pour le moment.</p>';
     const taken = new Set(cur.arbitres.map(a => a.id));
-    $('#dadd').innerHTML = '<option value="">Choisir un arbitre…</option>' + DS.arbs.filter(m => !taken.has(m._id)).map(m => { const fl = []; if (indispoOf(m._id, ev.date)) fl.push('indisponible'); if (dejaPris(m._id, ev)) fl.push('déjà pris ce jour');
-      return `<option value="${esc(m._id)}">${esc(m.nom)}${m.role ? ' — ' + esc(m.role) : ''}${fl.length ? ' ⚠ ' + fl.join(', ') : ''}</option>`; }).join('');
+    $('#dadd').innerHTML = '<option value="">Choisir un arbitre…</option>' + DS.arbs.filter(m => !taken.has(m._id)).sort((a, b) => memeClub(b, ev) - memeClub(a, ev)).map(m => { const fl = []; if (indispoOf(m._id, ev.date)) fl.push('indisponible'); if (dejaPris(m._id, ev)) fl.push('déjà pris ce jour');
+      return `<option value="${esc(m._id)}">${memeClub(m, ev) ? '★ ' : ''}${esc(m.nom)}${m.role ? ' — ' + esc(m.role) : ''}${fl.length ? ' ⚠ ' + fl.join(', ') : ''}</option>`; }).join('');
     warn();
   };
   $('#dlg').showModal(); $('#no').onclick = () => $('#dlg').close(); drawL();
@@ -1665,26 +1693,63 @@ function openDes(id) {
     if (t.id === 'dadd') { const m = DS.arbs.find(x => x._id === t.value); if (m) { cur.arbitres.push({ id: m._id, nom: m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }); drawL(); } }
     else if (t.dataset.dk) { cur.arbitres[+t.dataset.di][t.dataset.dk] = t.value; warn(); } };
   f.onclick = e => { const b = e.target.closest('[data-drm]'); if (b) { cur.arbitres.splice(+b.dataset.drm, 1); drawL(); } };
-  $('#dmail').onclick = () => mailDes(ev, cur.arbitres);
+  $('#dmail').onclick = () => mailDes(ev, cur.arbitres, false);
+  $('#dcopy').onclick = () => mailDes(ev, cur.arbitres, true);
+  f.oninput = e => { if (e.target.id === 'dteams' || e.target.id === 'dreqin') warn(); };
+  $('#dsug').onclick = () => { const need = reqNow() - cur.arbitres.filter(a => a.statut !== 'refuse').length;
+    if (need <= 0) return toast('Le nombre d\'arbitres nécessaire est déjà atteint.');
+    const c = candidats(ev, new Set(cur.arbitres.map(a => a.id))).slice(0, need);
+    if (!c.length) return toast('Aucun arbitre disponible ce jour-là.', 1);
+    c.forEach(x => cur.arbitres.push({ id: x.m._id, nom: x.m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }));
+    drawL(); toast(c.length + ' arbitre' + (c.length > 1 ? 's' : '') + ' proposé' + (c.length > 1 ? 's' : '') + (c.some(x => x.club) ? ' (club organisateur en priorité)' : '')); };
   f.onsubmit = async e => { e.preventDefault();
     const note = $('#dnote').value.trim(), list = cur.arbitres.map(a => ({ id: a.id, nom: a.nom, role: a.role, statut: a.statut }));
     if (!before && !list.length) return toast('Ajoute au moins un arbitre.', 1);
-    const lines = desDiff(before, { arbitres: list, note });
+    const rq = $('#dreqin').value, eq = +$('#dteams').value || 0, requis = rq === '' ? null : Math.max(0, +rq);
+    let lines = desDiff(before, { arbitres: list, note, requis });
+    if (eq !== eqOf(ev)) lines += (lines ? '\n' : '') + 'Équipes : ' + eqOf(ev) + ' → ' + eq;
     if (before && !lines) { $('#dlg').close(); return toast('Aucun changement.'); }
     await busy($('#yes'), async () => { try {
-      const did = 'ev_' + id, d = { type: 'ev', eventId: id, date: ev.date, titre: ev.titre || '', lieu: ev.lieu || '', heure: ev.heure || '', arbitres: list, note, majLe: Date.now(), par: me.nom || '' };
+      const did = 'ev_' + id, d = { type: 'ev', eventId: id, date: ev.date, titre: ev.titre || '', lieu: ev.lieu || '', heure: ev.heure || '', arbitres: list, note, requis, majLe: Date.now(), par: me.nom || '' };
+      if (eq !== eqOf(ev)) { await setDoc(doc(db, 'events', id), { equipes: eq }, { merge: true }); ev.equipes = eq; }
       await setDoc(doc(db, 'designations', did), d);
       await logAct(before ? 'modif' : 'ajout', 'Désignation', `${ev.titre || 'Compétition'} (${frDate(ev.date)})`, lines, { snap: snapOf(before ? 'mod' : 'add', 'designations', did, before, d) });
       DS.des[id] = { ...d, _id: did }; $('#dlg').close(); toast('Désignation enregistrée'); drawDes();
     } catch (er) { toast('Échec : ' + er.message, 1); } });
   };
 }
-function mailDes(ev, list) {
+function mailDes(ev, list, copy) {
   const act = list.filter(a => a.statut !== 'refuse'), rec = act.map(a => (DS.arbs.find(m => m._id === a.id) || {}).email).filter(Boolean);
   if (!act.length) return toast('Aucun arbitre à prévenir (ajoute-en un, ou change le statut « Refusé »).', 1);
-  if (!rec.length) return toast('Aucune adresse email renseignée pour ces arbitres (fiche dans l\'onglet « Arbitres »).', 1);
-  const body = `Bonjour,\n\nVous êtes désigné(e) pour la compétition suivante :\n\n• ${ev.titre}\n• Date : ${longDate(ev.date)}\n${ev.lieu ? '• Lieu : ' + ev.lieu + '\n' : ''}${ev.heure ? '• Heure : ' + ev.heure + '\n' : ''}\nDésignations :\n${act.map(a => '• ' + a.nom + ' — ' + dRole(a.role)).join('\n')}\n\nMerci de confirmer votre disponibilité par retour de mail.\n\nCordialement,\n${me.nom || ''}\nComité Départemental 80`;
+  const eq = +($('#dteams') || {}).value || eqOf(ev);
+  const body = `Bonjour,\n\nVous êtes désigné(e) pour la compétition suivante :\n\n• ${ev.titre}\n• Date : ${longDate(ev.date)}\n${ev.lieu ? '• Lieu : ' + ev.lieu + '\n' : ''}${ev.heure ? '• Heure : ' + ev.heure + '\n' : ''}${eq ? '• Équipes attendues : ' + eq + '\n' : ''}\nDésignations :\n${act.map(a => '• ' + a.nom + ' — ' + dRole(a.role)).join('\n')}\n\nMerci de confirmer votre disponibilité par retour.\n\nCordialement,\n${me.nom || ''}\nComité Départemental 80`;
+  if (copy) return navigator.clipboard.writeText(body).then(() => toast('Message copié : colle-le dans un SMS ou WhatsApp'), () => toast('Copie impossible sur ce navigateur', 1));
+  if (!rec.length) return toast('Aucune adresse email renseignée pour ces arbitres (fiche dans l\'onglet « Arbitres »). Utilise « Copier le message ».', 1);
   location.href = 'mailto:?bcc=' + rec.map(encodeURIComponent).join(',') + '&subject=' + encodeURIComponent(`Désignation arbitre — ${ev.titre} (${frDate(ev.date)})`) + '&body=' + encodeURIComponent(body);
+}
+
+async function cycleStat(key) {
+  if (me.role === 'lecture') return toast('Mode lecture seule : tu ne peux pas modifier les désignations.', 1);
+  const k = key.lastIndexOf(':'), id = key.slice(0, k), i = +key.slice(k + 1), before = DS.des[id], ev = evById(id);
+  if (!before || !ev || !before.arbitres[i]) return;
+  const ord = ['propose', 'accepte', 'refuse'], list = before.arbitres.map(a => ({ ...a }));
+  list[i].statut = ord[(ord.indexOf(list[i].statut) + 1) % 3];
+  const d = { ...before, arbitres: list, majLe: Date.now(), par: me.nom || '' }; delete d._id;
+  try {
+    await setDoc(doc(db, 'designations', 'ev_' + id), d);
+    await logAct('modif', 'Désignation', `${ev.titre || 'Compétition'} (${frDate(ev.date)})`, desDiff(before, d), { snap: snapOf('mod', 'designations', 'ev_' + id, before, d) });
+    DS.des[id] = { ...d, _id: 'ev_' + id }; const y = scrollY; drawDes(); scrollTo(0, y);
+  } catch (er) { toast('Échec : ' + er.message, 1); }
+}
+function drawDesPlan() {
+  const S = DS.saison || seasonOf(today);
+  $('#dbody').innerHTML = `<p class="hint2">Le planning de chaque arbitre pour la saison ${esc(S)} (change la saison dans « Récapitulatif »).</p>` + (DS.arbs.map(m => {
+    const l = DS.events.filter(e => seasonOf(e.date) === S).map(e => ({ e, a: ((DS.des[e._id] || {}).arbitres || []).find(x => x.id === m._id) })).filter(x => x.a && x.a.statut !== 'refuse');
+    const ind = DS.ind.filter(i => i.arbitreId === m._id && (i.au || i.du) >= today);
+    return `<div class="card"><b>${esc(m.nom)}</b> <small>${[m.role, m.club].filter(Boolean).map(esc).join(' · ')} · ${l.length} désignation${l.length > 1 ? 's' : ''}</small>` +
+      (l.length ? l.map(({ e, a }) => `<div class="row ${e.date < today ? 'past' : ''}"><div class="m"><strong>${esc(frDate(e.date))} · ${esc(e.titre)}</strong><small>${[e.lieu, e.heure, dRole(a.role), dStat(a.statut)].filter(Boolean).map(esc).join(' · ')}</small></div></div>`).join('') : '<p class="hint2">Aucune désignation.</p>') +
+      ind.map(i => `<small class="dwarn">Indisponible ${i.au && i.au !== i.du ? 'du ' + esc(frDate(i.du)) + ' au ' + esc(frDate(i.au)) : 'le ' + esc(frDate(i.du))}${i.motif ? ' (' + esc(i.motif) + ')' : ''}</small>`).join('') + '</div>';
+  }).join('') || empty('Aucun arbitre enregistré.', 'cal'));
 }
 
 function drawDesInd() {
