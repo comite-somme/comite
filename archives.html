@@ -101,12 +101,26 @@
 .tb-leg p { margin: 0 0 0.8rem; color: #667085; }
 .tb-note { background: #faf6e8; border-left: 4px solid var(--or); border-radius: 6px; padding: 0.65rem 0.85rem; margin: 0.9rem 0 0.2rem; font-size: 0.85rem; line-height: 1.5; color: #5b4a14; }
 
-/* Palmarès : une ligne par année, les champions les uns sous les autres */
-.pal td { vertical-align: top; }
-.pal .an { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 1px; line-height: 1.1; color: var(--bleu); width: 5.5rem; white-space: nowrap; }
-.pal td div { padding: 1px 0; font-weight: 500; }
+/* Palmarès : même style que les tableaux de la page Classements (en-tête bleu/or, lignes aérées, club sous le nom sur mobile) */
+.tb-wrap table.pal { border: 1px solid #dfe3e8; border-radius: 10px; overflow: hidden; border-collapse: separate; border-spacing: 0; font-size: 0.95rem; margin-top: 0.8rem; }
+.tb-wrap .pal th { position: static; background: var(--bleu); color: var(--or); font-size: 0.68rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 0.75rem 0.6rem; border-bottom: 0; }
+.tb-wrap .pal td { padding: 0.8rem 0.6rem; vertical-align: middle; border-bottom: 1px solid #dfe3e8; }
+.tb-wrap .pal tbody tr:last-child td { border-bottom: 0; }
+.tb-wrap .pal tbody tr:nth-child(even) td { background: transparent; }
+.pal .an { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 1px; line-height: 1.1; color: var(--bleu); width: 4.2rem; text-align: center; white-space: nowrap; }
+.pal tbody tr:first-child .an { color: var(--or); }
+.pal td div { padding: 1px 0; font-weight: 500; color: #1a1f2e; }
 .pal td em { color: #98a2b3; font-size: 0.82rem; }
 .pal tr.vide .an { color: #b5bcc8; }
+.pal .sub-mobile { display: block; font-size: 0.82rem; color: #777; margin-top: 2px; font-weight: 400; }
+.pal .hide-sm { display: none; }
+@media (min-width: 640px) {
+  .tb-wrap .pal th { font-size: 0.72rem; letter-spacing: 1.5px; padding: 0.9rem 1rem; }
+  .tb-wrap .pal td { padding: 0.75rem 1rem; }
+  .pal .hide-sm { display: table-cell; }
+  .pal .sub-mobile { display: none; }
+}
+@media (hover: hover) { .tb-wrap .pal tbody tr:hover td { background: #faf8f4; } }
 
 /* Bilan : titres par joueur */
 .bil th, .bil td { text-align: center; }
@@ -310,8 +324,8 @@ function sheet() {
   if (d.palmares) {                       /* Palmarès : Année · Champions · Club */
     const { eq, club } = equipes(d.cols, d.rows);
     const l = eq.filter(g => !q || [g.an, ...g.noms, g.club].join(' ').toLowerCase().includes(q));
-    h += `<table class="pal"><thead><tr><th>Année</th><th>Champions</th>${club ? '<th>Club</th>' : ''}</tr></thead><tbody>` +
-      l.map(g => `<tr class="${g.noms.length ? '' : 'vide'}"><td class="an">${esc(g.an)}</td><td>${g.noms.length ? g.noms.map(n => `<div>${esc(n)}</div>`).join('') : '<em>Pas de titre enregistré</em>'}</td>${club ? `<td>${esc(g.club)}</td>` : ''}</tr>`).join('') +
+    h += `<table class="pal"><thead><tr><th>Année</th><th>Champions</th>${club ? '<th class="hide-sm">Club</th>' : ''}</tr></thead><tbody>` +
+      l.map(g => `<tr class="${g.noms.length ? '' : 'vide'}"><td class="an">${esc(g.an)}</td><td>${g.noms.length ? g.noms.map(n => `<div>${esc(n)}</div>`).join('') : '<em>Pas de titre enregistré</em>'}${club && g.club ? `<span class="sub-mobile">${esc(g.club)}</span>` : ''}</td>${club ? `<td class="hide-sm">${esc(g.club)}</td>` : ''}</tr>`).join('') +
       `</tbody></table><p class="tb-n">${count(l.length, 'année')}${q ? ' trouvée' + (l.length > 1 ? 's' : '') : ''}</p>`;
   } else if (d.bilan) {                   /* Bilan : nombre de titres par joueur et par épreuve */
     const last = d.cols.length - 1, l = d.rows.filter(r => !q || r.join(' ').toLowerCase().includes(q));
@@ -330,6 +344,9 @@ function openTable(x) {
   cur = x; $('#tbT').textContent = x.titre; $('#tbQ').value = '';
   $('#tbS').innerHTML = x.feuilles.map((s, i) => `<option value="${i}">${esc(nice(s.nom))}</option>`).join('');
   $('#tbS').hidden = x.feuilles.length < 2;
+  /* Ouvre directement sur la feuille « tous les licenciés » (nom contenant licencié / tous / bilan, ou feuille avec colonne Total) plutôt que sur la 1re (triplettes) */
+  const dflt = x.feuilles.findIndex(f => /licenci|tous|bilan|g[ée]n[ée]ral/i.test(String(f.nom || ''))), alt = x.feuilles.findIndex(f => clean(f).bilan), pick = dflt >= 0 ? dflt : alt;
+  $('#tbS').value = pick >= 0 ? pick : 0;
   $('#tbLeg').innerHTML = legende();
   sheet(); $('#tbW').scrollTop = 0; $('#tbDlg').showModal();
 }
