@@ -1571,6 +1571,24 @@ const RANGS = { 2: 'régional', 3: 'national' };
 const niveauOf = ev => Number(ev.niveauMini) || 0;
 const newTok = () => (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : (Math.random().toString(36) + Date.now().toString(36) + Math.random().toString(36)).replace(/\./g, ''));
 const euro = n => (Number(n) || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+/* Indemnisation minimale des arbitres par journée — annexe FFPJP ADM-comp-01 (mise à jour au 01/01/2026).
+   Chaque ligne : [type de compétition, [départemental, régional, national, international, 5e colonne]]. Km : 0,30 € / km aller-retour + péages. */
+const GRADES = ['Départemental', 'Régional', 'National', 'International', 'Élite (5e colonne)'];
+const TARIF_KM = 0.30;
+const BAREME = [
+  ['Championnats de France · Finale Coupe de France · Finale Chp National des Clubs', [60, 75, 100, 100, 150]],
+  ['Chp National des Clubs · 3 matchs le même week-end', [90, 115, 130, 150, 150]],
+  ['Chp National des Clubs · 2 matchs le même week-end', [60, 75, 85, 100, 100]],
+  ['Coupe de France 32e, 16e, 8e de finale · 3 matchs sur 1 journée et demie', [90, 115, 130, 150, 150]],
+  ['TOP 300 · TOP 500 · TOP 1000 et plus', [60, 70, 100, 100, 150]],
+  ['Chp Régional · Chp Régional des Clubs · 2 matchs le même week-end', [60, 70, 70, 80, 100]],
+  ['Chp Départemental · Concours Régional', [60, 70, 70, 70, 100]],
+  ['Concours Départemental · Coupe de France tour départemental / zonal', [60, 60, 60, 60, 60]],
+  ['Chp Départemental des Clubs · par match', [30, 30, 30, 30, 30]],
+  ['Concours en 4 parties avec phases finales', [50, 50, 50, 50, 50]]];
+const BAREME_DEFAUT = { champ: 6, concours: 7, cdc: 8, coupe: 7, regional: 5 };
+const gradeOf = r => { const t = norm(r); return /international/.test(t) ? 3 : /national|federal/.test(t) ? 2 : /region|ligue/.test(t) ? 1 : /departement/.test(t) ? 0 : -1; };
+const fraisOf = a => Math.round(((Number(a.indem) || 0) + (Number(a.km) || 0) * TARIF_KM + (Number(a.peages) || 0)) * 100) / 100;
 let DS = { view: 'liste', per: 'avenir', st: '', q: '', ip: 'avenir', saison: '', events: [], arbs: [], des: {}, ind: [] };
 const evById = id => DS.events.find(e => e._id === id);
 const indispoOf = (arbId, date) => DS.ind.find(i => i.arbitreId === arbId && i.du <= date && (i.au || i.du) >= date);
@@ -1598,8 +1616,9 @@ function desDiff(a, b) {
   const A = (a && a.arbitres) || [], B = b.arbitres || [], L = [];
   B.forEach(x => { const o = A.find(y => y.id === x.id);
     if (!o) L.push(`Ajout : ${x.nom} (${dRole(x.role)}, ${dStat(x.statut).toLowerCase()})`);
-    else { if (o.role !== x.role) L.push(`${x.nom} : rôle ${dRole(o.role)} → ${dRole(x.role)}`); if (o.statut !== x.statut) L.push(`${x.nom} : ${dStat(o.statut).toLowerCase()} → ${dStat(x.statut).toLowerCase()}`); if ((o.km || 0) !== (x.km || 0) || (o.frais || 0) !== (x.frais || 0)) L.push(`${x.nom} : ${x.km || 0} km · ${euro(x.frais)}`); if (!o.tok && x.tok) L.push(`${x.nom} : lien de réponse créé`); } });
+    else { if (o.role !== x.role) L.push(`${x.nom} : rôle ${dRole(o.role)} → ${dRole(x.role)}`); if (o.statut !== x.statut) L.push(`${x.nom} : ${dStat(o.statut).toLowerCase()} → ${dStat(x.statut).toLowerCase()}`); if ((o.km || 0) !== (x.km || 0) || (o.frais || 0) !== (x.frais || 0) || (o.peages || 0) !== (x.peages || 0) || (o.grade ?? -1) !== (x.grade ?? -1)) L.push(`${x.nom} : ${x.km || 0} km · ${euro(x.frais)}`); if (!o.tok && x.tok) L.push(`${x.nom} : lien de réponse créé`); } });
   A.forEach(y => { if (!B.some(x => x.id === y.id)) L.push(`Retrait : ${y.nom}`); });
+  const ba = (a && Number.isInteger(a.bareme)) ? a.bareme : null, bb = Number.isInteger(b.bareme) ? b.bareme : null; if (ba !== bb) L.push('Barème : ' + (bb === null ? 'aucun' : BAREME[bb][0]));
   const ra = (a && Number.isInteger(a.requis)) ? a.requis : null, rb = Number.isInteger(b.requis) ? b.requis : null; if (ra !== rb) L.push('Arbitres nécessaires : ' + (ra ?? 'auto') + ' → ' + (rb ?? 'auto'));
   const n = chg('Note', (a && a.note) || '', b.note || ''); if (n) L.push(n);
   return L.join('\n');
@@ -1610,8 +1629,7 @@ async function viewDesignations() {
   try { [evs, mem, dsn] = await Promise.all([getDocs(collection(db, 'events')), getDocs(collection(db, 'membres')), getDocs(collection(db, 'designations'))]); }
   catch (e) {
     if (e.code === 'permission-denied') {
-      $('#main').innerHTML = head('Désignations des arbitres', 'Une étape de configuration est nécessaire avant la première utilisation.') +
-        `<div class="card"><b>${ic('lock')}Autoriser la collection « designations »</b><p class="hint2">Dans la console Firebase › Firestore › Règles, ajoute une règle réservée aux administrateurs (même principe que pour la collection « journal » ou « notes »), puis publie. Exemple à adapter :</p><pre class="dpre">match /designations/{id} {\n  allow read, write: if request.auth != null\n    &amp;&amp; get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.actif == true;\n}</pre></div>`;
+      $('#main').innerHTML = head('Désignations des arbitres', 'Accès refusé.') + '<div class="card"><p class="hint2">Tu n\'as pas le droit d\'ouvrir cette rubrique. Demande à un administrateur de cocher « Désignations des arbitres » sur ton compte.</p></div>';
       return;
     }
     throw e;
@@ -1621,8 +1639,8 @@ async function viewDesignations() {
   const all = dsn.docs.map(d => ({ ...d.data(), _id: d.id }));
   DS.des = {}; all.filter(x => x.type === 'ev').forEach(x => { DS.des[x.eventId] = x; });
   DS.ind = all.filter(x => x.type === 'ab').sort((a, b) => (a.du || '').localeCompare(b.du || ''));
-  DS.rep = []; DS.repOff = false;
-  try { DS.rep = (await getDocs(collection(db, 'reponses'))).docs.map(d => ({ ...d.data(), _id: d.id })).sort((a, b) => (a.at || 0) - (b.at || 0)); } catch (e) { DS.repOff = e.code === 'permission-denied'; }
+  DS.rep = [];
+  try { DS.rep = (await getDocs(collection(db, 'reponses'))).docs.map(d => ({ ...d.data(), _id: d.id })).sort((a, b) => (a.at || 0) - (b.at || 0)); } catch (e) { /* pas d'accès aux réponses : bandeau masqué */ }
   drawDes();
 }
 function drawDes() {
@@ -1675,25 +1693,27 @@ function openDes(id) {
   const ev = evById(id); if (!ev) return;
   if (!DS.arbs.length) return toast('Ajoute d\'abord des arbitres dans l\'onglet « Arbitres ».', 1);
   const before = DS.des[id] || null, f = $('#dform');
-  const cur = { arbitres: ((before && before.arbitres) || []).map(a => ({ ...a })) };
+  const cur = { arbitres: ((before && before.arbitres) || []).map(a => ({ ...a })), bareme: Number.isInteger(before?.bareme) ? before.bareme : (BAREME_DEFAUT[ev.type] ?? '') };
   f.innerHTML = `<h2 id="dlg-t">Désigner les arbitres</h2><p class="hint2"><strong>${esc(ev.titre)}</strong><br>${esc(longDate(ev.date))}${ev.lieu ? ' · ' + esc(ev.lieu) : ''}${ev.heure ? ' · ' + esc(ev.heure) : ''}</p>
     <div class="f"><label for="dteams">Nombre d'équipes inscrites</label><input id="dteams" type="number" min="0" value="${eqOf(ev) || ''}"></div>
     <div class="f"><label for="dreqin">Arbitres nécessaires (vide = calculé d'après les équipes : 1 par tranche de ${EQ_PAR_ARBITRE})</label><input id="dreqin" type="number" min="0" value="${before && Number.isInteger(before.requis) ? before.requis : ''}"></div>
+    <div class="f"><label for="dbar">Type de compétition (barème d'indemnisation FFPJP)</label><select id="dbar"><option value="">— Choisir —</option>${BAREME.map((b, k) => `<option value="${k}" ${k === cur.bareme ? 'selected' : ''}>${esc(b[0])}</option>`).join('')}</select></div>
     <p class="hint2" id="dreq"></p><div id="dl"></div><div id="dw"></div>
     <div class="f"><label for="dadd">Ajouter un arbitre</label><select id="dadd"></select><button type="button" class="btn b-ln" id="dsug" style="margin-top:.4rem">${ic('whistle', 16)}Suggérer (club organisateur d'abord)</button></div>
     <div class="f"><label for="dnote">Note privée (facultatif)</label><textarea id="dnote" rows="2">${esc((before && before.note) || '')}</textarea></div>
     <div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button type="button" class="btn b-ln" id="dcopy">Copier le message</button><button type="button" class="btn b-ln" id="dmail">${ic('mail', 16)}Écrire aux arbitres</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
+  const applyForfait = a => { if (cur.bareme !== '' && Number.isInteger(a.grade)) a.indem = BAREME[cur.bareme][1][a.grade]; };
   const reqNow = () => { const r = $('#dreqin').value; return r !== '' ? Math.max(0, +r) : (ev.type === 'autre' ? 0 : Math.max(1, Math.ceil((+$('#dteams').value || 0) / EQ_PAR_ARBITRE))); };
   const warn = () => { const n = cur.arbitres.filter(a => a.statut !== 'refuse').length, q = reqNow(), eq = +$('#dteams').value || 0;
     $('#dreq').innerHTML = `<strong>${n}/${q}</strong> arbitre${q > 1 ? 's' : ''} désigné${n > 1 ? 's' : ''}${niveauOf(ev) ? ' · niveau ' + RANGS[niveauOf(ev)] + ' minimum' : ''}${eq ? ' pour ' + eq + ' équipes' : ' · nombre d\'équipes inconnu'}`;
     $('#dw').innerHTML = (modif(ev, before) ? '<p class="dwarn">⚠ Compétition modifiée depuis la désignation : pense à prévenir les arbitres</p>' : '') + warnsFor(ev, cur.arbitres).map(t => `<p class="dwarn">⚠ ${esc(t)}</p>`).join('') + hintsFor(ev, cur.arbitres).map(t => `<p class="dhint">★ ${esc(t)}</p>`).join(''); };
   const drawL = () => {
-    $('#dl').innerHTML = cur.arbitres.length ? cur.arbitres.map((a, i) => { const m = DS.arbs.find(x => x._id === a.id) || {};
+    $('#dl').innerHTML = cur.arbitres.length ? cur.arbitres.map((a, i) => { const m = DS.arbs.find(x => x._id === a.id) || {}; if (a.grade === undefined) { const g = gradeOf(m.role); a.grade = g >= 0 ? g : ''; applyForfait(a); }
       return `<div class="dline"><div class="dl-n"><strong>${esc(a.nom)}</strong><small>${[m.role, m.tel, m.email].filter(Boolean).map(esc).join(' · ')}</small></div>
         <select data-di="${i}" data-dk="role" aria-label="Rôle de ${esc(a.nom)}">${DROLES.map(([k, n]) => `<option value="${k}" ${k === a.role ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <select data-di="${i}" data-dk="statut" aria-label="Statut de ${esc(a.nom)}">${DSTAT.map(([k, n]) => `<option value="${k}" ${k === a.statut ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <button type="button" class="btn b-ko b-ic" data-drm="${i}" aria-label="Retirer ${esc(a.nom)}" title="Retirer">${ic('x', 16)}</button>
-        <div class="dx"><input type="number" min="0" placeholder="km" aria-label="Kilomètres de ${esc(a.nom)}" data-di="${i}" data-dk="km" value="${a.km || ''}"><input type="number" min="0" step="0.01" placeholder="Frais €" aria-label="Frais de ${esc(a.nom)}" data-di="${i}" data-dk="frais" value="${a.frais || ''}"><button type="button" class="btn b-ln" data-dcp="${i}">Message + lien</button><button type="button" class="btn b-ln" data-drp="${i}">↻ Remplacer</button></div></div>`; }).join('') : '<p class="hint2">Aucun arbitre désigné pour le moment.</p>';
+        <div class="dx"><select data-di="${i}" data-dk="grade" aria-label="Grade de ${esc(a.nom)}"><option value="">Grade ?</option>${GRADES.map((g, k) => `<option value="${k}" ${a.grade === k ? 'selected' : ''}>${g}</option>`).join('')}</select><input type="number" min="0" placeholder="km A/R" title="Kilomètres aller-retour depuis le domicile (0,30 € / km)" aria-label="Kilomètres aller-retour de ${esc(a.nom)}" data-di="${i}" data-dk="km" value="${a.km || ''}"><input type="number" min="0" step="0.01" placeholder="Péages €" aria-label="Péages de ${esc(a.nom)}" data-di="${i}" data-dk="peages" value="${a.peages || ''}"><input type="number" min="0" step="0.01" placeholder="Forfait €" title="Forfait du barème FFPJP (modifiable)" aria-label="Forfait de ${esc(a.nom)}" data-di="${i}" data-dk="indem" value="${a.indem ?? ''}"><strong class="dtot" id="dtot${i}" title="Forfait + km × 0,30 € + péages">${euro(fraisOf(a))}</strong><button type="button" class="btn b-ln" data-dcp="${i}">Message + lien</button><button type="button" class="btn b-ln" data-drp="${i}">↻ Remplacer</button></div></div>`; }).join('') : '<p class="hint2">Aucun arbitre désigné pour le moment.</p>';
     const taken = new Set(cur.arbitres.map(a => a.id));
     $('#dadd').innerHTML = '<option value="">Choisir un arbitre…</option>' + DS.arbs.filter(m => !taken.has(m._id)).sort((a, b) => memeClub(b, ev) - memeClub(a, ev)).map(m => { const fl = []; if (indispoOf(m._id, ev.date)) fl.push('indisponible'); if (dejaPris(m._id, ev)) fl.push('déjà pris ce jour');
       return `<option value="${esc(m._id)}">${memeClub(m, ev) ? '★ ' : ''}${esc(m.nom)}${m.role ? ' — ' + esc(m.role) : ''}${fl.length ? ' ⚠ ' + fl.join(', ') : ''}</option>`; }).join('');
@@ -1701,8 +1721,9 @@ function openDes(id) {
   };
   $('#dlg').showModal(); $('#no').onclick = () => $('#dlg').close(); drawL();
   f.onchange = e => { const t = e.target;
-    if (t.id === 'dadd') { const m = DS.arbs.find(x => x._id === t.value); if (m) { cur.arbitres.push({ id: m._id, nom: m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }); drawL(); } }
-    else if (t.dataset.dk) { cur.arbitres[+t.dataset.di][t.dataset.dk] = t.value; warn(); } };
+    if (t.id === 'dbar') { cur.bareme = t.value === '' ? '' : +t.value; cur.arbitres.forEach(applyForfait); drawL(); }
+    else if (t.id === 'dadd') { const m = DS.arbs.find(x => x._id === t.value); if (m) { cur.arbitres.push({ id: m._id, nom: m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }); drawL(); } }
+    else if (t.dataset.dk) { const a = cur.arbitres[+t.dataset.di], k = t.dataset.dk; a[k] = (k === 'role' || k === 'statut') ? t.value : (t.value === '' ? '' : Number(t.value)); if (k === 'grade') { applyForfait(a); drawL(); } else { const tt = $('#dtot' + t.dataset.di); if (tt) tt.textContent = euro(fraisOf(a)); } warn(); } };
   const replaceArb = i => { const old = cur.arbitres[i], c = candidats(ev, new Set(cur.arbitres.map(a => a.id)))[0];
     if (!c) return toast('Aucun arbitre disponible pour le remplacer ce jour-là.', 1);
     const wasP = old.role === 'principal'; old.statut = 'refuse'; if (wasP) old.role = 'arbitre';
@@ -1714,7 +1735,7 @@ function openDes(id) {
     else replaceArb(+b.dataset.drp); };
   $('#dmail').onclick = () => mailDes(ev, cur.arbitres, false);
   $('#dcopy').onclick = () => mailDes(ev, cur.arbitres, true);
-  f.oninput = e => { if (e.target.id === 'dteams' || e.target.id === 'dreqin') warn(); };
+  f.oninput = e => { const t = e.target; if (t.id === 'dteams' || t.id === 'dreqin') warn(); else if (['km', 'peages', 'indem'].includes(t.dataset.dk)) { const a = cur.arbitres[+t.dataset.di]; a[t.dataset.dk] = t.value === '' ? '' : Number(t.value); const tt = $('#dtot' + t.dataset.di); if (tt) tt.textContent = euro(fraisOf(a)); } };
   $('#dsug').onclick = () => { const need = reqNow() - cur.arbitres.filter(a => a.statut !== 'refuse').length;
     if (need <= 0) return toast('Le nombre d\'arbitres nécessaire est déjà atteint.');
     const c = candidats(ev, new Set(cur.arbitres.map(a => a.id))).slice(0, need);
@@ -1722,14 +1743,15 @@ function openDes(id) {
     c.forEach(x => cur.arbitres.push({ id: x.m._id, nom: x.m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }));
     drawL(); toast(c.length + ' arbitre' + (c.length > 1 ? 's' : '') + ' proposé' + (c.length > 1 ? 's' : '') + (c.some(x => x.club) ? ' (club organisateur en priorité)' : '')); };
   f.onsubmit = async e => { e.preventDefault();
-    const note = $('#dnote').value.trim(), list = cur.arbitres.map(a => ({ id: a.id, nom: a.nom, role: a.role, statut: a.statut, tok: a.tok || newTok(), km: Number(a.km) || 0, frais: Number(a.frais) || 0 }));
+    const note = $('#dnote').value.trim(), list = cur.arbitres.map(a => ({ id: a.id, nom: a.nom, role: a.role, statut: a.statut, tok: a.tok || newTok(), grade: Number.isInteger(a.grade) ? a.grade : null, km: Number(a.km) || 0, peages: Number(a.peages) || 0, indem: Number(a.indem) || 0, frais: fraisOf(a) }));
     if (!before && !list.length) return toast('Ajoute au moins un arbitre.', 1);
     const rq = $('#dreqin').value, eq = +$('#dteams').value || 0, requis = rq === '' ? null : Math.max(0, +rq);
-    let lines = desDiff(before, { arbitres: list, note, requis });
+    const bareme = Number.isInteger(cur.bareme) ? cur.bareme : null;
+    let lines = desDiff(before, { arbitres: list, note, requis, bareme });
     if (eq !== eqOf(ev)) lines += (lines ? '\n' : '') + 'Équipes : ' + eqOf(ev) + ' → ' + eq;
     if (before && !lines) { $('#dlg').close(); return toast('Aucun changement.'); }
     await busy($('#yes'), async () => { try {
-      const did = 'ev_' + id, d = { type: 'ev', eventId: id, date: ev.date, titre: ev.titre || '', lieu: ev.lieu || '', heure: ev.heure || '', arbitres: list, note, requis, majLe: Date.now(), par: me.nom || '' };
+      const did = 'ev_' + id, d = { type: 'ev', eventId: id, date: ev.date, titre: ev.titre || '', lieu: ev.lieu || '', heure: ev.heure || '', arbitres: list, note, requis, bareme, majLe: Date.now(), par: me.nom || '' };
       if (eq !== eqOf(ev)) { await setDoc(doc(db, 'events', id), { equipes: eq }, { merge: true }); ev.equipes = eq; }
       await setDoc(doc(db, 'designations', did), d);
       await logAct(before ? 'modif' : 'ajout', 'Désignation', `${ev.titre || 'Compétition'} (${frDate(ev.date)})`, lines, { snap: snapOf(before ? 'mod' : 'add', 'designations', did, before, d) });
@@ -1754,7 +1776,6 @@ function copyInd(ev, a, pre) {
   navigator.clipboard.writeText(body).then(() => toast((pre ? pre + ' · ' : '') + 'message + lien copiés pour ' + a.nom + ' (pense à enregistrer)'), () => toast('Copie impossible sur ce navigateur', 1));
 }
 function repBanner() {
-  if (DS.repOff) return `<div class="card"><b>${ic('lock')}Réponses des arbitres : une étape de configuration</b><p class="hint2">Pour que les arbitres répondent depuis leur lien, ajoute cette règle dans Firebase › Firestore › Règles (à côté de celle de « designations »), puis publie :</p><pre class="dpre">match /reponses/{id} {\n  allow create: if request.resource.data.keys().hasOnly(['eid','aid','tok','statut','at'])\n    &amp;&amp; request.resource.data.statut in ['accepte','refuse']\n    &amp;&amp; request.resource.data.tok is string &amp;&amp; request.resource.data.tok.size() &gt;= 20 &amp;&amp; request.resource.data.tok.size() &lt;= 64\n    &amp;&amp; request.resource.data.eid is string &amp;&amp; request.resource.data.eid.size() &lt; 60\n    &amp;&amp; request.resource.data.aid is string &amp;&amp; request.resource.data.aid.size() &lt; 60;\n  allow read, delete: if request.auth != null\n    &amp;&amp; get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.actif == true;\n}</pre></div>`;
   if (!DS.rep || !DS.rep.length) return '';
   const rows = DS.rep.map(r => { const ev = evById(r.eid), a = (((DS.des[r.eid] || {}).arbitres) || []).find(x => x.id === r.aid && x.tok === r.tok);
     return `<div class="row"><div class="m"><strong>${esc(a ? a.nom : 'Réponse inconnue')} : ${r.statut === 'accepte' ? 'accepte' : 'refuse'}</strong><small>${esc(ev ? (ev.titre || '') + ' · ' + frDate(ev.date) : 'compétition introuvable')}${a ? '' : ' · lien non reconnu, à ignorer'}</small></div><div class="act">${a ? `<button class="btn b-or" data-rap="${esc(r._id)}">Appliquer</button>` : ''}<button class="btn b-ln" data-rig="${esc(r._id)}">Ignorer</button></div></div>`; }).join('');
@@ -1852,13 +1873,13 @@ function drawDesRecap() {
   const rows = recapRows(), tot = rows.reduce((t, r) => t + r.n, 0);
   $('#dbody').innerHTML = `<div class="bar"><select id="rs" aria-label="Saison">${seasons.map(s => `<option value="${s}" ${s === DS.saison ? 'selected' : ''}>Saison ${s}</option>`).join('')}</select><button class="btn b-ln" id="rexp">${ic('dl', 16)}Exporter le détail (CSV)</button></div>
     <p class="hint2">${tot} désignation${tot > 1 ? 's' : ''} (hors refus) sur la saison ${esc(DS.saison)}. « Passées » compte les compétitions déjà jouées, pratique pour les défraiements.</p>
-    <div class="card" style="overflow-x:auto;padding:.6rem"><table class="dtb"><thead><tr><th>Arbitre</th><th>Niveau</th><th class="n">Désignations</th><th class="n">Acceptées</th><th class="n">À confirmer</th><th class="n">Refusées</th><th class="n">Passées</th><th class="n">Km</th><th class="n">Frais</th></tr></thead><tbody>` +
+    <div class="card" style="overflow-x:auto;padding:.6rem"><table class="dtb"><thead><tr><th>Arbitre</th><th>Niveau</th><th class="n">Désignations</th><th class="n">Acceptées</th><th class="n">À confirmer</th><th class="n">Refusées</th><th class="n">Passées</th><th class="n">Km</th><th class="n">Total à régler</th></tr></thead><tbody>` +
     (rows.length ? rows.map(r => `<tr><td><strong>${esc(r.nom)}</strong></td><td>${esc(r.niveau)}</td><td class="n"><strong>${r.n}</strong></td><td class="n">${r.acc}</td><td class="n">${r.prop}</td><td class="n">${r.ref}</td><td class="n">${r.pas}</td><td class="n">${r.km}</td><td class="n">${euro(r.frais)}</td></tr>`).join('') : '<tr><td colspan="9">Aucun arbitre.</td></tr>') + '</tbody></table></div>';
   $('#rs').onchange = e => { DS.saison = e.target.value; drawDesRecap(); };
 }
 function exportDes() {
-  const rows = [['Date', 'Compétition', 'Lieu', 'Heure', 'Arbitre', 'Rôle', 'Statut', 'Km', 'Frais (€)']];
-  DS.events.filter(e => seasonOf(e.date) === DS.saison && DS.des[e._id]).forEach(e => (DS.des[e._id].arbitres || []).forEach(a => rows.push([frDate(e.date), e.titre || '', e.lieu || '', e.heure || '', a.nom, dRole(a.role), dStat(a.statut), a.km || 0, String(a.frais || 0).replace('.', ',')])));
+  const rows = [['Date', 'Compétition', 'Lieu', 'Heure', 'Arbitre', 'Rôle', 'Statut', 'Barème', 'Grade', 'Forfait (€)', 'Km', 'Péages (€)', 'Total (€)']];
+  DS.events.filter(e => seasonOf(e.date) === DS.saison && DS.des[e._id]).forEach(e => (DS.des[e._id].arbitres || []).forEach(a => rows.push([frDate(e.date), e.titre || '', e.lieu || '', e.heure || '', a.nom, dRole(a.role), dStat(a.statut), (BAREME[DS.des[e._id].bareme] || [''])[0], GRADES[a.grade] || '', String(a.indem || 0).replace('.', ','), a.km || 0, String(a.peages || 0).replace('.', ','), String(a.frais || 0).replace('.', ',')])));
   if (rows.length === 1) return toast('Rien à exporter pour cette saison.', 1);
   const blob = new Blob(['\ufeff' + rows.map(r => r.map(c => '"' + String(c ?? '').replace(/"/g, '""') + '"').join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'designations-arbitres-' + DS.saison + '.csv'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
