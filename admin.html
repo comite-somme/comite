@@ -291,6 +291,7 @@ body.ro #main::before { content: 'Mode lecture seule : tu peux consulter, mais p
 .pz-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 1rem}
 .pz-sup{margin-top:1.1rem;padding-top:.9rem;border-top:1px dashed var(--gris)}
 body.ro #main .pz .btn.b-or.keep{display:inline-flex}
+.dopt{margin:.8rem 0;border:1px solid var(--gris);border-radius:10px;padding:.55rem .85rem}.dopt summary,.dfrais summary{cursor:pointer;font-weight:600;color:var(--bleu)}.dopt[open] summary{margin-bottom:.6rem}.dfrais{width:100%;margin-top:.2rem}.dx2{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.5rem}.dx2 input,.dx2 select{width:auto;min-width:6.5rem}.tuto{margin-bottom:.7rem}.tuto summary{cursor:pointer;font-weight:700;color:var(--bleu);font-size:1.02rem}.tuto ol{margin:.7rem 0 0;padding-left:1.3rem;line-height:1.55}.tuto li{margin:.3rem 0}.tuto .tip{margin:.7rem 0 0;padding:.55rem .8rem;background:#f6f4ee;border-radius:8px;font-size:.9rem}
 </style>
 </head>
 <body>
@@ -392,6 +393,11 @@ const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0
 /* Notifications, confirmation, état « en cours » */
 const toast = (m, err) => { const t = $('#toast'); t.className = err ? 'err' : ''; t.innerHTML = ic(err ? 'alert' : 'ok', 18) + '<span></span>'; t.lastChild.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 4200); };
 const ask = (title, msg, label = 'Supprimer') => new Promise(res => {
+  if (!isSup()) { /* la corbeille n'est visible que du super admin : on n'en parle pas aux autres comptes */
+    if (title === 'Mettre à la corbeille ?') title = 'Supprimer ?';
+    if (label === 'Mettre à la corbeille') label = 'Supprimer';
+    msg = String(msg).replace(/ pourra être restaur\S+ pendant 30 jours\./, ' sera supprimé.').replace(/ ?\(restaurable 30 jours\)/, '').replace(/sera mis à la corbeille/, 'sera supprimé').replace(/ seront mises à la corbeille avec elle/, ' seront supprimées avec elle').replace(/ mises à la corbeille/, ' supprimées');
+  }
   const d = $('#cfm'); $('#cfm-t').textContent = title; $('#cfm-m').textContent = msg; $('#cfm-y').textContent = label;
   $('#cfm-y').onclick = () => { d.close(); res(true); }; $('#cfm-n').onclick = () => { d.close(); res(false); }; d.oncancel = () => res(false); d.showModal();
 });
@@ -558,7 +564,7 @@ const NOBODY = { nom: '', import: false, role: 'none', droits: [], ok: false };
 let me = NOBODY;
 const rkey = t => ({ arbitres: 'membres', educateurs: 'membres', confidentialite: 'settings' }[t] || t);
 const isSup = () => me.role === 'super';
-const canSee = t => t === 'home' || t === 'moncompte' || (t === 'comptes' ? isSup() : t === 'import' ? !!me.import : t === 'corbeille' ? (isSup() || me.role === 'editeur') : isSup() || me.droits.includes(rkey(t)));
+const canSee = t => t === 'home' || t === 'moncompte' || (t === 'comptes' ? isSup() : t === 'import' ? !!me.import : t === 'corbeille' ? isSup() : t === 'tutos' ? true : isSup() || me.droits.includes(rkey(t)));
 async function loadMe(u) {
   const email = (u.email || '').toLowerCase(), hard = HARD.includes(u.uid), old = USERS[email] || {};
   let d = null;
@@ -738,8 +744,8 @@ $('#out').onclick = () => { try { history.replaceState(null, '', location.pathna
 
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
-const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], designations: ['whistle', 'Désignations'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'], moncompte: ['lock', 'Mon mot de passe'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['designations', 'settings', 'import', 'corbeille', 'journal', 'comptes', 'moncompte']]];
+const NAMES = { tutos: ['file', 'Tutos'], journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], designations: ['whistle', 'Désignations'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'], moncompte: ['lock', 'Mon mot de passe'] };
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes', 'tutos']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['designations', 'settings', 'import', 'corbeille', 'journal', 'comptes', 'moncompte']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -766,7 +772,7 @@ async function show() {
   const m = $('#main'); m.innerHTML = empty('Chargement…', 'clip');
   if (!canSee(tab)) tab = 'home';
   try { tab === 'home' ? await viewHome() : tab === 'settings' ? await viewSettings() : tab === 'import' ? viewImport() : tab === 'classements' ? await viewClass() : tab === 'confidentialite' ? await viewPrivacy()
-    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : tab === 'comptes' ? await viewComptes() : tab === 'moncompte' ? viewMonCompte() : tab === 'designations' ? await viewDesignations() : await viewList(tab); }
+    : tab === 'messages' ? await viewMessages() : tab === 'dashboard' ? await viewDashboard() : tab === 'corbeille' ? await viewTrash() : tab === 'journal' ? await viewJournal() : tab === 'notes' ? await viewNotes() : tab === 'comptes' ? await viewComptes() : tab === 'moncompte' ? viewMonCompte() : tab === 'designations' ? await viewDesignations() : tab === 'tutos' ? viewTutos() : await viewList(tab); }
   catch (e) { m.innerHTML = empty(`Une erreur est survenue : ${esc(e.message)}<br>Vérifie ta connexion, les règles Firestore et ton email admin.`, 'alert'); }
 }
 
@@ -983,7 +989,7 @@ async function viewList(col) {
   if (window._pendingNew === col) { window._pendingNew = null; if (me.role !== 'lecture') $('#add').onclick(); }
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d],[data-ra]'); if (!b) return; const id = b.dataset.e || b.dataset.d || b.dataset.ra, x = cache[col].find(i => i._id === id);
     if (b.dataset.ra) { if (await ask('Retirer l\'accord de publication ?', `« ${S.title(x)} » : la date d\'accord (${esc(x.consentement)}) sera effacée et le téléphone, l\'email et l\'adresse ne seront plus affichés sur le site.`, 'Retirer l\'accord')) { try { await updateDoc(doc(db, C, id), { consentement: '' }); await logAct('modif', objetDe(C, x), labelDe(C, x), 'Accord de publication retiré', { snap: snapOf('mod', C, id, { consentement: x.consentement }, { consentement: '' }, true) }); toast('Accord retiré — coordonnées masquées sur le site'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } return; }
-    if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast('Placé dans la corbeille'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
+    if (b.dataset.e) edit(col, x); else if (await ask('Mettre à la corbeille ?', `« ${S.title(x)} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash(C, id, x); toast(isSup() ? 'Placé dans la corbeille' : 'Supprimé'); refresh(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
 /* Dépôt d'un fichier Excel : chaque feuille devient un tableau (comme les classements) */
 let feuilles = [];
@@ -1077,7 +1083,7 @@ async function viewClass() {
   $('#xf').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; importCl(f, l); };
   dzBind($('#cz'), f => importCl(f, l, 'Catégorie 2027', $('#czn')));
   $('#main').onclick = async e => { const b = e.target.closest('[data-e],[data-d]'); if (!b) return; const id = b.dataset.e || b.dataset.d, c = l.find(i => i._id === id);
-    if (b.dataset.e) openEd(c); else if (await ask('Mettre à la corbeille ?', `« ${c.nom} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash('classements', id, c); toast('Placé dans la corbeille'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
+    if (b.dataset.e) openEd(c); else if (await ask('Mettre à la corbeille ?', `« ${c.nom} » pourra être restauré pendant 30 jours.`, 'Mettre à la corbeille')) { try { await trash('classements', id, c); toast(isSup() ? 'Placé dans la corbeille' : 'Supprimé'); show(); } catch (er) { toast('Échec : ' + er.message, 1); } } };
 }
 /* Lecture d'un fichier Excel de classement. Un tableau normal : la 1re ligne = les colonnes.
    Une simple liste en une colonne (ex : « Vétéran : né en 1966 et avant ») : chaque ligne est coupée en deux colonnes au « : ». */
@@ -1512,7 +1518,7 @@ async function viewMessages() {
   $('#main').onclick = async e => { const b = e.target.closest('[data-a]'); if (!b) return; const m = l.find(i => i._id === b.dataset.id), a = b.dataset.a;
     try { if (a === 'lu') { await save(m, { lu: !m.lu }); await logAct('modif', 'Message', labelDe('messages', m), m.lu ? 'Marqué lu' : 'Marqué non lu'); } else if (a === 'tr') { await save(m, { traite: !m.traite }); await logAct('modif', 'Message', labelDe('messages', m), m.traite ? 'Marqué traité' : 'Rouvert'); } else if (a === 're') { if (!m.lu) { save(m, { lu: true }); logAct('modif', 'Message', labelDe('messages', m), 'Ouvert (marqué lu)'); } }
       else if (a === 'cp') { await copier(b.dataset.v, b.dataset.l); }
-      else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast('Placé dans la corbeille'); }
+      else if (a === 'del' && await ask('Mettre à la corbeille ?', 'Ce message pourra être restauré pendant 30 jours.', 'Mettre à la corbeille')) { await trash('messages', m._id, m); l.splice(l.indexOf(m), 1); badge(true); draw(); toast(isSup() ? 'Placé dans la corbeille' : 'Supprimé'); }
     } catch (er) { toast('Échec : ' + er.message, 1); } };
 }
 
@@ -1533,6 +1539,60 @@ async function viewTrash() {
         if (b.dataset.r) { const w = writeBatch(db); w.set(doc(db, x.col, x.origId), x.data); w.delete(doc(db, 'corbeille', x._id)); await w.commit(); await logAct('restaure', objetDe(x.col, x.data), x.label, 'Sorti de la corbeille'); toast('Restauré'); }
         else { if (!await ask('Supprimer définitivement ?', `« ${x.label} » ne pourra plus être récupéré.`)) return; await deleteDoc(doc(db, 'corbeille', x._id)); await logAct('purge', objetDe(x.col, x.data), x.label, 'Supprimé définitivement'); toast('Supprimé'); } }
       badge(true); viewTrash(); } catch (er) { toast('Échec : ' + er.message, 1); } };
+}
+
+/* ===== Tutos : mode d'emploi pas à pas, visible par tous les comptes ===== */
+const TUTOS = [
+  ['Désigner les arbitres d\'un concours', [
+    'Ouvre « Désignations des arbitres » (menu, rubrique Outils).',
+    'Trouve le concours dans la liste (la recherche et les filtres aident) et clique sur « Désigner ».',
+    'Si aucun arbitre n\'est encore choisi, le site en propose automatiquement : ceux du club organisateur d\'abord, puis les moins sollicités de la saison.',
+    'Change un nom si besoin avec « Ajouter un arbitre » ou retire-le avec la croix.',
+    'Clique sur « Enregistrer ». C\'est terminé : tu peux ensuite prévenir les arbitres (voir le tuto suivant).'],
+    'Les avertissements en rouge (indisponible, déjà pris ce jour, niveau insuffisant) sont là pour t\'aider : lis-les avant d\'enregistrer.'],
+  ['Prévenir les arbitres et recevoir leur réponse', [
+    'Dans la désignation, clique sur « WhatsApp », « SMS » ou « Email » à côté de l\'arbitre : l\'application s\'ouvre avec le message et le lien déjà écrits.',
+    'Appuie sur « Envoyer » dans l\'application. La désignation est enregistrée automatiquement. (Le bouton « Copier » sert si tu préfères coller le message ailleurs.)',
+    'L\'arbitre clique sur le lien et répond « J\'accepte » ou « Je refuse » en un clic.',
+    'Sa réponse apparaît en haut de la liste des désignations : clique sur « Appliquer » pour mettre à jour son statut.',
+    'Tu peux aussi écrire à tous d\'un coup avec « Écrire aux arbitres » ou « Copier le message ».']],
+  ['Remplacer un arbitre qui refuse', [
+    'Ouvre la désignation du concours (bouton « Modifier »).',
+    'Clique sur « ↻ Remplacer » sous le nom de l\'arbitre : le premier arbitre disponible est ajouté et le message pour lui est copié.',
+    'Envoie le message au remplaçant (WhatsApp, SMS ou Email) puis clique sur « Enregistrer ».']],
+  ['Déclarer l\'indisponibilité d\'un arbitre', [
+    'Dans « Désignations des arbitres », ouvre l\'onglet « Indisponibilités ».',
+    'Clique sur « Ajouter », choisis l\'arbitre, les dates de début et de fin, et un motif si tu veux.',
+    'Enregistre : l\'arbitre ne sera plus proposé automatiquement sur ces dates et un avertissement s\'affichera s\'il est désigné.']],
+  ['Suivre les frais et le récapitulatif', [
+    'Dans la désignation d\'un arbitre, déplie « Frais de déplacement » : indique le grade, les km aller-retour et les péages. Le forfait se calcule tout seul avec le barème FFPJP.',
+    'L\'onglet « Récapitulatif » rassemble les désignations et les frais de la saison, et permet de les exporter.']],
+  ['Ajouter ou modifier une compétition', [
+    'Ouvre « Calendrier » dans le menu.',
+    'Clique sur « Ajouter » (ou « Modifier » sur une compétition existante).',
+    'Remplis la date, la catégorie, le titre et le club organisateur : le lieu se remplit tout seul.',
+    'Enregistre : la compétition apparaît sur le site et dans les désignations.']],
+  ['Ajouter ou modifier un arbitre', [
+    'Ouvre « Arbitres » dans le menu.',
+    'Clique sur « Ajouter un arbitre » ou « Modifier ».',
+    'Indique son nom, son niveau (départemental, régional, national), son club, son téléphone et son email.',
+    'Enregistre : il pourra être désigné dans l\'onglet « Désignations des arbitres ».'],
+    'Le niveau sert à vérifier qu\'un arbitre a le niveau demandé pour un concours.'],
+  ['Publier une actualité', [
+    'Ouvre « Actualités » dans le menu.',
+    'Clique sur « Ajouter », écris le titre et le texte.',
+    'Enregistre : l\'actualité est visible sur le site.']],
+  ['Changer mon mot de passe', [
+    'Ouvre « Mon mot de passe » dans le menu (rubrique Outils).',
+    'Saisis ton mot de passe actuel, puis le nouveau, et valide.']],
+  ['Annuler une erreur', [
+    'Ouvre « Journal » dans le menu (si ton compte y a accès).',
+    'Retrouve l\'action concernée et utilise le bouton « Annuler cette modification » quand il est proposé.'],
+    'Un doute ? Demande à un super admin avant de tout refaire.']
+];
+function viewTutos() {
+  $('#main').innerHTML = head('Tutos', 'Le mode d\'emploi du site, étape par étape. Clique sur un titre pour l\'ouvrir.') +
+    TUTOS.map(([t, steps, tip], i) => `<details class="card tuto" ${i === 0 ? 'open' : ''}><summary>${esc(t)}</summary><ol>${steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>${tip ? `<p class="tip">💡 ${esc(tip)}</p>` : ''}</details>`).join('');
 }
 
 /* ===== Désignations des arbitres =====
@@ -1692,15 +1752,17 @@ function openDes(id) {
   if (me.role === 'lecture') return toast('Mode lecture seule : tu ne peux pas modifier les désignations.', 1);
   const ev = evById(id); if (!ev) return;
   if (!DS.arbs.length) return toast('Ajoute d\'abord des arbitres dans l\'onglet « Arbitres ».', 1);
-  const before = DS.des[id] || null, f = $('#dform');
+  let before = DS.des[id] || null; const f = $('#dform');
   const cur = { arbitres: ((before && before.arbitres) || []).map(a => ({ ...a })), bareme: Number.isInteger(before?.bareme) ? before.bareme : (BAREME_DEFAUT[ev.type] ?? '') };
   f.innerHTML = `<h2 id="dlg-t">Désigner les arbitres</h2><p class="hint2"><strong>${esc(ev.titre)}</strong><br>${esc(longDate(ev.date))}${ev.lieu ? ' · ' + esc(ev.lieu) : ''}${ev.heure ? ' · ' + esc(ev.heure) : ''}</p>
-    <div class="f"><label for="dteams">Nombre d'équipes inscrites</label><input id="dteams" type="number" min="0" value="${eqOf(ev) || ''}"></div>
-    <div class="f"><label for="dreqin">Arbitres nécessaires (vide = calculé d'après les équipes : 1 par tranche de ${EQ_PAR_ARBITRE})</label><input id="dreqin" type="number" min="0" value="${before && Number.isInteger(before.requis) ? before.requis : ''}"></div>
-    <div class="f"><label for="dbar">Type de compétition (barème d'indemnisation FFPJP)</label><select id="dbar"><option value="">— Choisir —</option>${BAREME.map((b, k) => `<option value="${k}" ${k === cur.bareme ? 'selected' : ''}>${esc(b[0])}</option>`).join('')}</select></div>
     <p class="hint2" id="dreq"></p><div id="dl"></div><div id="dw"></div>
-    <div class="f"><label for="dadd">Ajouter un arbitre</label><select id="dadd"></select><button type="button" class="btn b-ln" id="dsug" style="margin-top:.4rem">${ic('whistle', 16)}Suggérer (club organisateur d'abord)</button></div>
-    <div class="f"><label for="dnote">Note privée (facultatif)</label><textarea id="dnote" rows="2">${esc((before && before.note) || '')}</textarea></div>
+    <div class="f"><label for="dadd">Ajouter un arbitre</label><select id="dadd"></select><button type="button" class="btn b-ln" id="dsug" style="margin-top:.4rem">${ic('whistle', 16)}Proposer automatiquement</button></div>
+    <details class="dopt"><summary>Plus d'options (équipes, type de compétition, note)</summary>
+      <div class="f"><label for="dteams">Nombre d'équipes inscrites</label><input id="dteams" type="number" min="0" value="${eqOf(ev) || ''}"></div>
+      <div class="f"><label for="dreqin">Arbitres nécessaires (vide = calculé d'après les équipes : 1 par tranche de ${EQ_PAR_ARBITRE})</label><input id="dreqin" type="number" min="0" value="${before && Number.isInteger(before.requis) ? before.requis : ''}"></div>
+      <div class="f"><label for="dbar">Type de compétition (barème d'indemnisation FFPJP)</label><select id="dbar"><option value="">— Choisir —</option>${BAREME.map((b, k) => `<option value="${k}" ${k === cur.bareme ? 'selected' : ''}>${esc(b[0])}</option>`).join('')}</select></div>
+      <div class="f"><label for="dnote">Note privée (facultatif)</label><textarea id="dnote" rows="2">${esc((before && before.note) || '')}</textarea></div>
+    </details>
     <div class="mact"><button type="button" class="btn b-ln" id="no">Annuler</button><button type="button" class="btn b-ln" id="dcopy">Copier le message</button><button type="button" class="btn b-ln" id="dmail">${ic('mail', 16)}Écrire aux arbitres</button><button class="btn b-or" id="yes">${ic('save')}Enregistrer</button></div>`;
   const applyForfait = a => { if (cur.bareme !== '' && Number.isInteger(a.grade)) a.indem = BAREME[cur.bareme][1][a.grade]; };
   const reqNow = () => { const r = $('#dreqin').value; return r !== '' ? Math.max(0, +r) : (ev.type === 'autre' ? 0 : Math.max(1, Math.ceil((+$('#dteams').value || 0) / EQ_PAR_ARBITRE))); };
@@ -1713,7 +1775,8 @@ function openDes(id) {
         <select data-di="${i}" data-dk="role" aria-label="Rôle de ${esc(a.nom)}">${DROLES.map(([k, n]) => `<option value="${k}" ${k === a.role ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <select data-di="${i}" data-dk="statut" aria-label="Statut de ${esc(a.nom)}">${DSTAT.map(([k, n]) => `<option value="${k}" ${k === a.statut ? 'selected' : ''}>${n}</option>`).join('')}</select>
         <button type="button" class="btn b-ko b-ic" data-drm="${i}" aria-label="Retirer ${esc(a.nom)}" title="Retirer">${ic('x', 16)}</button>
-        <div class="dx"><select data-di="${i}" data-dk="grade" aria-label="Grade de ${esc(a.nom)}"><option value="">Grade ?</option>${GRADES.map((g, k) => `<option value="${k}" ${a.grade === k ? 'selected' : ''}>${g}</option>`).join('')}</select><input type="number" min="0" placeholder="km A/R" title="Kilomètres aller-retour depuis le domicile (0,30 € / km)" aria-label="Kilomètres aller-retour de ${esc(a.nom)}" data-di="${i}" data-dk="km" value="${a.km || ''}"><input type="number" min="0" step="0.01" placeholder="Péages €" aria-label="Péages de ${esc(a.nom)}" data-di="${i}" data-dk="peages" value="${a.peages || ''}"><input type="number" min="0" step="0.01" placeholder="Forfait €" title="Forfait du barème FFPJP (modifiable)" aria-label="Forfait de ${esc(a.nom)}" data-di="${i}" data-dk="indem" value="${a.indem ?? ''}"><strong class="dtot" id="dtot${i}" title="Forfait + km × 0,30 € + péages">${euro(fraisOf(a))}</strong><button type="button" class="btn b-ln" data-dcp="${i}">Message + lien</button><button type="button" class="btn b-ln" data-drp="${i}">↻ Remplacer</button></div></div>`; }).join('') : '<p class="hint2">Aucun arbitre désigné pour le moment.</p>';
+        <div class="dx"><button type="button" class="btn b-or" data-ds="${i}:wa" title="Ouvre WhatsApp avec le message et le lien déjà écrits">WhatsApp</button><button type="button" class="btn b-ln" data-ds="${i}:sms" title="Ouvre le SMS avec le message et le lien déjà écrits">SMS</button><button type="button" class="btn b-ln" data-ds="${i}:mail" title="Ouvre le mail avec le message et le lien déjà écrits">Email</button><button type="button" class="btn b-ln" data-dcp="${i}" title="Copier le message et le lien">Copier</button><button type="button" class="btn b-ln" data-drp="${i}">↻ Remplacer</button>
+          <details class="dfrais"><summary>Frais de déplacement : <strong class="dtot" id="dtot${i}" title="Forfait + km × 0,30 € + péages">${euro(fraisOf(a))}</strong></summary><div class="dx2"><select data-di="${i}" data-dk="grade" aria-label="Grade de ${esc(a.nom)}"><option value="">Grade ?</option>${GRADES.map((g, k) => `<option value="${k}" ${a.grade === k ? 'selected' : ''}>${g}</option>`).join('')}</select><input type="number" min="0" placeholder="km A/R" title="Kilomètres aller-retour depuis le domicile (0,30 € / km)" aria-label="Kilomètres aller-retour de ${esc(a.nom)}" data-di="${i}" data-dk="km" value="${a.km || ''}"><input type="number" min="0" step="0.01" placeholder="Péages €" aria-label="Péages de ${esc(a.nom)}" data-di="${i}" data-dk="peages" value="${a.peages || ''}"><input type="number" min="0" step="0.01" placeholder="Forfait €" title="Forfait du barème FFPJP (modifiable)" aria-label="Forfait de ${esc(a.nom)}" data-di="${i}" data-dk="indem" value="${a.indem ?? ''}"></div></details></div></div>`; }).join('') : '<p class="hint2">Aucun arbitre désigné pour le moment.</p>';
     const taken = new Set(cur.arbitres.map(a => a.id));
     $('#dadd').innerHTML = '<option value="">Choisir un arbitre…</option>' + DS.arbs.filter(m => !taken.has(m._id)).sort((a, b) => memeClub(b, ev) - memeClub(a, ev)).map(m => { const fl = []; if (indispoOf(m._id, ev.date)) fl.push('indisponible'); if (dejaPris(m._id, ev)) fl.push('déjà pris ce jour');
       return `<option value="${esc(m._id)}">${memeClub(m, ev) ? '★ ' : ''}${esc(m.nom)}${m.role ? ' — ' + esc(m.role) : ''}${fl.length ? ' ⚠ ' + fl.join(', ') : ''}</option>`; }).join('');
@@ -1729,8 +1792,9 @@ function openDes(id) {
     const wasP = old.role === 'principal'; old.statut = 'refuse'; if (wasP) old.role = 'arbitre';
     const n = { id: c.m._id, nom: c.m.nom, role: wasP ? 'principal' : old.role, statut: 'propose', tok: newTok() }; cur.arbitres.push(n); drawL();
     copyInd(ev, n, old.nom + ' remplacé par ' + c.m.nom); };
-  f.onclick = e => { const b = e.target.closest('[data-drm],[data-dcp],[data-drp]'); if (!b) return;
-    if (b.dataset.drm !== undefined) { cur.arbitres.splice(+b.dataset.drm, 1); drawL(); }
+  f.onclick = e => { const b = e.target.closest('[data-drm],[data-dcp],[data-drp],[data-ds]'); if (!b) return;
+    if (b.dataset.ds) { const [i, c] = b.dataset.ds.split(':'); sendTo(+i, c); }
+    else if (b.dataset.drm !== undefined) { cur.arbitres.splice(+b.dataset.drm, 1); drawL(); }
     else if (b.dataset.dcp !== undefined) copyInd(ev, cur.arbitres[+b.dataset.dcp]);
     else replaceArb(+b.dataset.drp); };
   $('#dmail').onclick = () => mailDes(ev, cur.arbitres, false);
@@ -1742,21 +1806,38 @@ function openDes(id) {
     if (!c.length) return toast('Aucun arbitre disponible ce jour-là.', 1);
     c.forEach(x => cur.arbitres.push({ id: x.m._id, nom: x.m.nom, role: cur.arbitres.some(a => a.role === 'principal') ? 'arbitre' : 'principal', statut: 'propose' }));
     drawL(); toast(c.length + ' arbitre' + (c.length > 1 ? 's' : '') + ' proposé' + (c.length > 1 ? 's' : '') + (c.some(x => x.club) ? ' (club organisateur en priorité)' : '')); };
-  f.onsubmit = async e => { e.preventDefault();
+  if (!before && reqNow() > 0) $('#dsug').click(); /* compétition sans arbitre : on propose directement, il ne reste qu'à enregistrer */
+  const doSave = async keep => {
     const note = $('#dnote').value.trim(), list = cur.arbitres.map(a => ({ id: a.id, nom: a.nom, role: a.role, statut: a.statut, tok: a.tok || newTok(), grade: Number.isInteger(a.grade) ? a.grade : null, km: Number(a.km) || 0, peages: Number(a.peages) || 0, indem: Number(a.indem) || 0, frais: fraisOf(a) }));
-    if (!before && !list.length) return toast('Ajoute au moins un arbitre.', 1);
+    if (!before && !list.length) { toast('Ajoute au moins un arbitre.', 1); return false; }
     const rq = $('#dreqin').value, eq = +$('#dteams').value || 0, requis = rq === '' ? null : Math.max(0, +rq);
     const bareme = Number.isInteger(cur.bareme) ? cur.bareme : null;
     let lines = desDiff(before, { arbitres: list, note, requis, bareme });
     if (eq !== eqOf(ev)) lines += (lines ? '\n' : '') + 'Équipes : ' + eqOf(ev) + ' → ' + eq;
-    if (before && !lines) { $('#dlg').close(); return toast('Aucun changement.'); }
+    if (before && !lines) { if (keep) return true; $('#dlg').close(); toast('Aucun changement.'); return false; }
+    let ok = false;
     await busy($('#yes'), async () => { try {
       const did = 'ev_' + id, d = { type: 'ev', eventId: id, date: ev.date, titre: ev.titre || '', lieu: ev.lieu || '', heure: ev.heure || '', arbitres: list, note, requis, bareme, majLe: Date.now(), par: me.nom || '' };
       if (eq !== eqOf(ev)) { await setDoc(doc(db, 'events', id), { equipes: eq }, { merge: true }); ev.equipes = eq; }
       await setDoc(doc(db, 'designations', did), d);
       await logAct(before ? 'modif' : 'ajout', 'Désignation', `${ev.titre || 'Compétition'} (${frDate(ev.date)})`, lines, { snap: snapOf(before ? 'mod' : 'add', 'designations', did, before, d) });
-      DS.des[id] = { ...d, _id: did }; $('#dlg').close(); toast('Désignation enregistrée'); drawDes();
+      DS.des[id] = { ...d, _id: did }; before = DS.des[id]; ok = true;
+      if (!keep) { $('#dlg').close(); toast('Désignation enregistrée'); } drawDes();
     } catch (er) { toast('Échec : ' + er.message, 1); } });
+    return ok;
+  };
+  f.onsubmit = e => { e.preventDefault(); doSave(false); };
+  /* Envoi direct : enregistre la désignation (pour que le lien de réponse soit reconnu), puis ouvre WhatsApp / SMS / mail avec le message déjà écrit */
+  const sendTo = async (i, canal) => {
+    const a = cur.arbitres[i], m = DS.arbs.find(x => x._id === a.id) || {};
+    const to = canal === 'mail' ? String(m.email || '').trim() : telIntl(m.tel);
+    if (!to) return toast(`Pas de ${canal === 'mail' ? 'adresse email' : 'numéro de téléphone valide'} pour ${a.nom} : complète sa fiche dans l'onglet « Arbitres ».`, 1);
+    const body = msgInd(ev, a);
+    if (!await doSave(true)) return;
+    const enc = encodeURIComponent;
+    if (canal === 'wa') { const l = document.createElement('a'); l.href = 'https://wa.me/' + to + '?text=' + enc(body); l.target = '_blank'; l.rel = 'noopener'; document.body.appendChild(l); l.click(); l.remove(); }
+    else location.href = canal === 'sms' ? 'sms:+' + to + '?&body=' + enc(body) : 'mailto:' + enc(to) + '?subject=' + enc(`Désignation arbitre — ${ev.titre} (${frDate(ev.date)})`) + '&body=' + enc(body);
+    toast('Désignation enregistrée · message prêt pour ' + a.nom + ' : appuie sur Envoyer');
   };
 }
 function mailDes(ev, list, copy) {
@@ -1770,9 +1851,13 @@ function mailDes(ev, list, copy) {
 }
 
 function lienRep(ev, a) { a.tok = a.tok || newTok(); const q = new URLSearchParams({ e: ev._id, a: a.id, t: a.tok, n: a.nom || '', ti: ev.titre || '', d: ev.date || '', l: ev.lieu || '', h: ev.heure || '', r: dRole(a.role) }); return location.origin + location.pathname.replace(/[^/]*$/, '') + 'arbitre.html#' + q.toString(); }
-function copyInd(ev, a, pre) {
+const telIntl = t => { let n = String(t || '').replace(/[^\d+]/g, ''); if (n.startsWith('+')) n = n.slice(1); else if (n.startsWith('00')) n = n.slice(2); else if (n.startsWith('0')) n = '33' + n.slice(1); return /^\d{9,15}$/.test(n) ? n : ''; };
+function msgInd(ev, a) {
   const eq = +($('#dteams') || {}).value || eqOf(ev);
-  const body = `Bonjour,\n\nVous êtes désigné(e) (${dRole(a.role).toLowerCase()}) pour :\n• ${ev.titre}\n• ${longDate(ev.date)}${ev.lieu ? '\n• Lieu : ' + ev.lieu : ''}${ev.heure ? '\n• Heure : ' + ev.heure : ''}${eq ? '\n• Équipes attendues : ' + eq : ''}\n\nMerci de répondre en un clic (accepter / refuser) :\n${lienRep(ev, a)}\n\nComité Départemental 80`;
+  return `Bonjour,\n\nVous êtes désigné(e) (${dRole(a.role).toLowerCase()}) pour :\n• ${ev.titre}\n• ${longDate(ev.date)}${ev.lieu ? '\n• Lieu : ' + ev.lieu : ''}${ev.heure ? '\n• Heure : ' + ev.heure : ''}${eq ? '\n• Équipes attendues : ' + eq : ''}\n\nMerci de répondre en un clic (accepter / refuser) :\n${lienRep(ev, a)}\n\nComité Départemental 80`;
+}
+function copyInd(ev, a, pre) {
+  const body = msgInd(ev, a);
   navigator.clipboard.writeText(body).then(() => toast((pre ? pre + ' · ' : '') + 'message + lien copiés pour ' + a.nom + ' (pense à enregistrer)'), () => toast('Copie impossible sur ce navigateur', 1));
 }
 function repBanner() {
@@ -1857,7 +1942,7 @@ async function delInd(id) {
   if (me.role === 'lecture') return toast('Mode lecture seule.', 1);
   const x = DS.ind.find(i => i._id === id); if (!x) return;
   if (!await ask('Mettre à la corbeille ?', `L'indisponibilité de ${x.nom} (${x.au ? 'du ' + frDate(x.du) + ' au ' + frDate(x.au) : 'le ' + frDate(x.du)}) pourra être restaurée pendant 30 jours.`, 'Mettre à la corbeille')) return;
-  try { await trash('designations', id, x); DS.ind = DS.ind.filter(i => i._id !== id); toast('Placé dans la corbeille'); drawDes(); } catch (er) { toast('Échec : ' + er.message, 1); }
+  try { await trash('designations', id, x); DS.ind = DS.ind.filter(i => i._id !== id); toast(isSup() ? 'Placé dans la corbeille' : 'Supprimé'); drawDes(); } catch (er) { toast('Échec : ' + er.message, 1); }
 }
 
 function recapRows() {
