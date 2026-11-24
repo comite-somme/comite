@@ -549,8 +549,8 @@ const isProtected = a => !!a && (a.email || '').toLowerCase() === OWNER && !isOw
 const HARD = ['cjMQ0hSuGpfhb85Rzok2X0hGjYW2', 'BCNghAr3FFWImmgNyTH6OzU0Juo1'];
 const RIGHTS = [
   ['Général', [['dashboard', 'Tableau de bord'], ['messages', 'Messages'], ['notes', 'Bloc-notes']]],
-  ['Contenu du site', [['events', 'Calendrier'], ['actualites', 'Actualités'], ['clubs', 'Clubs'], ['membres', 'Le Comité, arbitres, éducateurs'], ['designations', 'Désignations des arbitres'], ['annuaire', 'Annuaire'], ['archives', 'Archives'], ['championnats', 'Championnats'], ['coupedefrance', 'Coupe de France'], ['regionaux', 'Régionaux / France'], ['championnatsclubs', 'Champ. des clubs'], ['documentations', 'Documentations'], ['classements', 'Classements'], ['settings', 'Infos du site et confidentialité']]],
-  ['Outils', [['journal', 'Journal']]]
+  ['Contenu du site', [['events', 'Calendrier'], ['actualites', 'Actualités'], ['clubs', 'Clubs'], ['membres', 'Le Comité, arbitres, éducateurs'], ['annuaire', 'Annuaire'], ['archives', 'Archives'], ['championnats', 'Championnats'], ['coupedefrance', 'Coupe de France'], ['regionaux', 'Régionaux / France'], ['championnatsclubs', 'Champ. des clubs'], ['documentations', 'Documentations'], ['classements', 'Classements'], ['settings', 'Infos du site et confidentialité']]],
+  ['Outils', [['designations', 'Désignations des arbitres'], ['journal', 'Journal']]]
 ];
 const ALLR = RIGHTS.flatMap(g => g[1].map(x => x[0]));
 const ROLES = { super: 'Super admin', editeur: 'Éditeur', lecture: 'Lecture seule' };
@@ -739,7 +739,7 @@ $('#out').onclick = () => { try { history.replaceState(null, '', location.pathna
 /* Navigation (menu hamburger) */
 let tab = 'home', cache = {};
 const NAMES = { journal: ['clock', 'Journal'], home: ['grid', 'Accueil'], events: ['cal', 'Calendrier'], actualites: ['news', 'Actualités'], messages: ['mail', 'Messages'], notes: ['note', 'Bloc-notes'], clubs: ['pin', 'Clubs'], membres: ['users', 'Le Comité'], arbitres: ['whistle', 'Arbitres'], educateurs: ['edu', 'Éducateurs'], designations: ['whistle', 'Désignations'], annuaire: ['ext', 'Annuaire'], archives: ['clip', 'Archives'], documentations: ['file', 'Documentations'], classements: ['chart', 'Classements'], confidentialite: ['lock', 'Confidentialité'], dashboard: ['chart', 'Tableau de bord'], championnats: ['trophy', 'Championnats'], coupedefrance: ['award', 'Coupe de France'], regionaux: ['map', 'Régionaux / France'], championnatsclubs: ['shield', 'Champ. des clubs'], corbeille: ['trash', 'Corbeille'], settings: ['sliders', 'Infos du site'], import: ['dl', 'Import'], comptes: ['users', 'Comptes'], moncompte: ['lock', 'Mon mot de passe'] };
-const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'designations', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['settings', 'import', 'corbeille', 'journal', 'comptes', 'moncompte']]];
+const GROUPS = [['Général', ['home', 'dashboard', 'messages', 'notes']], ['Contenu du site', ['events', 'actualites', 'clubs', 'membres', 'arbitres', 'educateurs', 'annuaire', 'archives', 'championnats', 'coupedefrance', 'regionaux', 'championnatsclubs', 'documentations', 'classements', 'confidentialite']], ['Outils', ['designations', 'settings', 'import', 'corbeille', 'journal', 'comptes', 'moncompte']]];
 const drawer = $('#drawer'), scrim = $('#scrim'), burger = $('#burger');
 burger.innerHTML = ic('menu', 22) + '<span id="curname"></span>';
 $('#dclose').innerHTML = ic('x', 22);
@@ -1551,8 +1551,8 @@ const seasonOf = d => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 /* Arbitre du club organisateur : le club de l'arbitre contient la ville ou le nom de l'association du club organisateur (ou l'inverse) */
 const memeClub = (m, ev) => { const a = norm(m.club); if (!a || !ev.club) return false; return String(ev.club).split('—').map(norm).filter(p => p.length >= 3).some(p => a.includes(p) || p.includes(a)); };
-/* Nombre d'arbitres : 1 jusqu'à 32 équipes, puis +1 par tranche de 32 équipes (à ajuster ici). Les compétitions « Autre » (AG, stage…) n'en demandent pas. */
-const EQ_PAR_ARBITRE = 32;
+/* Nombre d'arbitres : 1 arbitre par tranche de 64 équipes (1 jusqu'à 64, 2 de 65 à 128…) (à ajuster ici). Les compétitions « Autre » (AG, stage…) n'en demandent pas. */
+const EQ_PAR_ARBITRE = 64;
 const eqOf = ev => Number(ev.equipes) || 0;
 const actifs = d => ((d && d.arbitres) || []).filter(a => a.statut !== 'refuse');
 const requisOf = (ev, d) => (d && Number.isInteger(d.requis)) ? d.requis : (ev.type === 'autre' ? 0 : Math.max(1, Math.ceil(eqOf(ev) / EQ_PAR_ARBITRE)));
