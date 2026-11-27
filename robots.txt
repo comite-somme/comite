@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /arbitre.html
+Disallow: /offline.html
+
+Sitemap: https://somme-petanque-cd80-ffpjp.com/sitemap.xml
